@@ -2,6 +2,7 @@ import { serveStdio } from '@modelcontextprotocol/server/stdio'
 import { createIdentityContext } from '@futurestaff/fs-core'
 import { createHttpSelectionCenterClient } from './client.js'
 import { createSelectionCenterServer } from './server.js'
+import { createJsonStderrLogger } from './observability.js'
 
 function required(name: string): string {
   const value = process.env[name]?.trim()
@@ -17,6 +18,8 @@ const context = createIdentityContext({
 const client = createHttpSelectionCenterClient({
   baseUrl: required('SELECTION_CENTER_BASE_URL'),
   apiKey: required('SELECTION_CENTER_API_KEY'),
+  ...(process.env.SELECTION_CENTER_TIMEOUT_MS ? { timeoutMs: Number(process.env.SELECTION_CENTER_TIMEOUT_MS) } : {}),
+  logger: createJsonStderrLogger(),
 })
 
 void serveStdio(() => createSelectionCenterServer(client, context))

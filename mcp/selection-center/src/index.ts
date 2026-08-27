@@ -1,3 +1,5 @@
 export * from './client.js'
+export * from './observability.js'
+export * from './mock.js'
 export * from './schemas.js'
 export * from './server.js'

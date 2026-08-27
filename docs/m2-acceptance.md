@@ -9,6 +9,8 @@
 - [x] The Alpha Profile mounts the server through the official DSH MCP client.
 - [x] The Profile row stays disabled until base URL and API key are configured.
 - [x] Contract and in-memory MCP tests pass without a real upstream service.
+- [x] A real stdio MCP subprocess passes an end-to-end search against a loopback mock upstream.
+- [x] Outbound calls have bounded timeouts, correlation IDs, and secret-safe structured completion logs.
 
 ## Pending external acceptance
 

@@ -34,6 +34,7 @@ If Windows Application Control blocks DSH's native `sharp` module, run the Docke
 | `npm run profile:install` | Stage the custom Profile and install `fs-core` |
 | `npm run profile:dump` | Print the final composed DSH plugin tree |
 | `npm run dev -- --port 3080 --no-open` | Start the FutureStaff Alpha Web Profile |
+| `npm run selection:mock` | Start the loopback-only in-memory Selection Center upstream |
 
 ## Structure
 
@@ -51,6 +52,7 @@ scripts/                    Profile staging utility
 
 The Selection Center row is automatically disabled until both
 `SELECTION_CENTER_BASE_URL` and `SELECTION_CENTER_API_KEY` are configured.
+Local npm commands load `.env` automatically; the mock workflow is documented in `mcp/selection-center/README.md`.
 
 See [architecture](docs/architecture.md), [M0/M1 acceptance](docs/m0-m1-acceptance.md), [M2 acceptance](docs/m2-acceptance.md), and [development conventions](docs/development.md).
 

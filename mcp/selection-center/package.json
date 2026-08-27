@@ -10,7 +10,8 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test",
-    "start": "node lib/stdio.js"
+    "start": "node lib/stdio.js",
+    "mock": "node lib/mock-cli.js"
   },
   "dependencies": {
     "@futurestaff/fs-core": "0.1.0",

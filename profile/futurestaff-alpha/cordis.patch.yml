@@ -21,6 +21,7 @@
         env:
           SELECTION_CENTER_BASE_URL: !!js process.env.SELECTION_CENTER_BASE_URL
           SELECTION_CENTER_API_KEY: !!js process.env.SELECTION_CENTER_API_KEY
+          SELECTION_CENTER_TIMEOUT_MS: !!js process.env.SELECTION_CENTER_TIMEOUT_MS
           FUTURESTAFF_TENANT_ID: !!js process.env.FUTURESTAFF_TENANT_ID
           FUTURESTAFF_USER_ID: !!js process.env.FUTURESTAFF_USER_ID
         toolCallTimeoutMs: 30000

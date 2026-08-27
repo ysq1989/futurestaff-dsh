@@ -11,8 +11,9 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "check": "npm run typecheck && npm test && npm run build",
     "profile:install": "node scripts/install-profile.mjs",
-    "profile:dump": "cross-env DSH_HOME=.dsh pnpm dlx @deepseek-ai/dsh@0.1.1-rc.2 --profile futurestaff-alpha --dump-config",
-    "dev": "cross-env DSH_HOME=.dsh pnpm dlx @deepseek-ai/dsh@0.1.1-rc.2 --profile futurestaff-alpha"
+    "profile:dump": "cross-env DSH_HOME=.dsh NODE_OPTIONS=--import=./scripts/load-env.mjs pnpm dlx @deepseek-ai/dsh@0.1.1-rc.2 --profile futurestaff-alpha --dump-config",
+    "dev": "cross-env DSH_HOME=.dsh NODE_OPTIONS=--import=./scripts/load-env.mjs pnpm dlx @deepseek-ai/dsh@0.1.1-rc.2 --profile futurestaff-alpha",
+    "selection:mock": "npm run build -w @futurestaff/selection-center-mcp && node --import=./scripts/load-env.mjs mcp/selection-center/lib/mock-cli.js"
   },
   "engines": { "node": ">=22" },
   "devDependencies": {
