@@ -10,6 +10,7 @@
     - id: mcp-selection-center
       name: '@deepseek-ai/dsh-mcp-client'
       disabled: !!js >-
+        (process.env.PRODUCT_HUB_MCP_URL && process.env.PRODUCT_HUB_AGENT_KEY) ||
         !process.env.SELECTION_CENTER_BASE_URL ||
         !process.env.SELECTION_CENTER_API_KEY
       config:
@@ -25,4 +26,18 @@
           FUTURESTAFF_TENANT_ID: !!js process.env.FUTURESTAFF_TENANT_ID
           FUTURESTAFF_USER_ID: !!js process.env.FUTURESTAFF_USER_ID
         toolCallTimeoutMs: 30000
+        failOnStartupError: true
+
+    - id: mcp-product-hub
+      name: '@deepseek-ai/dsh-mcp-client'
+      disabled: !!js >-
+        !process.env.PRODUCT_HUB_MCP_URL ||
+        !process.env.PRODUCT_HUB_AGENT_KEY
+      config:
+        serverName: product-hub
+        transport: streamable-http
+        url: !!js process.env.PRODUCT_HUB_MCP_URL
+        headers:
+          Authorization: !!js '`Bearer ${process.env.PRODUCT_HUB_AGENT_KEY}`'
+        toolCallTimeoutMs: 60000
         failOnStartupError: true

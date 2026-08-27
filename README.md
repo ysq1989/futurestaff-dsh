@@ -7,6 +7,7 @@ FutureStaff's upgrade-friendly extension layer for [DeepSeek Harness](https://gi
 - **M0:** boot the official DSH Web surface through `futurestaff-alpha`.
 - **M1:** mount `fs-core`, expose validated FutureStaff identity context, and standardize Tool execution metadata.
 - **M2:** a contract-first Selection Center MCP with four Tools and an isolated provisional HTTP adapter.
+- **M2 live path:** direct authenticated Streamable HTTP MCP connection to FutureStaff Product Hub.
 - **Deployment:** server-first Docker image with separate test and production Compose topology.
 - **Not in scope:** Vietnam visa business calls, Local Runner, final auth, and billing.
 
@@ -51,9 +52,11 @@ docker/                     Server image, dev/prod Compose, and Nginx example
 scripts/                    Profile staging utility
 ```
 
-The Selection Center row is automatically disabled until both
-`SELECTION_CENTER_BASE_URL` and `SELECTION_CENTER_API_KEY` are configured.
-Local npm commands load `.env` automatically; the mock workflow is documented in `mcp/selection-center/README.md`.
+The formal Product Hub row is enabled when `PRODUCT_HUB_MCP_URL` and
+`PRODUCT_HUB_AGENT_KEY` are configured. It takes precedence over the provisional
+Selection Center row, which remains available for isolated local testing. Local
+npm commands load `.env` automatically; the mock workflow is documented in
+`mcp/selection-center/README.md`.
 
 See [architecture](docs/architecture.md), [M0/M1 acceptance](docs/m0-m1-acceptance.md), [M2 acceptance](docs/m2-acceptance.md), and [development conventions](docs/development.md).
 
