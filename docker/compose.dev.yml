@@ -29,6 +29,7 @@ services:
         condition: service_healthy
     environment:
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?set DEEPSEEK_API_KEY}
+      DSH_TRUSTED_HOST: ${DSH_TRUSTED_HOST:-dsh.fsstory.net}
       FUTURESTAFF_TENANT_ID: ${FUTURESTAFF_TENANT_ID:-tenant-development}
       FUTURESTAFF_USER_ID: ${FUTURESTAFF_USER_ID:-user-development}
       SELECTION_CENTER_BASE_URL: http://selection-center-mock:3301/

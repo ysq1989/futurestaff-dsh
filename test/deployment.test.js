@@ -27,6 +27,21 @@ test('image pins DSH, runs unprivileged, and installs the Profile into persisten
   assert.match(entrypoint, /npm run profile:install[\s\S]*exec dsh/)
 })
 
+test('container forwards the configured public domain to the DSH trusted-host fence', async () => {
+  const [entrypoint, development, production, envExample] = await Promise.all([
+    read('docker/entrypoint.sh'),
+    read('docker/compose.dev.yml'),
+    read('docker/compose.prod.yml'),
+    read('.env.example'),
+  ])
+
+  assert.match(entrypoint, /DSH_TRUSTED_HOST/)
+  assert.match(entrypoint, /--trusted-host/)
+  assert.match(development, /DSH_TRUSTED_HOST: \$\{DSH_TRUSTED_HOST:-dsh\.fsstory\.net\}/)
+  assert.match(production, /DSH_TRUSTED_HOST: \$\{DSH_TRUSTED_HOST:\?set DSH_TRUSTED_HOST\}/)
+  assert.match(envExample, /^DSH_TRUSTED_HOST=dsh\.fsstory\.net$/m)
+})
+
 test('image uses a configurable npm registry that is reachable from the target server', async () => {
   const dockerfile = await read('docker/Dockerfile')
   assert.match(dockerfile, /ARG NPM_REGISTRY=https:\/\/registry\.npmmirror\.com/)
