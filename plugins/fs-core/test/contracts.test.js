@@ -44,6 +44,14 @@ test('Product Hub read tools execute without approval', () => {
     productHubApprovalDecision('mcp__product-hub__product_hub_products_search'),
     undefined,
   )
+  assert.equal(
+    classifyProductHubTool('mcp__product-hub__product_hub_pool_get'),
+    'read',
+  )
+  assert.equal(
+    productHubApprovalDecision('mcp__product-hub__product_hub_pool_get'),
+    undefined,
+  )
 })
 
 test('known Product Hub write tools require approval', () => {

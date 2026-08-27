@@ -9,7 +9,7 @@ const PRODUCT_HUB_TOOL_PREFIX = 'mcp__product-hub__product_hub_'
 const PRODUCT_HUB_READ_TOOLS = new Set([
   `${PRODUCT_HUB_TOOL_PREFIX}products_search`,
   `${PRODUCT_HUB_TOOL_PREFIX}pools_list`,
-  `${PRODUCT_HUB_TOOL_PREFIX}pools_get`,
+  `${PRODUCT_HUB_TOOL_PREFIX}pool_get`,
   `${PRODUCT_HUB_TOOL_PREFIX}design_get`,
 ])
 

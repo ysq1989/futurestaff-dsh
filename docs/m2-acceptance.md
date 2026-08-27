@@ -13,9 +13,9 @@
 - [x] Outbound calls have bounded timeouts, correlation IDs, and secret-safe structured completion logs.
 - [x] Product Hub write Tools enter DSH's one-time approval flow before dispatch.
 - [x] Product Hub reads use an explicit allowlist; unknown future tools require approval by default.
+- [x] Live non-production acceptance proves a rejected pool creation leaves no pool and an approved-once creation writes exactly one empty test pool.
 
 ## Pending external acceptance
 
 - Confirm provisional paths and field mappings against the real Selection Center API.
-- Complete a live approved pool mutation and a rejected mutation in the non-production tenant.
 - Replace Alpha's process-wide identity with request-scoped authenticated identity before multi-tenant deployment.
