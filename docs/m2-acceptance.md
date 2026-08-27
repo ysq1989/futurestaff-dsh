@@ -11,9 +11,11 @@
 - [x] Contract and in-memory MCP tests pass without a real upstream service.
 - [x] A real stdio MCP subprocess passes an end-to-end search against a loopback mock upstream.
 - [x] Outbound calls have bounded timeouts, correlation IDs, and secret-safe structured completion logs.
+- [x] Product Hub write Tools enter DSH's one-time approval flow before dispatch.
+- [x] Product Hub reads use an explicit allowlist; unknown future tools require approval by default.
 
 ## Pending external acceptance
 
 - Confirm provisional paths and field mappings against the real Selection Center API.
-- Run a live search and pool mutation in a non-production tenant.
+- Complete a live approved pool mutation and a rejected mutation in the non-production tenant.
 - Replace Alpha's process-wide identity with request-scoped authenticated identity before multi-tenant deployment.
