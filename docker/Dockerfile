@@ -16,12 +16,11 @@ COPY plugins ./plugins
 COPY mcp ./mcp
 COPY profile ./profile
 COPY scripts ./scripts
-COPY test ./test
 COPY docker/entrypoint.sh /usr/local/bin/futurestaff-entrypoint
 
 RUN npm ci \
     && npm run build \
-    && npm run check \
+    && npm run check:workspaces \
     && chmod 0755 /usr/local/bin/futurestaff-entrypoint \
     && mkdir -p /data/dsh \
     && chown -R node:node /app /data/dsh
