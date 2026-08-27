@@ -53,11 +53,12 @@ export function createHttpSelectionCenterClient(options: HttpSelectionCenterClie
   async function call<T>(operation: SelectionCenterOperation, path: string, identity: FutureStaffIdentity, init: RequestInit, schema: { parse(value: unknown): T }): Promise<T> {
     const requestId = nextRequestId()
     const startedAt = Date.now()
-    const signal = AbortSignal.timeout(timeoutMs)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), timeoutMs)
     try {
       const response = await request(new URL(path, baseUrl), {
         ...init,
-        signal,
+        signal: controller.signal,
         headers: {
           accept: 'application/json',
           authorization: `Bearer ${apiKey}`,
@@ -77,7 +78,7 @@ export function createHttpSelectionCenterClient(options: HttpSelectionCenterClie
       emitSafely(logger, { event: 'selection_center_request_completed', requestId, operation, outcome: 'success', durationMs: Date.now() - startedAt })
       return output
     } catch (error) {
-      const timedOut = signal.aborted
+      const timedOut = controller.signal.aborted
       const normalized = error instanceof SelectionCenterError
         ? error
         : new SelectionCenterError('UPSTREAM_UNAVAILABLE', timedOut ? 'Selection Center request timed out' : 'Selection Center is unavailable', true)
@@ -86,6 +87,8 @@ export function createHttpSelectionCenterClient(options: HttpSelectionCenterClie
         outcome: timedOut ? 'timeout' : 'error', durationMs: Date.now() - startedAt, errorCode: normalized.code,
       })
       throw normalized
+    } finally {
+      clearTimeout(timeout)
     }
   }
 
