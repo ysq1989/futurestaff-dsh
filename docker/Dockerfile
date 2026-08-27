@@ -1,14 +1,15 @@
 FROM node:22-bookworm-slim
 
+ARG NPM_REGISTRY=https://registry.npmmirror.com
+
 ENV PNPM_HOME=/pnpm
 ENV PATH=/pnpm:$PATH
 ENV DSH_HOME=/data/dsh
+ENV npm_config_registry=${NPM_REGISTRY}
 
 WORKDIR /app
 
-RUN corepack enable \
-    && corepack prepare pnpm@11.19.0 --activate \
-    && pnpm add --global @deepseek-ai/dsh@0.1.1-rc.2
+RUN npm install --global pnpm@11.19.0 @deepseek-ai/dsh@0.1.1-rc.2
 
 COPY package*.json pnpm-workspace.yaml tsconfig.base.json ./
 COPY plugins ./plugins

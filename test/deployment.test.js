@@ -27,6 +27,13 @@ test('image pins DSH, runs unprivileged, and installs the Profile into persisten
   assert.match(entrypoint, /npm run profile:install[\s\S]*exec dsh/)
 })
 
+test('image uses a configurable npm registry that is reachable from the target server', async () => {
+  const dockerfile = await read('docker/Dockerfile')
+  assert.match(dockerfile, /ARG NPM_REGISTRY=https:\/\/registry\.npmmirror\.com/)
+  assert.match(dockerfile, /npm_config_registry=\$\{NPM_REGISTRY\}/)
+  assert.match(dockerfile, /npm install --global[\s\S]*pnpm@11\.19\.0[\s\S]*@deepseek-ai\/dsh@0\.1\.1-rc\.2/)
+})
+
 test('production secrets file is excluded from Git and the container build context', async () => {
   const [gitignore, dockerignore] = await Promise.all([read('.gitignore'), read('.dockerignore')])
   assert.match(gitignore, /^\.env\.production$/m)
