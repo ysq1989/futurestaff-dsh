@@ -37,6 +37,7 @@ test('image uses a configurable npm registry that is reachable from the target s
 test('image builds workspace declarations before running checks in a clean context', async () => {
   const dockerfile = await read('docker/Dockerfile')
   assert.match(dockerfile, /RUN npm ci[\s\S]*&& npm run build[\s\S]*&& npm run check/)
+  assert.match(dockerfile, /COPY test \.\/test/)
 })
 
 test('production secrets file is excluded from Git and the container build context', async () => {

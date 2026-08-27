@@ -16,6 +16,7 @@ COPY plugins ./plugins
 COPY mcp ./mcp
 COPY profile ./profile
 COPY scripts ./scripts
+COPY test ./test
 COPY docker/entrypoint.sh /usr/local/bin/futurestaff-entrypoint
 
 RUN npm ci \
