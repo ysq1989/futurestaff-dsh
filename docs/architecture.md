@@ -16,4 +16,6 @@ Browser -> official DSH Web bundle -> FutureStaff Profile overlay
 
 The Profile installer stages source into `$DSH_HOME/profiles/futurestaff-alpha`, because DSH discovers profiles there. This keeps repository layout readable while respecting the upstream runtime contract.
 
+M2 mounts the Selection Center over the official DSH MCP client using stdio. The row remains disabled without upstream configuration. Its environment identity is suitable only for the single-tenant Alpha bootstrap; a multi-tenant deployment must construct a request-scoped MCP/HTTP boundary instead of sharing one process-wide identity.
+
 See [ADR-001](decisions/001-upstream-composition.md) and [ADR-002](decisions/002-tool-execution-metadata.md).

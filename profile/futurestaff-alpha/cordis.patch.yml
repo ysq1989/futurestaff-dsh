@@ -6,3 +6,22 @@
         tenantId: !!js process.env.FUTURESTAFF_TENANT_ID
         userId: !!js process.env.FUTURESTAFF_USER_ID
         deviceId: !!js process.env.FUTURESTAFF_DEVICE_ID || undefined
+
+    - id: mcp-selection-center
+      name: '@deepseek-ai/dsh-mcp-client'
+      disabled: !!js >-
+        !process.env.SELECTION_CENTER_BASE_URL ||
+        !process.env.SELECTION_CENTER_API_KEY
+      config:
+        serverName: selection-center
+        transport: stdio
+        command: !!js process.execPath
+        args: ['mcp/selection-center/lib/stdio.js']
+        cwd: !!js process.cwd()
+        env:
+          SELECTION_CENTER_BASE_URL: !!js process.env.SELECTION_CENTER_BASE_URL
+          SELECTION_CENTER_API_KEY: !!js process.env.SELECTION_CENTER_API_KEY
+          FUTURESTAFF_TENANT_ID: !!js process.env.FUTURESTAFF_TENANT_ID
+          FUTURESTAFF_USER_ID: !!js process.env.FUTURESTAFF_USER_ID
+        toolCallTimeoutMs: 30000
+        failOnStartupError: true

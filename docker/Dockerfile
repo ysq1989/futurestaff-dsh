@@ -4,6 +4,7 @@ WORKDIR /app
 RUN corepack enable
 COPY package*.json tsconfig.base.json ./
 COPY plugins ./plugins
+COPY mcp ./mcp
 COPY profile ./profile
 COPY scripts ./scripts
 RUN npm ci && npm run check && DSH_HOME=/app/.dsh npm run profile:install

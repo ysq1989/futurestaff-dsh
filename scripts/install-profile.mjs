@@ -18,6 +18,9 @@ const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
 manifest.dependencies['@futurestaff/fs-core'] = `file:${plugin}`
 await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
 
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm'
-execFileSync(npmCommand, ['install', '--ignore-scripts'], { cwd: target, stdio: 'inherit' })
+if (process.platform === 'win32') {
+  execFileSync(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm install --ignore-scripts'], { cwd: target, stdio: 'inherit' })
+} else {
+  execFileSync('npm', ['install', '--ignore-scripts'], { cwd: target, stdio: 'inherit' })
+}
 console.log(`Installed futurestaff-alpha at ${target}`)

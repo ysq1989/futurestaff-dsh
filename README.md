@@ -6,7 +6,8 @@ FutureStaff's upgrade-friendly extension layer for [DeepSeek Harness](https://gi
 
 - **M0:** boot the official DSH Web surface through `futurestaff-alpha`.
 - **M1:** mount `fs-core`, expose validated FutureStaff identity context, and standardize Tool execution metadata.
-- **Not in scope:** selection-center or Vietnam visa business calls, Local Runner, auth, billing, and production deployment.
+- **M2:** a contract-first Selection Center MCP with four Tools and an isolated provisional HTTP adapter.
+- **Not in scope:** Vietnam visa business calls, Local Runner, auth, billing, and production deployment.
 
 ## Quick start
 
@@ -39,7 +40,7 @@ If Windows Application Control blocks DSH's native `sharp` module, run the Docke
 ```text
 profile/futurestaff-alpha/  Custom Profile source
 plugins/fs-core/            Identity context and Tool metadata contract
-mcp/selection-center/       M2 boundary placeholder (no business logic)
+mcp/selection-center/       M2 MCP server, schemas, and HTTP adapter
 mcp/vietnam-visa/           Future boundary placeholder
 skills/jade-sourcing/       Future skill placeholder
 skills/vietnam-visa/        Future skill placeholder
@@ -48,7 +49,10 @@ docker/                     Development container baseline
 scripts/                    Profile staging utility
 ```
 
-See [architecture](docs/architecture.md), [M0/M1 acceptance](docs/m0-m1-acceptance.md), and [development conventions](docs/development.md).
+The Selection Center row is automatically disabled until both
+`SELECTION_CENTER_BASE_URL` and `SELECTION_CENTER_API_KEY` are configured.
+
+See [architecture](docs/architecture.md), [M0/M1 acceptance](docs/m0-m1-acceptance.md), [M2 acceptance](docs/m2-acceptance.md), and [development conventions](docs/development.md).
 
 ## Upgrade policy
 
