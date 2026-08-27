@@ -1,0 +1,22 @@
+{
+  "name": "futurestaff-dsh",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FutureStaff extensions for DeepSeek Harness",
+  "type": "module",
+  "workspaces": ["plugins/*", "mcp/*"],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "check": "npm run typecheck && npm test && npm run build",
+    "profile:install": "node scripts/install-profile.mjs",
+    "profile:dump": "cross-env DSH_HOME=.dsh pnpm dlx @deepseek-ai/dsh@0.1.1-rc.2 --profile futurestaff-alpha --dump-config",
+    "dev": "cross-env DSH_HOME=.dsh pnpm dlx @deepseek-ai/dsh@0.1.1-rc.2 --profile futurestaff-alpha"
+  },
+  "engines": { "node": ">=22" },
+  "devDependencies": {
+    "cross-env": "^10.0.0",
+    "typescript": "^5.9.2"
+  }
+}

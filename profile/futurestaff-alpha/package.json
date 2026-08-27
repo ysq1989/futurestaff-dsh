@@ -1,0 +1,17 @@
+{
+  "name": "@futurestaff/profile-alpha",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app"
+      ]
+    }
+  },
+  "dependencies": {
+    "@futurestaff/fs-core": "PROFILE_INSTALLER_REPLACES_THIS"
+  }
+}
