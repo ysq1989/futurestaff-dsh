@@ -34,6 +34,11 @@ test('image uses a configurable npm registry that is reachable from the target s
   assert.match(dockerfile, /npm install --global[\s\S]*pnpm@11\.19\.0[\s\S]*@deepseek-ai\/dsh@0\.1\.1-rc\.2/)
 })
 
+test('image builds workspace declarations before running checks in a clean context', async () => {
+  const dockerfile = await read('docker/Dockerfile')
+  assert.match(dockerfile, /RUN npm ci[\s\S]*&& npm run build[\s\S]*&& npm run check/)
+})
+
 test('production secrets file is excluded from Git and the container build context', async () => {
   const [gitignore, dockerignore] = await Promise.all([read('.gitignore'), read('.dockerignore')])
   assert.match(gitignore, /^\.env\.production$/m)

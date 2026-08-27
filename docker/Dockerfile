@@ -19,6 +19,7 @@ COPY scripts ./scripts
 COPY docker/entrypoint.sh /usr/local/bin/futurestaff-entrypoint
 
 RUN npm ci \
+    && npm run build \
     && npm run check \
     && chmod 0755 /usr/local/bin/futurestaff-entrypoint \
     && mkdir -p /data/dsh \
