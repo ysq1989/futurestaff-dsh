@@ -1,0 +1,26 @@
+name: futurestaff-alpha
+
+services:
+  futurestaff-dsh:
+    image: ${FUTURESTAFF_DSH_IMAGE:-futurestaff-dsh:0.1.0}
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?set DEEPSEEK_API_KEY}
+      FUTURESTAFF_TENANT_ID: ${FUTURESTAFF_TENANT_ID:?set FUTURESTAFF_TENANT_ID}
+      FUTURESTAFF_USER_ID: ${FUTURESTAFF_USER_ID:?set FUTURESTAFF_USER_ID}
+      SELECTION_CENTER_BASE_URL: ${SELECTION_CENTER_BASE_URL:?set SELECTION_CENTER_BASE_URL}
+      SELECTION_CENTER_API_KEY: ${SELECTION_CENTER_API_KEY:?set SELECTION_CENTER_API_KEY}
+      SELECTION_CENTER_TIMEOUT_MS: ${SELECTION_CENTER_TIMEOUT_MS:-10000}
+      DSH_TELEMETRY_MODE: ${DSH_TELEMETRY_MODE:-DISABLED}
+    ports:
+      - "127.0.0.1:${DSH_PORT:-3080}:3080"
+    volumes:
+      - futurestaff_dsh_data:/data/dsh
+    init: true
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+volumes:
+  futurestaff_dsh_data:

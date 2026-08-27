@@ -2,6 +2,17 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createHttpSelectionCenterClient, startSelectionCenterMock } from '../lib/index.js'
 
+test('mock upstream exposes an unauthenticated container health endpoint', async () => {
+  const mock = await startSelectionCenterMock({ apiKey: 'mock-key' })
+  try {
+    const response = await fetch(new URL('/healthz', mock.baseUrl))
+    assert.equal(response.status, 200)
+    assert.deepEqual(await response.json(), { status: 'ok' })
+  } finally {
+    await mock.close()
+  }
+})
+
 test('mock upstream supports search and idempotent pool mutation over real HTTP', async () => {
   const mock = await startSelectionCenterMock({ apiKey: 'mock-key' })
   try {

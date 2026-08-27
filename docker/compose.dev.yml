@@ -1,0 +1,46 @@
+name: futurestaff-alpha-dev
+
+services:
+  selection-center-mock:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    entrypoint: ["node", "mcp/selection-center/lib/mock-cli.js"]
+    environment:
+      SELECTION_CENTER_API_KEY: ${SELECTION_CENTER_API_KEY:-futurestaff-local-mock}
+      SELECTION_CENTER_MOCK_HOST: 0.0.0.0
+      SELECTION_CENTER_MOCK_PORT: 3301
+    expose: ["3301"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3301/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    init: true
+    restart: unless-stopped
+
+  futurestaff-dsh:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    depends_on:
+      selection-center-mock:
+        condition: service_healthy
+    environment:
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?set DEEPSEEK_API_KEY}
+      FUTURESTAFF_TENANT_ID: ${FUTURESTAFF_TENANT_ID:-tenant-development}
+      FUTURESTAFF_USER_ID: ${FUTURESTAFF_USER_ID:-user-development}
+      SELECTION_CENTER_BASE_URL: http://selection-center-mock:3301/
+      SELECTION_CENTER_API_KEY: ${SELECTION_CENTER_API_KEY:-futurestaff-local-mock}
+      SELECTION_CENTER_TIMEOUT_MS: ${SELECTION_CENTER_TIMEOUT_MS:-10000}
+    ports:
+      - "127.0.0.1:${DSH_PORT:-3080}:3080"
+    volumes:
+      - futurestaff_dsh_dev_data:/data/dsh
+    init: true
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+volumes:
+  futurestaff_dsh_dev_data:

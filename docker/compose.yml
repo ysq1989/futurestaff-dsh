@@ -1,9 +1,0 @@
-services:
-  futurestaff-dsh:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    env_file: ../.env
-    ports:
-      - "127.0.0.1:3080:3080"
-    restart: unless-stopped

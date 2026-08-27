@@ -11,7 +11,7 @@ const products = [
   { productId: 'jade-bangle-001', name: '糯种翡翠手镯', category: 'jade-bangle', price: { amountMinor: 168000, currency: 'CNY' }, imageUrls: [], attributes: { color: 'green' } },
 ]
 
-export interface SelectionCenterMockOptions { apiKey: string; port?: number }
+export interface SelectionCenterMockOptions { apiKey: string; host?: string; port?: number }
 export interface SelectionCenterMockHandle { baseUrl: string; close(): Promise<void> }
 
 export async function startSelectionCenterMock(options: SelectionCenterMockOptions): Promise<SelectionCenterMockHandle> {
@@ -20,12 +20,13 @@ export async function startSelectionCenterMock(options: SelectionCenterMockOptio
   const server = createServer((request, response) => void handle(request, response))
 
   async function handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
+    const url = new URL(request.url ?? '/', 'http://localhost')
+    if (request.method === 'GET' && url.pathname === '/healthz') return json(response, 200, { status: 'ok' })
     const tenantId = header(request, 'x-futurestaff-tenant-id')
     const userId = header(request, 'x-futurestaff-user-id')
     if (request.headers.authorization !== `Bearer ${options.apiKey}`) return json(response, 401, { error: { code: 'UNAUTHORIZED' } })
     if (!tenantId || !userId) return json(response, 400, { error: { code: 'VALIDATION_ERROR' } })
     try {
-      const url = new URL(request.url ?? '/', 'http://localhost')
       if (request.method === 'POST' && url.pathname === '/v1/products/search') {
         const input = searchProductsInputSchema.parse(await readJson(request))
         const query = input.query?.toLocaleLowerCase()
@@ -75,11 +76,13 @@ export async function startSelectionCenterMock(options: SelectionCenterMockOptio
     }
   }
 
-  server.listen(options.port ?? 0, '127.0.0.1')
+  const host = options.host ?? '127.0.0.1'
+  server.listen(options.port ?? 0, host)
   await once(server, 'listening')
   const address = server.address()
   if (!address || typeof address === 'string') throw new Error('Mock server did not bind a TCP port')
-  return { baseUrl: `http://127.0.0.1:${address.port}/`, close: async () => { server.close(); await once(server, 'close') } }
+  const displayHost = host === '0.0.0.0' ? '127.0.0.1' : host
+  return { baseUrl: `http://${displayHost}:${address.port}/`, close: async () => { server.close(); await once(server, 'close') } }
 }
 
 function header(request: IncomingMessage, name: string): string | undefined {

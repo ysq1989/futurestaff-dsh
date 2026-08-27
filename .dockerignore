@@ -1,0 +1,7 @@
+.git
+.dsh
+.env
+.env.production
+node_modules
+**/lib
+*.log

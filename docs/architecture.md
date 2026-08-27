@@ -19,3 +19,5 @@ The Profile installer stages source into `$DSH_HOME/profiles/futurestaff-alpha`,
 M2 mounts the Selection Center over the official DSH MCP client using stdio. The row remains disabled without upstream configuration. Its environment identity is suitable only for the single-tenant Alpha bootstrap; a multi-tenant deployment must construct a request-scoped MCP/HTTP boundary instead of sharing one process-wide identity.
 
 See [ADR-001](decisions/001-upstream-composition.md) and [ADR-002](decisions/002-tool-execution-metadata.md).
+
+Server container topology and the strict Mock/production split are recorded in [ADR-003](decisions/003-server-container-deployment.md).

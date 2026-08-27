@@ -7,7 +7,7 @@
   "workspaces": ["plugins/*", "mcp/*"],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present && node --test test/deployment.test.js",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "check": "npm run typecheck && npm test && npm run build",
     "profile:install": "node scripts/install-profile.mjs",
