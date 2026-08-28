@@ -13,3 +13,11 @@ Network enrollment, persistent Runner state, and an executable desktop agent are
 2. Add trusted registration, presence, dispatch, and collection state.
 3. Prove the lifecycle with a dependency-free in-memory channel.
 4. Document and deploy without exposing a network transport.
+
+## Authenticated WebSocket slice (awaiting spec approval)
+
+1. Define device-token configuration and authentication at HTTP upgrade.
+2. Adapt validated WebSocket messages to the existing Router connection handle.
+3. Build a minimal reconnecting client with an allowlisted `local.system_info` executor.
+4. Prove the flow over a real loopback socket and add redacted structured lifecycle logs.
+5. Add a disabled-by-default gateway Compose service; do not publish the Nginx route until a real device is enrolled.
