@@ -6,6 +6,8 @@ import { parseRunnerRegistration, type RunnerBinding } from '@futurestaff/local-
 import { LocalRunnerRouter, RunnerRouterError, type RunnerChannel, type RunnerDispatch } from '@futurestaff/local-runner-router'
 import WebSocket, { WebSocketServer, type RawData } from 'ws'
 
+import { EnrollmentError, type EnrollmentService } from './enrollment.js'
+
 export interface GatewayBinding extends RunnerBinding { readonly tokenSha256: string }
 export interface GatewayConfig { readonly bindings: readonly GatewayBinding[] }
 export interface GatewayLogEvent {
@@ -22,6 +24,8 @@ type GatewayOptions = GatewayConfig & {
   readonly port?: number
   readonly path?: string
   readonly dispatchToken?: string
+  readonly enrollment?: EnrollmentService
+  readonly publicRunnerUrl?: string
   readonly log?: (event: GatewayLogEvent) => void
 }
 
@@ -114,8 +118,19 @@ export async function startRunnerGateway(options: GatewayOptions) {
   const path = options.path ?? '/runner/v1/connect'
   const dispatchToken = options.dispatchToken
   if (dispatchToken !== undefined && (dispatchToken.length < 32 || dispatchToken.length > 512)) throw new Error('dispatch token is invalid')
+  const enrollment = options.enrollment
+  const publicRunnerUrl = options.publicRunnerUrl
+  if ((enrollment === undefined) !== (publicRunnerUrl === undefined)) throw new Error('enrollment and publicRunnerUrl must be configured together')
+  if (publicRunnerUrl !== undefined) {
+    const parsed = new URL(publicRunnerUrl)
+    if (parsed.protocol !== 'wss:' || parsed.pathname !== path || parsed.search || parsed.hash
+      || parsed.username || parsed.password) throw new Error('publicRunnerUrl is invalid')
+  }
   const emit = options.log ?? (event => process.stdout.write(`${JSON.stringify(event)}\n`))
-  const router = new LocalRunnerRouter({ bindings: config.bindings })
+  const bindings = [...parseGatewayConfig({ bindings: [...config.bindings, ...(enrollment?.bindings ?? [])] }).bindings]
+  const router = new LocalRunnerRouter({ bindings })
+  let enrollmentWindowStartedAt = Date.now()
+  let enrollmentAttempts = 0
   const dispatch = async (request: RunnerDispatch, requestId: string = randomUUID()) => {
     const startedAt = Date.now()
     try {
@@ -174,6 +189,60 @@ export async function startRunnerGateway(options: GatewayOptions) {
           }
         } finally {
           emit({ level: outcome === 'succeeded' ? 'info' : 'warn', event: 'internal_dispatch_completed', requestId, reason: outcome, durationMs: Date.now() - startedAt })
+        }
+      })()
+      return
+    }
+    if (request.method === 'POST' && request.url === '/runner/v1/enroll' && enrollment && publicRunnerUrl) {
+      void (async () => {
+        const requestId = randomUUID()
+        const startedAt = Date.now()
+        response.setHeader('x-request-id', requestId)
+        response.setHeader('cache-control', 'no-store')
+        let outcome = 'failed'
+        try {
+          if (Date.now() - enrollmentWindowStartedAt >= 60_000) {
+            enrollmentWindowStartedAt = Date.now()
+            enrollmentAttempts = 0
+          }
+          enrollmentAttempts += 1
+          if (enrollmentAttempts > 30) {
+            outcome = 'RATE_LIMITED'
+            response.writeHead(429, { 'content-type': 'application/json', 'retry-after': '60' }).end(JSON.stringify({
+              error: { code: 'RATE_LIMITED', message: 'Too many enrollment attempts', retryable: true },
+            }))
+            return
+          }
+          if (!request.headers['content-type']?.toLowerCase().startsWith('application/json')) throw new Error('content type must be JSON')
+          const body = object(await jsonBody(request), 'request body')
+          if (Object.keys(body).length !== 2) throw new Error('request body has unknown fields')
+          const enrolled = await enrollment.redeem(id(body.code, 'code'), id(body.deviceName, 'deviceName'))
+          router.addBinding(enrolled.binding)
+          bindings.push(enrolled.binding)
+          outcome = 'succeeded'
+          response.writeHead(201, { 'content-type': 'application/json' }).end(JSON.stringify({ data: {
+            url: publicRunnerUrl, token: enrolled.token,
+            tenantId: enrolled.binding.tenantId, userId: enrolled.binding.userId,
+            runnerId: enrolled.binding.runnerId, deviceId: enrolled.binding.deviceId,
+          } }))
+        } catch (error) {
+          if (error instanceof EnrollmentError) {
+            outcome = error.code
+            const status = error.code === 'CODE_CONSUMED' || error.code === 'STATE_CONFLICT' ? 409 : 400
+            response.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify({
+              error: { code: error.code, message: 'Enrollment failed', retryable: false },
+            }))
+          } else {
+            outcome = 'INVALID_REQUEST'
+            response.writeHead(400, { 'content-type': 'application/json' }).end(JSON.stringify({
+              error: { code: 'INVALID_REQUEST', message: 'Invalid request', retryable: false },
+            }))
+          }
+        } finally {
+          emit({
+            level: outcome === 'succeeded' ? 'info' : 'warn', event: 'runner_enrollment_completed',
+            requestId, reason: outcome, durationMs: Date.now() - startedAt,
+          })
         }
       })()
       return
@@ -243,7 +312,7 @@ export async function startRunnerGateway(options: GatewayOptions) {
       rejectUpgrade(socket, 404)
       return
     }
-    const binding = authenticate(request, config.bindings)
+    const binding = authenticate(request, bindings)
     if (!binding) {
       emit({ level: 'warn', event: 'runner_upgrade_rejected', requestId, reason: 'credentials' })
       rejectUpgrade(socket, 401)

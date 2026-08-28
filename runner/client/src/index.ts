@@ -9,6 +9,8 @@ import {
 } from '@futurestaff/local-runner-protocol'
 import WebSocket from 'ws'
 
+export { enrollRunner, loadInstalledRunnerConfig } from './enrollment.js'
+
 export interface RunnerClientDescription { readonly url: string; readonly runnerId: string; readonly deviceId: string }
 export interface RunnerClientConfig extends RunnerClientDescription {
   readonly tenantId: string
@@ -30,7 +32,8 @@ export function parseRunnerClientConfig(input: unknown): RunnerClientConfig {
   if (parsedUrl.protocol !== 'wss:' && !(parsedUrl.protocol === 'ws:' && ['127.0.0.1', 'localhost', '::1'].includes(parsedUrl.hostname))) {
     throw new Error('Runner URL must use wss except on loopback')
   }
-  if (parsedUrl.pathname !== '/runner/v1/connect' || parsedUrl.search !== '') throw new Error('Runner URL path or query is invalid')
+  if (parsedUrl.pathname !== '/runner/v1/connect' || parsedUrl.search !== '' || parsedUrl.hash
+    || parsedUrl.username || parsedUrl.password) throw new Error('Runner URL path or credentials are invalid')
   const token = value(raw.token, 'token')
   if (token.length < 32 || token.length > 512) throw new Error('token length is invalid')
   const runnerId = value(raw.runnerId, 'runnerId')

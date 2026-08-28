@@ -114,3 +114,14 @@ test('fails pending work on disconnect and deterministic timeout', async () => {
   await assert.rejects(secondResult,
     error => error instanceof RunnerRouterError && error.code === 'JOB_TIMEOUT')
 })
+
+test('adds one newly enrolled binding without replacing an existing Runner', () => {
+  const router = new LocalRunnerRouter({ bindings: [binding] })
+  const enrolled = {
+    tenantId: 'tenant-a', userId: 'user-a', runnerId: 'runner-b', deviceId: 'device-b',
+    capabilities: ['local.system_info'],
+  }
+  assert.deepEqual(router.addBinding(enrolled), enrolled)
+  assert.equal(router.status('runner-b').online, false)
+  assert.throws(() => router.addBinding(enrolled), /already configured/i)
+})

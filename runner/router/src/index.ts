@@ -81,8 +81,7 @@ export class LocalRunnerRouter {
 
   constructor(options: LocalRunnerRouterOptions) {
     for (const binding of options.bindings) {
-      if (this.#bindings.has(binding.runnerId)) throw new Error(`duplicate Runner binding: ${binding.runnerId}`)
-      this.#bindings.set(binding.runnerId, Object.freeze({ ...binding, capabilities: Object.freeze([...binding.capabilities]) }))
+      this.addBinding(binding)
     }
     this.#now = options.now ?? Date.now
     this.#createJobId = options.createJobId ?? (() => crypto.randomUUID())
@@ -90,6 +89,13 @@ export class LocalRunnerRouter {
     this.#cancel = options.cancel ?? (handle => clearTimeout(handle as ReturnType<typeof setTimeout>))
     this.#heartbeatTtlMs = options.heartbeatTtlMs ?? 30_000
     this.#jobTtlMs = options.jobTtlMs ?? 30_000
+  }
+
+  addBinding(binding: RunnerBinding): RunnerBinding {
+    if (this.#bindings.has(binding.runnerId)) throw new Error(`Runner is already configured: ${binding.runnerId}`)
+    const stored = Object.freeze({ ...binding, capabilities: Object.freeze([...binding.capabilities]) })
+    this.#bindings.set(binding.runnerId, stored)
+    return stored
   }
 
   attach(value: unknown, channel: RunnerChannel) {

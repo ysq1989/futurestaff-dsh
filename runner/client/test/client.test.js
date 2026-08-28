@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict'
+import { mkdtemp, readFile, stat, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 import test from 'node:test'
 import { WebSocketServer } from 'ws'
 
-import { connectRunner, executeLocalJob, nextReconnectDelay, parseRunnerClientConfig } from '../lib/index.js'
+import { connectRunner, enrollRunner, executeLocalJob, nextReconnectDelay, parseRunnerClientConfig } from '../lib/index.js'
 
 test('loads a strict client configuration without returning its token in diagnostics', () => {
   const config = parseRunnerClientConfig({
@@ -12,6 +15,8 @@ test('loads a strict client configuration without returning its token in diagnos
   assert.deepEqual(config.describe(), { url: config.url, runnerId: 'runner-a', deviceId: 'office-pc' })
   assert.equal('token' in config.describe(), false)
   assert.throws(() => parseRunnerClientConfig({ ...config, url: 'ws://public.example/runner/v1/connect' }))
+  assert.throws(() => parseRunnerClientConfig({ ...config, url: 'wss://user:pass@dsh.fsstory.net/runner/v1/connect' }))
+  assert.throws(() => parseRunnerClientConfig({ ...config, url: 'wss://dsh.fsstory.net/runner/v1/connect#fragment' }))
 })
 
 test('executes only read-only system info and rejects arbitrary local tools', async () => {
@@ -86,4 +91,48 @@ test('registers and returns real system info over a loopback WebSocket', async t
     await new Promise(resolve => server.close(resolve))
   })
   assert.equal((await result).outcome, 'succeeded')
+})
+
+test('exchanges a bootstrap code once and atomically stores only the long-lived Runner config', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'futurestaff-client-enroll-'))
+  const bootstrapFile = path.join(directory, 'bootstrap.json')
+  const configFile = path.join(directory, 'runner.json')
+  const enrollmentCode = 'one-time-enrollment-code-that-must-not-persist'
+  await writeFile(bootstrapFile, JSON.stringify({
+    gatewayUrl: 'https://dsh.fsstory.net/', deviceName: 'Office PC', code: enrollmentCode,
+  }))
+  const requests = []
+  const config = await enrollRunner({
+    bootstrapFile, configFile,
+    fetch: async (url, init) => {
+      requests.push({ url: String(url), init })
+      return new Response(JSON.stringify({ data: {
+        url: 'wss://dsh.fsstory.net/runner/v1/connect', token: 'x'.repeat(48),
+        tenantId: 'tenant-a', userId: 'user-a', runnerId: 'runner-new', deviceId: 'device-new',
+      } }), { status: 201, headers: { 'content-type': 'application/json' } })
+    },
+  })
+  assert.equal(config.runnerId, 'runner-new')
+  assert.equal(requests[0].url, 'https://dsh.fsstory.net/runner/v1/enroll')
+  assert.deepEqual(JSON.parse(requests[0].init.body), { code: enrollmentCode, deviceName: 'Office PC' })
+  const persisted = await readFile(configFile, 'utf8')
+  assert.doesNotMatch(persisted, new RegExp(enrollmentCode))
+  assert.deepEqual(parseRunnerClientConfig(JSON.parse(persisted)).describe(), config.describe())
+  await assert.rejects(readFile(bootstrapFile), error => error.code === 'ENOENT')
+  if (process.platform !== 'win32') assert.equal((await stat(configFile)).mode & 0o777, 0o600)
+})
+
+test('keeps bootstrap input for retry when enrollment fails', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'futurestaff-client-enroll-'))
+  const bootstrapFile = path.join(directory, 'bootstrap.json')
+  const configFile = path.join(directory, 'runner.json')
+  await writeFile(bootstrapFile, JSON.stringify({
+    gatewayUrl: 'https://dsh.fsstory.net/', deviceName: 'Office PC', code: 'invalid-code-with-enough-length',
+  }))
+  await assert.rejects(enrollRunner({
+    bootstrapFile, configFile,
+    fetch: async () => new Response(JSON.stringify({ error: { code: 'CODE_INVALID' } }), { status: 400 }),
+  }), /CODE_INVALID/)
+  assert.ok((await readFile(bootstrapFile, 'utf8')).includes('invalid-code'))
+  await assert.rejects(readFile(configFile), error => error.code === 'ENOENT')
 })

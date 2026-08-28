@@ -73,7 +73,20 @@ curl http://127.0.0.1:3090/healthz
 
 Do not add `/runner/v1/connect` to Nginx until a real device token has been provisioned. Then place `docker/nginx/runner-location.conf.example` inside the TLS server block. Its exact-match route disables site Basic Auth only for the Runner path; the gateway still requires the device Bearer token.
 
-On the device, configure the values shown in `runner/client/.env.example` and run `npm run runner:client`. The Alpha client is a Node process, not yet an installer or background service.
+For manual development, configure the ignored `runner/client/.env` and run `npm run runner:client`.
+
+For installer enrollment, point `RUNNER_ENROLLMENT_OFFERS_FILE` at a server-side ignored offer file and keep the Gateway state volume persistent. Issue a 15-minute code without printing it into logs:
+
+```bash
+RUNNER_TENANT_ID=tenant-id \
+RUNNER_USER_ID=user-id \
+RUNNER_ENROLLMENT_OFFERS_FILE=runner-enrollment.json \
+npm run runner:issue-code
+```
+
+Only give the returned code to the intended installer user. The offer file contains its SHA-256 digest, not the code. Add both exact Nginx locations from `docker/nginx/runner-location.conf.example`: WebSocket connect and HTTPS enrollment. The Gateway rate-limits enrollment and persists consumed codes plus device-token digests in its named state volume.
+
+Build the private unsigned Alpha setup with `npm run installer:runner:windows`. Public distribution requires code signing.
 
 To enable DSH-side `local_system_info`, generate a separate high-entropy internal token and set the same `RUNNER_DISPATCH_TOKEN` for the DSH and Gateway containers. Also configure `RUNNER_GATEWAY_INTERNAL_URL`, `RUNNER_ID`, and `RUNNER_DEVICE_ID`. The internal URL must use the server loopback/private network and must not be added to Nginx.
 

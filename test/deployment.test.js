@@ -123,9 +123,25 @@ test('Runner workspaces declare clean-build dependency order', async () => {
 test('Runner Nginx snippet bypasses Basic Auth only for the exact authenticated gateway route', async () => {
   const snippet = await read('docker/nginx/runner-location.conf.example')
   assert.match(snippet, /location = \/runner\/v1\/connect/)
+  assert.match(snippet, /location = \/runner\/v1\/enroll/)
   assert.match(snippet, /auth_basic off/)
   assert.match(snippet, /proxy_pass http:\/\/127\.0\.0\.1:3090/)
   assert.match(snippet, /proxy_set_header Authorization \$http_authorization/)
+})
+
+test('Runner enrollment uses a read-only offer file and a persistent state volume', async () => {
+  const [development, production, example, envExample] = await Promise.all([
+    read('docker/compose.dev.yml'), read('docker/compose.prod.yml'),
+    read('runner-enrollment.example.json'), read('.env.example'),
+  ])
+  for (const compose of [development, production]) {
+    assert.match(compose, /runner-enrollment\.json:ro/)
+    assert.match(compose, /RUNNER_ENROLLMENT_STATE_FILE: \/data\/runner\/enrollment-state\.json/)
+    assert.match(compose, /runner_gateway(?:_dev)?_data:\/data\/runner/)
+    assert.match(compose, /RUNNER_PUBLIC_URL:/)
+  }
+  assert.deepEqual(JSON.parse(example), { offers: [] })
+  assert.match(envExample, /^RUNNER_ENROLLMENT_OFFERS_FILE=/m)
 })
 
 test('Profile mounts only the fixed Local Runner MCP contract when private dispatch is configured', async () => {

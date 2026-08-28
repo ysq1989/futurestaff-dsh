@@ -3,7 +3,11 @@ import { createHash } from 'node:crypto'
 import test from 'node:test'
 import WebSocket from 'ws'
 
+import { createEnrollmentService } from '../lib/enrollment.js'
 import { parseGatewayConfig, startRunnerGateway } from '../lib/index.js'
+import { mkdtemp, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 
 const token = 'runner-secret-with-at-least-32-characters'
 const binding = {
@@ -151,4 +155,55 @@ test('maps an offline Runner to a stable private API error', async t => {
   })
   assert.equal(response.status, 503)
   assert.deepEqual(await response.json(), { error: { code: 'RUNNER_OFFLINE', message: 'Runner is unavailable', retryable: true } })
+})
+
+test('redeems a public one-time code and immediately authenticates the enrolled Runner', async t => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'futurestaff-gateway-enroll-'))
+  const offersFile = path.join(directory, 'offers.json')
+  const enrollmentCode = 'one-time-code-with-enough-entropy-for-test'
+  await writeFile(offersFile, JSON.stringify({ offers: [{
+    codeSha256: createHash('sha256').update(enrollmentCode).digest('hex'),
+    tenantId: 'tenant-new', userId: 'user-new', expiresAt: Date.now() + 60_000,
+  }] }))
+  const enrollment = await createEnrollmentService({ offersFile, stateFile: path.join(directory, 'state.json') })
+  const events = []
+  const gateway = await startRunnerGateway({
+    host: '127.0.0.1', port: 0, bindings: [binding], enrollment,
+    publicRunnerUrl: 'wss://dsh.fsstory.net/runner/v1/connect',
+    log: event => events.push(event),
+  })
+  t.after(() => gateway.close())
+
+  const response = await fetch(new URL('/runner/v1/enroll', gateway.httpUrl), {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ code: enrollmentCode, deviceName: 'Office PC' }),
+  })
+  assert.equal(response.status, 201)
+  const { data } = await response.json()
+  assert.equal(data.url, 'wss://dsh.fsstory.net/runner/v1/connect')
+  assert.equal(data.tenantId, 'tenant-new')
+  assert.equal(data.userId, 'user-new')
+  assert.ok(data.token.length >= 32)
+
+  const socket = new WebSocket(data.url.replace('wss://dsh.fsstory.net', gateway.httpUrl.replace('http:', 'ws:').replace(/\/$/, '')), {
+    headers: { authorization: `Bearer ${data.token}` },
+  })
+  await new Promise((resolve, reject) => { socket.once('open', resolve); socket.once('error', reject) })
+  socket.send(JSON.stringify({
+    protocolVersion: 1, kind: 'runner.register', runnerId: data.runnerId,
+    deviceId: data.deviceId, capabilities: ['local.system_info'],
+  }))
+  await new Promise(resolve => setTimeout(resolve, 10))
+  assert.equal(gateway.router.status(data.runnerId).online, true)
+  socket.close()
+
+  const replay = await fetch(new URL('/runner/v1/enroll', gateway.httpUrl), {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ code: enrollmentCode, deviceName: 'Replay PC' }),
+  })
+  assert.equal(replay.status, 409)
+  const serializedEvents = JSON.stringify(events)
+  assert.match(serializedEvents, /runner_enrollment_completed/)
+  assert.doesNotMatch(serializedEvents, new RegExp(enrollmentCode))
+  assert.doesNotMatch(serializedEvents, new RegExp(data.token))
 })
