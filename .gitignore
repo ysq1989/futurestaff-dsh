@@ -6,5 +6,7 @@ lib/
 runner-bindings.json
 runner/client/.env
 work/
+dist/
+outputs/
 *.log
 .DS_Store

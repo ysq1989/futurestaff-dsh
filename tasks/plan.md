@@ -28,3 +28,11 @@ Network enrollment, persistent Runner state, and an executable desktop agent are
 2. Add a no-input Local Runner MCP adapter with trusted configured routing.
 3. Mount the adapter in the FutureStaff Profile and containers.
 4. Prove one real request against the enrolled Windows Runner.
+
+## Windows installer slice
+
+1. Specify a secret-free, reproducible Windows x64 payload.
+2. Package the Runner with pinned Node.js and WinSW service configuration.
+3. Compile an Inno Setup installer with explicit credential cleanup behavior.
+4. Add one-time cloud enrollment and connect the installed service.
+5. Install, dispatch, restart, and uninstall on the current Windows computer.

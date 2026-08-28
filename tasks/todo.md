@@ -31,3 +31,14 @@
 - [x] Implement authenticated internal dispatch.
 - [x] Add and mount the `local_system_info` MCP Tool.
 - [x] Run checks, review, deploy, and execute against the real Windows Runner.
+
+## Windows installer slice
+
+- [x] Approve Windows x64 installer assumptions.
+- [x] Record installer specification and architecture decision.
+- [x] Add failing secret-exclusion and payload contract tests.
+- [x] Build a pinned, checksum-verified Runner payload.
+- [x] Add WinSW service and Inno Setup definitions.
+- [x] Compile and inspect the unsigned private Alpha installer.
+- [ ] Implement one-time enrollment and deploy it privately.
+- [ ] Install, connect, restart, dispatch, and uninstall on this computer.

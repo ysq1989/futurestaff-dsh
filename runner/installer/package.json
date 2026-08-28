@@ -1,0 +1,15 @@
+{
+  "name": "@futurestaff/local-runner-installer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node src/build-payload.mjs",
+    "compile": "node src/compile-installer.mjs",
+    "test": "node --test",
+    "typecheck": "node --check src/package-contract.mjs && node --check src/build-payload.mjs && node --check src/compile-installer.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.9"
+  }
+}
