@@ -20,6 +20,8 @@ Define the versioned, transport-neutral contract used by a cloud DSH control pla
 
 - `runner/protocol/src/` — public wire types and boundary validation
 - `runner/protocol/test/` — small contract tests
+- `runner/router/src/` — cloud connection and dispatch state machine
+- `runner/router/test/` — deterministic lifecycle tests
 - `docs/specs/` — protocol specification
 - `tasks/` — implementation plan and checklist
 
@@ -37,7 +39,7 @@ type RunnerJob = {
 
 ## Testing strategy
 
-Unit tests validate accepted envelopes and fail-closed authorization: subject mismatch, runner/device mismatch, expiry, unsupported Tool, and duplicate job IDs. No network or customer machine is required.
+Unit tests validate accepted envelopes and fail-closed authorization: subject mismatch, runner/device mismatch, expiry, unsupported Tool, duplicate job IDs, stale connections, mismatched results, timeout, and disconnect. No network or customer machine is required.
 
 ## Boundaries
 
@@ -51,6 +53,8 @@ Unit tests validate accepted envelopes and fail-closed authorization: subject mi
 - A cloud-issued job contains a server-owned subject and device route.
 - A Runner accepts only its exact binding, a supported Tool, an unexpired job, and a never-before-seen job ID.
 - `local.system_info` is the only initial capability and is read-only.
+- The Router injects tenant, user, and device from a trusted binding instead of dispatch arguments.
+- Pending work settles safely on success, remote failure, timeout, or disconnect.
 - Tests and the repository check pass.
 
 ## Open questions

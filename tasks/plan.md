@@ -6,3 +6,10 @@
 4. Document the architecture decision and run the full repository check.
 
 Network enrollment, persistent Runner state, and an executable desktop agent are deliberately separate follow-up slices.
+
+## Cloud Router slice
+
+1. Extend protocol validation to job results.
+2. Add trusted registration, presence, dispatch, and collection state.
+3. Prove the lifecycle with a dependency-free in-memory channel.
+4. Document and deploy without exposing a network transport.

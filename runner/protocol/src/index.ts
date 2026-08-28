@@ -181,6 +181,35 @@ export function parseRunnerJob(value: unknown): RunnerJob {
   })
 }
 
+export function parseRunnerJobResult(value: unknown): RunnerJobResult {
+  const input = v1Envelope(value, 'runner.job-result')
+  const common = {
+    protocolVersion: RUNNER_PROTOCOL_VERSION,
+    kind: 'runner.job-result' as const,
+    jobId: identifier(input.jobId, 'jobId'),
+    runnerId: identifier(input.runnerId, 'runnerId'),
+    completedAt: timestamp(input.completedAt, 'completedAt'),
+  }
+  if (input.outcome === 'succeeded') {
+    if (!Object.hasOwn(input, 'value')) invalid('successful result must include value')
+    return Object.freeze({ ...common, outcome: 'succeeded' as const, value: input.value })
+  }
+  if (input.outcome === 'failed') {
+    const error = record(input.error, 'error')
+    if (typeof error.retryable !== 'boolean') invalid('error.retryable must be boolean')
+    return Object.freeze({
+      ...common,
+      outcome: 'failed' as const,
+      error: Object.freeze({
+        code: identifier(error.code, 'error.code'),
+        message: identifier(error.message, 'error.message'),
+        retryable: error.retryable,
+      }),
+    })
+  }
+  return invalid('outcome must be succeeded or failed')
+}
+
 export function authorizeRunnerJob(binding: RunnerBinding, value: unknown, now: number): RunnerJob {
   const job = parseRunnerJob(value)
   if (job.subject.tenantId !== binding.tenantId || job.subject.userId !== binding.userId) {

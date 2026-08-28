@@ -6,6 +6,7 @@ import {
   RunnerReplayGuard,
   authorizeRunnerJob,
   parseRunnerHeartbeat,
+  parseRunnerJobResult,
   parseRunnerRegistration,
 } from '../lib/index.js'
 
@@ -15,6 +16,50 @@ const binding = Object.freeze({
   runnerId: 'runner-a',
   deviceId: 'office-pc',
   capabilities: ['local.system_info'],
+})
+
+test('parses successful and failed job result envelopes', () => {
+  assert.deepEqual(parseRunnerJobResult({
+    protocolVersion: 1,
+    kind: 'runner.job-result',
+    jobId: 'job-1',
+    runnerId: 'runner-a',
+    outcome: 'succeeded',
+    value: { platform: 'win32' },
+    completedAt: 2_000,
+  }), {
+    protocolVersion: 1,
+    kind: 'runner.job-result',
+    jobId: 'job-1',
+    runnerId: 'runner-a',
+    outcome: 'succeeded',
+    value: { platform: 'win32' },
+    completedAt: 2_000,
+  })
+  assert.equal(parseRunnerJobResult({
+    protocolVersion: 1,
+    kind: 'runner.job-result',
+    jobId: 'job-2',
+    runnerId: 'runner-a',
+    outcome: 'failed',
+    error: { code: 'TOOL_FAILED', message: 'unavailable', retryable: true },
+    completedAt: 2_001,
+  }).outcome, 'failed')
+})
+
+test('rejects malformed job results', () => {
+  assert.throws(
+    () => parseRunnerJobResult({
+      protocolVersion: 1,
+      kind: 'runner.job-result',
+      jobId: 'job-1',
+      runnerId: 'runner-a',
+      outcome: 'failed',
+      error: { code: 'TOOL_FAILED', message: 'unavailable' },
+      completedAt: 2_001,
+    }),
+    error => error instanceof RunnerProtocolError && error.code === 'INVALID_ENVELOPE',
+  )
 })
 
 const job = Object.freeze({

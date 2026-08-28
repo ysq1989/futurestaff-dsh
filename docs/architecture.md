@@ -4,7 +4,8 @@
 Browser -> official DSH Web bundle -> FutureStaff Profile overlay
                                       |-> fs-core identity service
                                       |-> cloud MCP adapters (M2+)
-                                      `-> Local Runner router (future)
+                                      `-> Local Runner Router
+                                            `-> transport adapter (future)
 ```
 
 `futurestaff-alpha` composes `@deepseek-ai/dsh-base`, then `@deepseek-ai/dsh-web-app`, then its own `cordis.patch.yml`. The overlay inserts `@futurestaff/fs-core`; it does not replace official rows or modify DSH source.
@@ -26,6 +27,8 @@ The DSH policy seam, rather than model instructions, enforces confirmation befor
 Alpha is deliberately single-subject: one container, persistent volume, and Product Hub Agent Key form one identity boundary. Startup rejects any premature `request-scoped` mode. See [ADR-006](decisions/006-single-subject-until-identity-gateway.md) and the [M3 identity acceptance](m3-identity-acceptance.md).
 
 The Local Runner begins as a transport-neutral v1 contract. Cloud-owned subject and device bindings are checked again on the Runner together with capability, expiry, and replay state. See [ADR-007](decisions/007-local-runner-v1-contract.md) and the [protocol spec](specs/local-runner-protocol.md).
+
+The cloud Router is a separate, transport-independent state machine. It accepts only a trusted server-side `RunnerBinding`; dispatch callers supply `runnerId`, Tool name, arguments, and approval evidence, while the Router injects subject and device. It rejects duplicate active connections, stale heartbeats, unauthorized capabilities, mismatched results, and unfinished jobs on timeout or disconnect. There is still no public Runner port. See [ADR-008](decisions/008-router-before-public-transport.md).
 
 See [ADR-001](decisions/001-upstream-composition.md) and [ADR-002](decisions/002-tool-execution-metadata.md).
 

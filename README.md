@@ -9,9 +9,9 @@ FutureStaff's upgrade-friendly extension layer for [DeepSeek Harness](https://gi
 - **M2:** a contract-first Selection Center MCP with four Tools and an isolated provisional HTTP adapter.
 - **M2 live path:** direct authenticated Streamable HTTP MCP connection to FutureStaff Product Hub.
 - **M3 baseline:** fail-closed single-subject deployment boundary pending a trusted identity gateway.
-- **Local Runner foundation:** versioned registration, heartbeat, job/result, routing, expiry, and replay contracts.
+- **Local Runner foundation:** versioned protocol plus an in-memory cloud Router for trusted binding, presence, dispatch, timeout, and result collection.
 - **Deployment:** server-first Docker image with separate test and production Compose topology.
-- **Not in scope:** Vietnam visa business calls, Local Runner, final auth, and billing.
+- **Not in scope:** Vietnam visa business calls, public Runner transport or desktop client, final auth, and billing.
 
 ## Quick start
 
@@ -48,6 +48,7 @@ plugins/fs-core/            Identity context and Tool metadata contract
 mcp/selection-center/       M2 MCP server, schemas, and HTTP adapter
 mcp/vietnam-visa/           Future boundary placeholder
 runner/protocol/             Transport-neutral Local Runner v1 contracts
+runner/router/               Cloud Router state machine (no public transport)
 skills/jade-sourcing/       Future skill placeholder
 skills/vietnam-visa/        Future skill placeholder
 docs/                       Architecture, acceptance criteria, conventions, ADRs
@@ -61,7 +62,7 @@ Selection Center row, which remains available for isolated local testing. Local
 npm commands load `.env` automatically; the mock workflow is documented in
 `mcp/selection-center/README.md`.
 
-See [architecture](docs/architecture.md), [M0/M1 acceptance](docs/m0-m1-acceptance.md), [M2 acceptance](docs/m2-acceptance.md), and [development conventions](docs/development.md).
+See [architecture](docs/architecture.md), [M0/M1 acceptance](docs/m0-m1-acceptance.md), [M2 acceptance](docs/m2-acceptance.md), [Runner Router acceptance](docs/runner-router-acceptance.md), and [development conventions](docs/development.md).
 
 Server installation and upgrade commands are in [deployment](docs/deployment.md). The production Compose file never includes the Mock.
 

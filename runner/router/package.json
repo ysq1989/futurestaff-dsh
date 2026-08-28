@@ -1,0 +1,20 @@
+{
+  "name": "@futurestaff/local-runner-router",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": ["lib"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test"
+  },
+  "dependencies": {
+    "@futurestaff/local-runner-protocol": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0"
+  }
+}
