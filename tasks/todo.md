@@ -22,4 +22,4 @@
 - [x] Implement the read-only reconnecting Runner client.
 - [x] Add disabled-by-default Compose topology; keep the Nginx example closed.
 - [x] Run full checks and review.
-- [ ] Commit, push, and deploy without opening the route.
+- [x] Commit, push, and deploy without opening the route.
