@@ -110,3 +110,12 @@ test('Runner gateway is opt-in, loopback-only, and uses a read-only binding file
   }
   assert.doesNotMatch(nginx, /runner\/v1\/connect/)
 })
+
+test('Runner workspaces declare clean-build dependency order', async () => {
+  const [client, gateway, router] = await Promise.all([
+    read('runner/client/package.json'), read('runner/gateway/package.json'), read('runner/router/package.json'),
+  ])
+  assert.match(client, /build -w @futurestaff\/local-runner-protocol/)
+  assert.match(gateway, /build -w @futurestaff\/local-runner-protocol[\s\S]*build -w @futurestaff\/local-runner-router/)
+  assert.match(router, /build -w @futurestaff\/local-runner-protocol/)
+})

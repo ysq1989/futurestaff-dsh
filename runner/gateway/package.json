@@ -7,8 +7,8 @@
   "types": "lib/index.d.ts",
   "files": ["lib"],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "npm run build -w @futurestaff/local-runner-protocol && npm run build -w @futurestaff/local-runner-router && tsc -p tsconfig.json",
+    "typecheck": "npm run build -w @futurestaff/local-runner-protocol && npm run build -w @futurestaff/local-runner-router && tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test"
   },
   "dependencies": {
