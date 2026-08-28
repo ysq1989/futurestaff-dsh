@@ -42,6 +42,7 @@ If Windows Application Control blocks DSH's native `sharp` module, run the Docke
 | `npm run selection:mock` | Start the loopback-only in-memory Selection Center upstream |
 | `npm run runner:gateway` | Start the loopback Runner gateway from a binding file |
 | `npm run runner:client` | Start the minimal Local Runner from client environment values |
+| `npm run runner:enroll` | Generate a local device token and server-side digest binding |
 
 ## Structure
 

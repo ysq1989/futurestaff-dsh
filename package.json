@@ -7,16 +7,17 @@
   "workspaces": ["plugins/*", "mcp/*", "runner/*"],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present && node --test test/deployment.test.js",
+    "test": "npm run test --workspaces --if-present && node --test test/*.test.js",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "check:workspaces": "npm run typecheck && npm run test --workspaces --if-present && npm run build",
-    "check": "npm run check:workspaces && node --test test/deployment.test.js",
+    "check": "npm run check:workspaces && node --test test/*.test.js",
     "profile:install": "node scripts/install-profile.mjs",
     "profile:dump": "cross-env DSH_HOME=.dsh NODE_OPTIONS=--import=./scripts/load-env.mjs pnpm dlx @deepseek-ai/dsh@0.1.1-rc.2 --profile futurestaff-alpha --dump-config",
     "dev": "cross-env DSH_HOME=.dsh NODE_OPTIONS=--import=./scripts/load-env.mjs pnpm dlx @deepseek-ai/dsh@0.1.1-rc.2 --profile futurestaff-alpha",
     "selection:mock": "npm run build -w @futurestaff/selection-center-mcp && node --import=./scripts/load-env.mjs mcp/selection-center/lib/mock-cli.js",
     "runner:gateway": "npm run build -w @futurestaff/local-runner-gateway && node --import=./scripts/load-env.mjs runner/gateway/lib/cli.js",
-    "runner:client": "npm run build -w @futurestaff/local-runner-client && node --import=./scripts/load-env.mjs runner/client/lib/cli.js"
+    "runner:client": "npm run build -w @futurestaff/local-runner-client && node --import=./scripts/load-env.mjs runner/client/lib/cli.js",
+    "runner:enroll": "node scripts/enroll-runner.mjs"
   },
   "engines": { "node": ">=22" },
   "devDependencies": {

@@ -55,7 +55,14 @@ Tag deployed images with an immutable version in `FUTURESTAFF_DSH_IMAGE`. Roll b
 
 ## Optional Local Runner gateway
 
-The gateway is not started by normal Compose commands. Before enabling it, create `runner-bindings.json` outside Git using `runner-bindings.example.json` as the shape. Generate a random device token, give the raw value only to that device, and put its lowercase SHA-256 digest in the server binding file.
+The gateway is not started by normal Compose commands. Before enabling it, set `RUNNER_TENANT_ID`, `RUNNER_USER_ID`, `RUNNER_ID`, and `RUNNER_DEVICE_ID`, then run `npm run runner:enroll`. It creates ignored `runner/client/.env` and `runner-bindings.json` files. The raw token exists only in the client file; the binding contains its SHA-256 digest.
+
+Copy the binding file to the server without printing it. Because the image runs as UID 1000, keep the mount readable only by that UID:
+
+```bash
+chown 1000:1000 runner-bindings.json
+chmod 400 runner-bindings.json
+```
 
 Start the loopback-only gateway explicitly:
 
@@ -64,7 +71,7 @@ docker compose --profile runner --env-file .env -f docker/compose.dev.yml up -d 
 curl http://127.0.0.1:3090/healthz
 ```
 
-Do not add `/runner/v1/connect` to Nginx until a real device token has been provisioned. The committed Nginx example intentionally has no Runner route.
+Do not add `/runner/v1/connect` to Nginx until a real device token has been provisioned. Then place `docker/nginx/runner-location.conf.example` inside the TLS server block. Its exact-match route disables site Basic Auth only for the Runner path; the gateway still requires the device Bearer token.
 
 On the device, configure the values shown in `runner/client/.env.example` and run `npm run runner:client`. The Alpha client is a Node process, not yet an installer or background service.
 

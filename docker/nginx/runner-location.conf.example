@@ -1,0 +1,17 @@
+# Place this exact-match location inside the TLS server block only after at
+# least one device token has been provisioned. The gateway performs Bearer auth.
+location = /runner/v1/connect {
+    auth_basic off;
+    proxy_pass http://127.0.0.1:3090;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Authorization $http_authorization;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_read_timeout 75s;
+    proxy_send_timeout 75s;
+    proxy_buffering off;
+}

@@ -119,3 +119,11 @@ test('Runner workspaces declare clean-build dependency order', async () => {
   assert.match(gateway, /build -w @futurestaff\/local-runner-protocol[\s\S]*build -w @futurestaff\/local-runner-router/)
   assert.match(router, /build -w @futurestaff\/local-runner-protocol/)
 })
+
+test('Runner Nginx snippet bypasses Basic Auth only for the exact authenticated gateway route', async () => {
+  const snippet = await read('docker/nginx/runner-location.conf.example')
+  assert.match(snippet, /location = \/runner\/v1\/connect/)
+  assert.match(snippet, /auth_basic off/)
+  assert.match(snippet, /proxy_pass http:\/\/127\.0\.0\.1:3090/)
+  assert.match(snippet, /proxy_set_header Authorization \$http_authorization/)
+})
