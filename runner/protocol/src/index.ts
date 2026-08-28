@@ -1,5 +1,6 @@
 export const RUNNER_PROTOCOL_VERSION = 1 as const
 export const INITIAL_RUNNER_CAPABILITY = 'local.system_info' as const
+export const MAX_RUNNER_CLOCK_SKEW_MS = 30_000
 
 export type RunnerProtocolErrorCode =
   | 'INVALID_ENVELOPE'
@@ -224,7 +225,9 @@ export function authorizeRunnerJob(binding: RunnerBinding, value: unknown, now: 
   if (!binding.capabilities.includes(job.tool.name)) {
     throw new RunnerProtocolError('CAPABILITY_DENIED', 'Runner did not register the requested capability')
   }
-  if (now < job.issuedAt) throw new RunnerProtocolError('JOB_NOT_YET_VALID', 'job issue time is in the future')
+  if (job.issuedAt - now > MAX_RUNNER_CLOCK_SKEW_MS) {
+    throw new RunnerProtocolError('JOB_NOT_YET_VALID', 'job issue time exceeds the allowed clock skew')
+  }
   if (now > job.expiresAt) throw new RunnerProtocolError('JOB_EXPIRED', 'job has expired')
   return job
 }

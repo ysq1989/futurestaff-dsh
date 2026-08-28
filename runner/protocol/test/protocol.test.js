@@ -115,13 +115,14 @@ test('rejects cross-subject and wrong-device delivery', () => {
   )
 })
 
-test('rejects expired, future-issued, and unsupported jobs', () => {
+test('allows bounded clock skew but rejects expired, far-future, and unsupported jobs', () => {
   assert.throws(
     () => authorizeRunnerJob(binding, job, 61_001),
     error => error instanceof RunnerProtocolError && error.code === 'JOB_EXPIRED',
   )
+  assert.deepEqual(authorizeRunnerJob(binding, job, 999), job)
   assert.throws(
-    () => authorizeRunnerJob(binding, job, 999),
+    () => authorizeRunnerJob(binding, { ...job, issuedAt: 31_000, expiresAt: 91_000 }, 999),
     error => error instanceof RunnerProtocolError && error.code === 'JOB_NOT_YET_VALID',
   )
   assert.throws(
