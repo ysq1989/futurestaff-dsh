@@ -42,3 +42,25 @@
           Authorization: !!js '`Bearer ${process.env.PRODUCT_HUB_AGENT_KEY}`'
         toolCallTimeoutMs: 60000
         failOnStartupError: true
+
+    - id: mcp-local-runner
+      name: '@deepseek-ai/dsh-mcp-client'
+      disabled: !!js >-
+        !process.env.RUNNER_GATEWAY_INTERNAL_URL ||
+        !process.env.RUNNER_DISPATCH_TOKEN ||
+        !process.env.RUNNER_ID ||
+        !process.env.RUNNER_DEVICE_ID
+      config:
+        serverName: local-runner
+        transport: stdio
+        command: !!js process.execPath
+        args: ['mcp/local-runner/lib/stdio.js']
+        cwd: !!js process.cwd()
+        env:
+          RUNNER_GATEWAY_INTERNAL_URL: !!js process.env.RUNNER_GATEWAY_INTERNAL_URL
+          RUNNER_DISPATCH_TOKEN: !!js process.env.RUNNER_DISPATCH_TOKEN
+          RUNNER_ID: !!js process.env.RUNNER_ID
+          RUNNER_DEVICE_ID: !!js process.env.RUNNER_DEVICE_ID
+          RUNNER_DISPATCH_TIMEOUT_MS: !!js process.env.RUNNER_DISPATCH_TIMEOUT_MS
+        toolCallTimeoutMs: 35000
+        failOnStartupError: true

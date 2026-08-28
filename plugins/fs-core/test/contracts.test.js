@@ -7,6 +7,7 @@ import {
   defineToolMetadata,
   apply,
   assertIdentityMode,
+  localRunnerApprovalDecision,
   productHubApprovalDecision,
 } from '../lib/index.js'
 
@@ -91,6 +92,13 @@ test('unrelated tools are outside the Product Hub approval policy', () => {
   assert.equal(productHubApprovalDecision('web_search'), undefined)
 })
 
+test('local system info requires explicit approval before contacting the device', () => {
+  assert.deepEqual(localRunnerApprovalDecision('mcp__local-runner__local_system_info'), {
+    kind: 'ask', reason: '此操作会读取当前电脑的系统信息，请确认是否执行。',
+  })
+  assert.equal(localRunnerApprovalDecision('web_search'), undefined)
+})
+
 test('fs-core registers the approval policy in the DSH pre-execution pipeline', async () => {
   let listener
   const context = {
@@ -116,5 +124,12 @@ test('fs-core registers the approval policy in the DSH pre-execution pipeline', 
       async () => ({ kind: 'allow' }),
     ),
     { kind: 'allow' },
+  )
+  assert.deepEqual(
+    await listener(
+      { name: 'mcp__local-runner__local_system_info' },
+      async () => ({ kind: 'allow' }),
+    ),
+    { kind: 'ask', reason: '此操作会读取当前电脑的系统信息，请确认是否执行。' },
   )
 })

@@ -9,4 +9,5 @@ await startRunnerGateway({
   bindings: config.bindings,
   host: process.env.RUNNER_GATEWAY_HOST ?? '127.0.0.1',
   port: Number(process.env.RUNNER_GATEWAY_PORT ?? '3090'),
+  ...(process.env.RUNNER_DISPATCH_TOKEN?.trim() ? { dispatchToken: process.env.RUNNER_DISPATCH_TOKEN.trim() } : {}),
 })

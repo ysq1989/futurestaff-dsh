@@ -98,3 +98,57 @@ test('does not let one valid device token register as another configured Runner'
   assert.equal(await closed, 4403)
   assert.equal(gateway.router.status('runner-b').online, false)
 })
+
+test('authenticates the private fixed-capability dispatch endpoint', async t => {
+  const events = []
+  const dispatchToken = 'internal-dispatch-token-at-least-32-characters'
+  const gateway = await startRunnerGateway({
+    host: '127.0.0.1', port: 0, bindings: [binding], dispatchToken,
+    log: event => events.push(event),
+  })
+  t.after(() => gateway.close())
+  const endpoint = new URL('/internal/v1/system-info', gateway.httpUrl)
+  const unauthorized = await fetch(endpoint, { method: 'POST', body: JSON.stringify({ runnerId: 'runner-a' }) })
+  assert.equal(unauthorized.status, 401)
+
+  const socket = new WebSocket(gateway.url, { headers: { authorization: `Bearer ${token}` } })
+  await new Promise((resolve, reject) => { socket.once('open', resolve); socket.once('error', reject) })
+  socket.send(JSON.stringify({
+    protocolVersion: 1, kind: 'runner.register', runnerId: 'runner-a',
+    deviceId: 'office-pc', capabilities: ['local.system_info'],
+  }))
+  await new Promise(resolve => setTimeout(resolve, 10))
+  socket.once('message', data => {
+    const job = JSON.parse(data.toString())
+    socket.send(JSON.stringify({
+      protocolVersion: 1, kind: 'runner.job-result', jobId: job.jobId, runnerId: 'runner-a',
+      outcome: 'succeeded', value: { platform: 'win32', arch: 'x64', release: 'test', hostname: 'test-pc' },
+      completedAt: Date.now(),
+    }))
+  })
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${dispatchToken}`, 'content-type': 'application/json', 'x-request-id': 'request-e2e' },
+    body: JSON.stringify({ runnerId: 'runner-a' }),
+  })
+  assert.equal(response.status, 200)
+  assert.deepEqual(await response.json(), { data: { platform: 'win32', arch: 'x64', release: 'test', hostname: 'test-pc' } })
+  assert.match(JSON.stringify(events), /internal_dispatch_completed/)
+  socket.close()
+})
+
+test('maps an offline Runner to a stable private API error', async t => {
+  const gateway = await startRunnerGateway({
+    host: '127.0.0.1', port: 0, bindings: [binding],
+    dispatchToken: 'internal-dispatch-token-at-least-32-characters',
+    log: () => {},
+  })
+  t.after(() => gateway.close())
+  const response = await fetch(new URL('/internal/v1/system-info', gateway.httpUrl), {
+    method: 'POST',
+    headers: { authorization: 'Bearer internal-dispatch-token-at-least-32-characters', 'content-type': 'application/json' },
+    body: JSON.stringify({ runnerId: 'runner-a' }),
+  })
+  assert.equal(response.status, 503)
+  assert.deepEqual(await response.json(), { error: { code: 'RUNNER_OFFLINE', message: 'Runner is unavailable', retryable: true } })
+})

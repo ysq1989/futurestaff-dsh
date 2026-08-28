@@ -25,3 +25,11 @@ export function productHubApprovalDecision(name: string): PreToolDecision | unde
     reason: '此操作会修改选品中心数据，请确认是否执行。',
   }
 }
+
+export function localRunnerApprovalDecision(name: string): PreToolDecision | undefined {
+  if (name !== 'mcp__local-runner__local_system_info') return undefined
+  return {
+    kind: 'ask',
+    reason: '此操作会读取当前电脑的系统信息，请确认是否执行。',
+  }
+}

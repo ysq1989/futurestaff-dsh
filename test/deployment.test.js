@@ -127,3 +127,15 @@ test('Runner Nginx snippet bypasses Basic Auth only for the exact authenticated 
   assert.match(snippet, /proxy_pass http:\/\/127\.0\.0\.1:3090/)
   assert.match(snippet, /proxy_set_header Authorization \$http_authorization/)
 })
+
+test('Profile mounts only the fixed Local Runner MCP contract when private dispatch is configured', async () => {
+  const [profile, development] = await Promise.all([
+    read('profile/futurestaff-alpha/cordis.patch.yml'), read('docker/compose.dev.yml'),
+  ])
+  assert.match(profile, /id: mcp-local-runner/)
+  assert.match(profile, /args: \['mcp\/local-runner\/lib\/stdio\.js'\]/)
+  assert.match(profile, /RUNNER_GATEWAY_INTERNAL_URL/)
+  assert.match(profile, /RUNNER_DISPATCH_TOKEN/)
+  assert.match(development, /RUNNER_DISPATCH_TOKEN: \$\{RUNNER_DISPATCH_TOKEN:-\}/)
+  assert.match(development, /RUNNER_ID: \$\{RUNNER_ID:-\}/)
+})

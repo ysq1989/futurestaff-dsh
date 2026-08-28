@@ -3,7 +3,7 @@ import { createServer, type IncomingMessage } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
 import { parseRunnerRegistration, type RunnerBinding } from '@futurestaff/local-runner-protocol'
-import { LocalRunnerRouter, type RunnerChannel } from '@futurestaff/local-runner-router'
+import { LocalRunnerRouter, RunnerRouterError, type RunnerChannel, type RunnerDispatch } from '@futurestaff/local-runner-router'
 import WebSocket, { WebSocketServer, type RawData } from 'ws'
 
 export interface GatewayBinding extends RunnerBinding { readonly tokenSha256: string }
@@ -21,7 +21,35 @@ type GatewayOptions = GatewayConfig & {
   readonly host?: string
   readonly port?: number
   readonly path?: string
+  readonly dispatchToken?: string
   readonly log?: (event: GatewayLogEvent) => void
+}
+
+function bearerMatches(request: IncomingMessage, expectedToken: string): boolean {
+  const header = request.headers.authorization
+  if (typeof header !== 'string' || !header.startsWith('Bearer ')) return false
+  const provided = header.slice(7)
+  if (provided.length < 32 || provided.length > 512) return false
+  return timingSafeEqual(createHash('sha256').update(provided).digest(), createHash('sha256').update(expectedToken).digest())
+}
+
+async function jsonBody(request: IncomingMessage): Promise<unknown> {
+  let size = 0
+  const chunks: Buffer[] = []
+  for await (const chunk of request) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+    size += buffer.length
+    if (size > 4_096) throw new Error('request body is too large')
+    chunks.push(buffer)
+  }
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+}
+
+function systemInfo(value: unknown): Record<string, string> {
+  const input = object(value, 'system info result')
+  const output: Record<string, string> = {}
+  for (const field of ['platform', 'arch', 'release', 'hostname']) output[field] = id(input[field], field)
+  return Object.freeze(output)
 }
 
 function object(value: unknown, name: string): Record<string, unknown> {
@@ -84,13 +112,73 @@ export async function startRunnerGateway(options: GatewayOptions) {
   const host = options.host ?? '127.0.0.1'
   const port = options.port ?? 3090
   const path = options.path ?? '/runner/v1/connect'
+  const dispatchToken = options.dispatchToken
+  if (dispatchToken !== undefined && (dispatchToken.length < 32 || dispatchToken.length > 512)) throw new Error('dispatch token is invalid')
   const emit = options.log ?? (event => process.stdout.write(`${JSON.stringify(event)}\n`))
   const router = new LocalRunnerRouter({ bindings: config.bindings })
+  const dispatch = async (request: RunnerDispatch, requestId: string = randomUUID()) => {
+    const startedAt = Date.now()
+    try {
+      const result = await router.dispatch(request)
+      emit({ level: 'info', event: 'runner_job_completed', requestId, runnerId: request.runnerId, reason: 'succeeded', durationMs: Date.now() - startedAt })
+      return result
+    } catch (error) {
+      emit({
+        level: 'warn', event: 'runner_job_completed', requestId, runnerId: request.runnerId,
+        reason: error instanceof Error && 'code' in error ? String(error.code) : 'failed', durationMs: Date.now() - startedAt,
+      })
+      throw error
+    }
+  }
   const sockets = new Set<WebSocket>()
   const server = createServer((request, response) => {
     if (request.url === '/healthz') {
       response.writeHead(200, { 'content-type': 'application/json' }).end('{"status":"ok"}')
-    } else response.writeHead(404).end()
+      return
+    }
+    if (request.method === 'POST' && request.url === '/internal/v1/system-info' && dispatchToken) {
+      void (async () => {
+        const incomingRequestId = request.headers['x-request-id']
+        const requestId = typeof incomingRequestId === 'string' && /^[A-Za-z0-9._-]{1,100}$/.test(incomingRequestId)
+          ? incomingRequestId : randomUUID()
+        response.setHeader('x-request-id', requestId)
+        const startedAt = Date.now()
+        let outcome = 'failed'
+        try {
+          if (!bearerMatches(request, dispatchToken)) {
+            outcome = 'unauthorized'
+            response.writeHead(401, { 'content-type': 'application/json' }).end(JSON.stringify({ error: { code: 'UNAUTHORIZED', message: 'Unauthorized', retryable: false } }))
+            return
+          }
+          if (!request.headers['content-type']?.toLowerCase().startsWith('application/json')) throw new Error('content type must be JSON')
+          const body = object(await jsonBody(request), 'request body')
+          if (Object.keys(body).length !== 1) throw new Error('request body has unknown fields')
+          const runnerId = id(body.runnerId, 'runnerId')
+          const data = systemInfo(await dispatch({ runnerId, toolName: 'local.system_info', arguments: {} }, requestId))
+          outcome = 'succeeded'
+          response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ data }))
+        } catch (error) {
+          if (response.headersSent) return
+          if (error instanceof RunnerRouterError) {
+            const timeout = error.code === 'JOB_TIMEOUT'
+            const unavailable = ['RUNNER_OFFLINE', 'RUNNER_STALE', 'RUNNER_NOT_CONFIGURED', 'CONNECTION_CLOSED'].includes(error.code)
+            const status = timeout ? 504 : unavailable ? 503 : 500
+            const code = timeout ? 'RUNNER_TIMEOUT' : unavailable ? error.code : 'INTERNAL'
+            outcome = code
+            response.writeHead(status, { 'content-type': 'application/json' }).end(JSON.stringify({
+              error: { code, message: timeout ? 'Runner timed out' : unavailable ? 'Runner is unavailable' : 'Internal dispatch error', retryable: timeout || unavailable },
+            }))
+          } else {
+            outcome = 'invalid_request'
+            response.writeHead(400, { 'content-type': 'application/json' }).end(JSON.stringify({ error: { code: 'INVALID_REQUEST', message: 'Invalid request', retryable: false } }))
+          }
+        } finally {
+          emit({ level: outcome === 'succeeded' ? 'info' : 'warn', event: 'internal_dispatch_completed', requestId, reason: outcome, durationMs: Date.now() - startedAt })
+        }
+      })()
+      return
+    }
+    response.writeHead(404).end()
   })
   const websocketServer = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024, perMessageDeflate: false })
   const alive = new WeakSet<WebSocket>()
@@ -172,26 +260,8 @@ export async function startRunnerGateway(options: GatewayOptions) {
   return Object.freeze({
     router,
     url: `ws://${host}:${address.port}${path}`,
-    dispatch: async (request: Parameters<LocalRunnerRouter['dispatch']>[0]) => {
-      const requestId = randomUUID()
-      const startedAt = Date.now()
-      try {
-        const result = await router.dispatch(request)
-        emit({
-          level: 'info', event: 'runner_job_completed', requestId,
-          runnerId: request.runnerId, reason: 'succeeded', durationMs: Date.now() - startedAt,
-        })
-        return result
-      } catch (error) {
-        emit({
-          level: 'warn', event: 'runner_job_completed', requestId,
-          runnerId: request.runnerId,
-          reason: error instanceof Error && 'code' in error ? String(error.code) : 'failed',
-          durationMs: Date.now() - startedAt,
-        })
-        throw error
-      }
-    },
+    httpUrl: `http://${host}:${address.port}/`,
+    dispatch,
     close: async () => {
       clearInterval(livenessTimer)
       for (const socket of sockets) socket.terminate()

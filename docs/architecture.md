@@ -32,6 +32,8 @@ The cloud Router is a separate, transport-independent state machine. It accepts 
 
 The optional WebSocket gateway authenticates a device token before upgrade and then requires the registration frame to match that token's exact binding. It is a separate process and Compose profile, so the normal DSH container remains unchanged. The bundled client re-authorizes every cloud job locally and exposes only `local.system_info`. See [ADR-009](decisions/009-per-device-runner-token.md).
 
+The first DSH dispatch path is a no-input `local_system_info` MCP Tool. Its private HTTP adapter injects a configured Runner ID and service token; the Gateway translates that fixed request into `local.system_info`. Nginx never exposes the internal endpoint. See [ADR-010](decisions/010-fixed-local-system-info-dispatch.md) and the [dispatch spec](specs/runner-system-info-dispatch.md).
+
 See [ADR-001](decisions/001-upstream-composition.md) and [ADR-002](decisions/002-tool-execution-metadata.md).
 
 Server container topology and the strict Mock/production split are recorded in [ADR-003](decisions/003-server-container-deployment.md).

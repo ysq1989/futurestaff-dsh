@@ -75,6 +75,10 @@ Do not add `/runner/v1/connect` to Nginx until a real device token has been prov
 
 On the device, configure the values shown in `runner/client/.env.example` and run `npm run runner:client`. The Alpha client is a Node process, not yet an installer or background service.
 
+To enable DSH-side `local_system_info`, generate a separate high-entropy internal token and set the same `RUNNER_DISPATCH_TOKEN` for the DSH and Gateway containers. Also configure `RUNNER_GATEWAY_INTERNAL_URL`, `RUNNER_ID`, and `RUNNER_DEVICE_ID`. The internal URL must use the server loopback/private network and must not be added to Nginx.
+
+Operational questions are answered by the `internal_dispatch_completed`, `runner_job_completed`, and `local_runner_mcp_request_completed` structured events. They include correlation, outcome, and duration but never credentials, subject identity, arguments, or returned host information.
+
 ## Operational checks
 
 - `docker compose ps` reports DSH healthy.

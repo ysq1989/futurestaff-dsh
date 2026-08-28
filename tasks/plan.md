@@ -21,3 +21,10 @@ Network enrollment, persistent Runner state, and an executable desktop agent are
 3. Build a minimal reconnecting client with an allowlisted `local.system_info` executor.
 4. Prove the flow over a real loopback socket and add redacted structured lifecycle logs.
 5. Add a disabled-by-default gateway Compose service; do not publish the Nginx route until a real device is enrolled.
+
+## System-info dispatch slice
+
+1. Add an authenticated, fixed-capability internal Gateway endpoint.
+2. Add a no-input Local Runner MCP adapter with trusted configured routing.
+3. Mount the adapter in the FutureStaff Profile and containers.
+4. Prove one real request against the enrolled Windows Runner.

@@ -51,6 +51,7 @@ profile/futurestaff-alpha/  Custom Profile source
 plugins/fs-core/            Identity context and Tool metadata contract
 mcp/selection-center/       M2 MCP server, schemas, and HTTP adapter
 mcp/vietnam-visa/           Future boundary placeholder
+mcp/local-runner/            Fixed read-only DSH-to-Gateway MCP adapter
 runner/protocol/             Transport-neutral Local Runner v1 contracts
 runner/router/               Cloud Router state machine (no public transport)
 runner/gateway/              Authenticated WebSocket adapter (opt-in Compose profile)

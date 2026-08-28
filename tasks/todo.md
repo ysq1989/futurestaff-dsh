@@ -23,3 +23,11 @@
 - [x] Add disabled-by-default Compose topology; keep the Nginx example closed.
 - [x] Run full checks and review.
 - [x] Commit, push, and deploy without opening the route.
+
+## System-info dispatch slice
+
+- [x] Approve the fixed-runner, fixed-capability private dispatch assumptions.
+- [x] Add failing Gateway and MCP contract tests.
+- [x] Implement authenticated internal dispatch.
+- [x] Add and mount the `local_system_info` MCP Tool.
+- [ ] Run checks, review, deploy, and execute against the real Windows Runner.
