@@ -18,6 +18,8 @@ export const dependencyManifest = Object.freeze({
 
 const forbiddenConfiguration = /(?:RUNNER_DEVICE_TOKEN|RUNNER_TENANT_ID|RUNNER_USER_ID|RUNNER_ENROLLMENT_CODE|DEEPSEEK_API_KEY)\s*=/i
 
+export const runnerBundleBanner = 'import { createRequire } from "node:module"; const require = createRequire(import.meta.url);'
+
 export function assertSecretFreePayload(files) {
   for (const file of files) {
     if (forbiddenConfiguration.test(file.content)) {
@@ -36,9 +38,9 @@ export function renderServiceConfig() {
   <id>FutureStaffLocalRunner</id>
   <name>FutureStaff Local Runner</name>
   <description>Connects this computer to FutureStaff for approved local actions.</description>
-  <executable>%BASE%\\runtime\\node.exe</executable>
-  <arguments>--enable-source-maps &quot;%BASE%\\app\\runner.mjs&quot;</arguments>
-  <workingdirectory>%BASE%</workingdirectory>
+  <executable>%BASE%\\..\\runtime\\node.exe</executable>
+  <arguments>--enable-source-maps &quot;%BASE%\\..\\app\\runner.mjs&quot;</arguments>
+  <workingdirectory>%BASE%\\..</workingdirectory>
   <env name="FUTURESTAFF_RUNNER_CONFIG" value="%ProgramData%\\FutureStaff\\LocalRunner\\runner.json" />
   <serviceaccount>
     <username>NT AUTHORITY\\LocalService</username>

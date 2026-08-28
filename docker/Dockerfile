@@ -23,8 +23,8 @@ RUN npm ci \
     && npm run build \
     && npm run check:workspaces \
     && chmod 0755 /usr/local/bin/futurestaff-entrypoint \
-    && mkdir -p /data/dsh \
-    && chown -R node:node /app /data/dsh
+    && mkdir -p /data/dsh /data/runner \
+    && chown -R node:node /app /data/dsh /data/runner
 
 USER node
 EXPOSE 3080

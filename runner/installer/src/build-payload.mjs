@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 
 import { build } from 'esbuild'
 
-import { assertSecretFreePayload, dependencyManifest, renderServiceConfig, sha256 } from './package-contract.mjs'
+import { assertSecretFreePayload, dependencyManifest, renderServiceConfig, runnerBundleBanner, sha256 } from './package-contract.mjs'
 
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const repositoryRoot = path.resolve(packageRoot, '..', '..')
@@ -60,6 +60,7 @@ export async function buildPayload() {
     platform: 'node',
     format: 'esm',
     target: 'node22',
+    banner: { js: runnerBundleBanner },
     sourcemap: true,
     minify: false,
   })

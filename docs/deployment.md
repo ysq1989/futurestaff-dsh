@@ -75,12 +75,12 @@ Do not add `/runner/v1/connect` to Nginx until a real device token has been prov
 
 For manual development, configure the ignored `runner/client/.env` and run `npm run runner:client`.
 
-For installer enrollment, point `RUNNER_ENROLLMENT_OFFERS_FILE` at a server-side ignored offer file and keep the Gateway state volume persistent. Issue a 15-minute code without printing it into logs:
+For installer enrollment, create an ignored `runner-enrollment/` directory, set `RUNNER_ENROLLMENT_OFFERS_DIR=../runner-enrollment` for Compose, and point `RUNNER_ENROLLMENT_OFFERS_FILE` at its `offers.json` file when issuing codes. The directory mount allows atomic offer-file replacement to become visible without recreating the Gateway. Keep the Gateway state volume persistent.
 
 ```bash
 RUNNER_TENANT_ID=tenant-id \
 RUNNER_USER_ID=user-id \
-RUNNER_ENROLLMENT_OFFERS_FILE=runner-enrollment.json \
+RUNNER_ENROLLMENT_OFFERS_FILE=runner-enrollment/offers.json \
 npm run runner:issue-code
 ```
 

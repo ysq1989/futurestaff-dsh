@@ -135,16 +135,23 @@ test('Runner Nginx snippet bypasses Basic Auth only for the exact authenticated 
 test('Runner enrollment uses a read-only offer file and a persistent state volume', async () => {
   const [development, production, example, envExample] = await Promise.all([
     read('docker/compose.dev.yml'), read('docker/compose.prod.yml'),
-    read('runner-enrollment.example.json'), read('.env.example'),
+    read('runner-enrollment.example/offers.json'), read('.env.example'),
   ])
   for (const compose of [development, production]) {
-    assert.match(compose, /runner-enrollment\.json:ro/)
+    assert.match(compose, /runner-enrollment:ro/)
     assert.match(compose, /RUNNER_ENROLLMENT_STATE_FILE: \/data\/runner\/enrollment-state\.json/)
     assert.match(compose, /runner_gateway(?:_dev)?_data:\/data\/runner/)
     assert.match(compose, /RUNNER_PUBLIC_URL:/)
   }
   assert.deepEqual(JSON.parse(example), { offers: [] })
+  assert.match(envExample, /^RUNNER_ENROLLMENT_OFFERS_DIR=/m)
   assert.match(envExample, /^RUNNER_ENROLLMENT_OFFERS_FILE=/m)
+})
+
+test('Runner state volume is initialized writable by the unprivileged container user', async () => {
+  const dockerfile = await read('docker/Dockerfile')
+  assert.match(dockerfile, /mkdir -p \/data\/dsh \/data\/runner/)
+  assert.match(dockerfile, /chown -R node:node \/app \/data\/dsh \/data\/runner/)
 })
 
 test('Profile mounts only the fixed Local Runner MCP contract when private dispatch is configured', async () => {

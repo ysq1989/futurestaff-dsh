@@ -62,14 +62,14 @@ services:
       RUNNER_GATEWAY_HOST: 0.0.0.0
       RUNNER_GATEWAY_PORT: 3090
       RUNNER_DISPATCH_TOKEN: ${RUNNER_DISPATCH_TOKEN:-}
-      RUNNER_ENROLLMENT_OFFERS_FILE: /run/secrets/runner-enrollment.json
+      RUNNER_ENROLLMENT_OFFERS_FILE: /run/secrets/runner-enrollment/offers.json
       RUNNER_ENROLLMENT_STATE_FILE: /data/runner/enrollment-state.json
       RUNNER_PUBLIC_URL: ${RUNNER_PUBLIC_URL:-wss://dsh.fsstory.net/runner/v1/connect}
     ports:
       - "127.0.0.1:${RUNNER_GATEWAY_PORT:-3090}:3090"
     volumes:
       - "${RUNNER_GATEWAY_CONFIG_FILE:-../runner-bindings.json}:/run/secrets/runner-bindings.json:ro"
-      - "${RUNNER_ENROLLMENT_OFFERS_FILE:-../runner-enrollment.example.json}:/run/secrets/runner-enrollment.json:ro"
+      - "${RUNNER_ENROLLMENT_OFFERS_DIR:-../runner-enrollment.example}:/run/secrets/runner-enrollment:ro"
       - runner_gateway_dev_data:/data/runner
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3090/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]

@@ -8,6 +8,7 @@ import {
   assertSecretFreePayload,
   dependencyManifest,
   renderServiceConfig,
+  runnerBundleBanner,
 } from '../src/package-contract.mjs'
 
 test('pins every downloaded runtime dependency with a SHA-256 digest', () => {
@@ -17,6 +18,11 @@ test('pins every downloaded runtime dependency with a SHA-256 digest', () => {
   assert.match(dependencyManifest.winSw.version, /^2\.\d+\.\d+$/)
   assert.match(dependencyManifest.winSw.url, /^https:\/\/github\.com\/winsw\/winsw\/releases\/download\//)
   assert.match(dependencyManifest.winSw.sha256, /^[a-f0-9]{64}$/)
+})
+
+test('bundled ESM runner can load CommonJS Node built-ins', () => {
+  assert.match(runnerBundleBanner, /createRequire/)
+  assert.match(runnerBundleBanner, /import\.meta\.url/)
 })
 
 test('rejects credentials and identity from a staged installer payload', () => {
@@ -41,8 +47,9 @@ test('rejects credentials and identity from a staged installer payload', () => {
 test('renders an automatic, restricted and restartable service contract', () => {
   const xml = renderServiceConfig()
   assert.match(xml, /<id>FutureStaffLocalRunner<\/id>/)
-  assert.match(xml, /<executable>%BASE%\\runtime\\node\.exe<\/executable>/)
-  assert.match(xml, /<arguments>--enable-source-maps &quot;%BASE%\\app\\runner\.mjs&quot;<\/arguments>/)
+  assert.match(xml, /<executable>%BASE%\\\.\.\\runtime\\node\.exe<\/executable>/)
+  assert.match(xml, /<arguments>--enable-source-maps &quot;%BASE%\\\.\.\\app\\runner\.mjs&quot;<\/arguments>/)
+  assert.match(xml, /<workingdirectory>%BASE%\\\.\.<\/workingdirectory>/)
   assert.match(xml, /<serviceaccount>\s*<username>NT AUTHORITY\\LocalService<\/username>/)
   assert.match(xml, /<startmode>Automatic<\/startmode>/)
   assert.match(xml, /<onfailure action="restart" delay="10 sec"\/>/)

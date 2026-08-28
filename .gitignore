@@ -5,6 +5,7 @@ lib/
 .env.production
 runner-bindings.json
 runner-enrollment.json
+runner-enrollment/
 runner/client/.env
 work/
 dist/
