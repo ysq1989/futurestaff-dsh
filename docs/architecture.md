@@ -25,6 +25,8 @@ The DSH policy seam, rather than model instructions, enforces confirmation befor
 
 Alpha is deliberately single-subject: one container, persistent volume, and Product Hub Agent Key form one identity boundary. Startup rejects any premature `request-scoped` mode. See [ADR-006](decisions/006-single-subject-until-identity-gateway.md) and the [M3 identity acceptance](m3-identity-acceptance.md).
 
+The Local Runner begins as a transport-neutral v1 contract. Cloud-owned subject and device bindings are checked again on the Runner together with capability, expiry, and replay state. See [ADR-007](decisions/007-local-runner-v1-contract.md) and the [protocol spec](specs/local-runner-protocol.md).
+
 See [ADR-001](decisions/001-upstream-composition.md) and [ADR-002](decisions/002-tool-execution-metadata.md).
 
 Server container topology and the strict Mock/production split are recorded in [ADR-003](decisions/003-server-container-deployment.md).

@@ -4,7 +4,7 @@
   "private": true,
   "description": "FutureStaff extensions for DeepSeek Harness",
   "type": "module",
-  "workspaces": ["plugins/*", "mcp/*"],
+  "workspaces": ["plugins/*", "mcp/*", "runner/*"],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present && node --test test/deployment.test.js",

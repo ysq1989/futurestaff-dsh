@@ -14,6 +14,7 @@ RUN npm install --global pnpm@11.19.0 @deepseek-ai/dsh@0.1.1-rc.2
 COPY package*.json pnpm-workspace.yaml tsconfig.base.json ./
 COPY plugins ./plugins
 COPY mcp ./mcp
+COPY runner ./runner
 COPY profile ./profile
 COPY scripts ./scripts
 COPY docker/entrypoint.sh /usr/local/bin/futurestaff-entrypoint

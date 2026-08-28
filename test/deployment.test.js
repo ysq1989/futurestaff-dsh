@@ -87,6 +87,7 @@ test('image builds workspace declarations before running checks in a clean conte
   const [dockerfile, packageJson] = await Promise.all([read('docker/Dockerfile'), read('package.json')])
   assert.match(dockerfile, /RUN npm ci[\s\S]*&& npm run build[\s\S]*&& npm run check/)
   assert.match(dockerfile, /npm run check:workspaces/)
+  assert.match(dockerfile, /COPY runner \.\/runner/)
   assert.doesNotMatch(dockerfile, /COPY test \.\/test/)
   assert.match(packageJson, /"check:workspaces"/)
 })

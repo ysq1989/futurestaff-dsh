@@ -9,6 +9,7 @@ FutureStaff's upgrade-friendly extension layer for [DeepSeek Harness](https://gi
 - **M2:** a contract-first Selection Center MCP with four Tools and an isolated provisional HTTP adapter.
 - **M2 live path:** direct authenticated Streamable HTTP MCP connection to FutureStaff Product Hub.
 - **M3 baseline:** fail-closed single-subject deployment boundary pending a trusted identity gateway.
+- **Local Runner foundation:** versioned registration, heartbeat, job/result, routing, expiry, and replay contracts.
 - **Deployment:** server-first Docker image with separate test and production Compose topology.
 - **Not in scope:** Vietnam visa business calls, Local Runner, final auth, and billing.
 
@@ -46,6 +47,7 @@ profile/futurestaff-alpha/  Custom Profile source
 plugins/fs-core/            Identity context and Tool metadata contract
 mcp/selection-center/       M2 MCP server, schemas, and HTTP adapter
 mcp/vietnam-visa/           Future boundary placeholder
+runner/protocol/             Transport-neutral Local Runner v1 contracts
 skills/jade-sourcing/       Future skill placeholder
 skills/vietnam-visa/        Future skill placeholder
 docs/                       Architecture, acceptance criteria, conventions, ADRs
