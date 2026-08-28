@@ -97,3 +97,16 @@ test('production secrets file is excluded from Git and the container build conte
   assert.match(gitignore, /^\.env\.production$/m)
   assert.match(dockerignore, /^\.env\.production$/m)
 })
+
+test('Runner gateway is opt-in, loopback-only, and uses a read-only binding file', async () => {
+  const [development, production, nginx] = await Promise.all([
+    read('docker/compose.dev.yml'), read('docker/compose.prod.yml'), read('docker/nginx/futurestaff.conf.example'),
+  ])
+  for (const compose of [development, production]) {
+    assert.match(compose, /^\s{2}runner-gateway:/m)
+    assert.match(compose, /profiles: \["runner"\]/)
+    assert.match(compose, /127\.0\.0\.1:\$\{RUNNER_GATEWAY_PORT:-3090\}:3090/)
+    assert.match(compose, /runner-bindings\.json:ro/)
+  }
+  assert.doesNotMatch(nginx, /runner\/v1\/connect/)
+})

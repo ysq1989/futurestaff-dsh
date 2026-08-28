@@ -16,7 +16,7 @@ Connect multiple customer-owned Local Runners to one cloud Router over TLS while
 ## Tech stack
 
 - TypeScript 5.9 and Node.js 22
-- `ws` 8.x for the WebSocket server; Node's built-in WebSocket client for the desktop Runner where sufficient
+- `ws` 8.x for both server and client because the Runner must set an Authorization header during upgrade
 - Node built-in HTTP, crypto, OS, and test modules
 - Existing `@futurestaff/local-runner-protocol` and `@futurestaff/local-runner-router` workspaces
 

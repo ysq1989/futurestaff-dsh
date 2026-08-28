@@ -10,6 +10,7 @@ FutureStaff's upgrade-friendly extension layer for [DeepSeek Harness](https://gi
 - **M2 live path:** direct authenticated Streamable HTTP MCP connection to FutureStaff Product Hub.
 - **M3 baseline:** fail-closed single-subject deployment boundary pending a trusted identity gateway.
 - **Local Runner foundation:** versioned protocol plus an in-memory cloud Router for trusted binding, presence, dispatch, timeout, and result collection.
+- **Authenticated Runner transport:** opt-in loopback WebSocket gateway and a read-only reconnecting Node client.
 - **Deployment:** server-first Docker image with separate test and production Compose topology.
 - **Not in scope:** Vietnam visa business calls, public Runner transport or desktop client, final auth, and billing.
 
@@ -39,6 +40,8 @@ If Windows Application Control blocks DSH's native `sharp` module, run the Docke
 | `npm run profile:dump` | Print the final composed DSH plugin tree |
 | `npm run dev -- --port 3080 --no-open` | Start the FutureStaff Alpha Web Profile |
 | `npm run selection:mock` | Start the loopback-only in-memory Selection Center upstream |
+| `npm run runner:gateway` | Start the loopback Runner gateway from a binding file |
+| `npm run runner:client` | Start the minimal Local Runner from client environment values |
 
 ## Structure
 
@@ -49,6 +52,8 @@ mcp/selection-center/       M2 MCP server, schemas, and HTTP adapter
 mcp/vietnam-visa/           Future boundary placeholder
 runner/protocol/             Transport-neutral Local Runner v1 contracts
 runner/router/               Cloud Router state machine (no public transport)
+runner/gateway/              Authenticated WebSocket adapter (opt-in Compose profile)
+runner/client/               Minimal read-only Local Runner client
 skills/jade-sourcing/       Future skill placeholder
 skills/vietnam-visa/        Future skill placeholder
 docs/                       Architecture, acceptance criteria, conventions, ADRs

@@ -1,0 +1,12 @@
+{
+  "bindings": [
+    {
+      "tenantId": "tenant-example",
+      "userId": "user-example",
+      "runnerId": "runner-example",
+      "deviceId": "office-pc",
+      "capabilities": ["local.system_info"],
+      "tokenSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ]
+}

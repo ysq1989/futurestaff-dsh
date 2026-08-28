@@ -3,5 +3,7 @@ lib/
 .dsh/
 .env
 .env.production
+runner-bindings.json
+runner/client/.env
 *.log
 .DS_Store

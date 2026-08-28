@@ -2,6 +2,8 @@
 .dsh
 .env
 .env.production
+runner-bindings.json
+runner/client/.env
 node_modules
 **/lib
 *.log

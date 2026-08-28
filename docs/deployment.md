@@ -53,6 +53,21 @@ docker compose --env-file .env.production -f docker/compose.prod.yml up -d
 
 Tag deployed images with an immutable version in `FUTURESTAFF_DSH_IMAGE`. Roll back by restoring the previous tag and running `up -d` again. The named `$DSH_HOME` volume is retained across replacements; back it up before any migration that changes persisted formats.
 
+## Optional Local Runner gateway
+
+The gateway is not started by normal Compose commands. Before enabling it, create `runner-bindings.json` outside Git using `runner-bindings.example.json` as the shape. Generate a random device token, give the raw value only to that device, and put its lowercase SHA-256 digest in the server binding file.
+
+Start the loopback-only gateway explicitly:
+
+```bash
+docker compose --profile runner --env-file .env -f docker/compose.dev.yml up -d --build runner-gateway
+curl http://127.0.0.1:3090/healthz
+```
+
+Do not add `/runner/v1/connect` to Nginx until a real device token has been provisioned. The committed Nginx example intentionally has no Runner route.
+
+On the device, configure the values shown in `runner/client/.env.example` and run `npm run runner:client`. The Alpha client is a Node process, not yet an installer or background service.
+
 ## Operational checks
 
 - `docker compose ps` reports DSH healthy.

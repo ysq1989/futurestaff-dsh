@@ -30,6 +30,8 @@ The Local Runner begins as a transport-neutral v1 contract. Cloud-owned subject 
 
 The cloud Router is a separate, transport-independent state machine. It accepts only a trusted server-side `RunnerBinding`; dispatch callers supply `runnerId`, Tool name, arguments, and approval evidence, while the Router injects subject and device. It rejects duplicate active connections, stale heartbeats, unauthorized capabilities, mismatched results, and unfinished jobs on timeout or disconnect. There is still no public Runner port. See [ADR-008](decisions/008-router-before-public-transport.md).
 
+The optional WebSocket gateway authenticates a device token before upgrade and then requires the registration frame to match that token's exact binding. It is a separate process and Compose profile, so the normal DSH container remains unchanged. The bundled client re-authorizes every cloud job locally and exposes only `local.system_info`. See [ADR-009](decisions/009-per-device-runner-token.md).
+
 See [ADR-001](decisions/001-upstream-composition.md) and [ADR-002](decisions/002-tool-execution-metadata.md).
 
 Server container topology and the strict Mock/production split are recorded in [ADR-003](decisions/003-server-container-deployment.md).

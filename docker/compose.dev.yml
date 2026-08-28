@@ -46,5 +46,28 @@ services:
     stop_grace_period: 30s
     restart: unless-stopped
 
+  runner-gateway:
+    profiles: ["runner"]
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    entrypoint: ["node", "runner/gateway/lib/cli.js"]
+    environment:
+      RUNNER_GATEWAY_CONFIG_FILE: /run/secrets/runner-bindings.json
+      RUNNER_GATEWAY_HOST: 0.0.0.0
+      RUNNER_GATEWAY_PORT: 3090
+    ports:
+      - "127.0.0.1:${RUNNER_GATEWAY_PORT:-3090}:3090"
+    volumes:
+      - "${RUNNER_GATEWAY_CONFIG_FILE:-../runner-bindings.json}:/run/secrets/runner-bindings.json:ro"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3090/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    init: true
+    restart: unless-stopped
+
 volumes:
   futurestaff_dsh_dev_data:

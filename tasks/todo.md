@@ -16,9 +16,10 @@
 ## Authenticated WebSocket slice
 
 - [x] Draft the transport, authentication, observability, and deployment specification.
-- [ ] Obtain approval for the six stated assumptions.
-- [ ] Add failing gateway and client tests.
-- [ ] Implement authenticated upgrade and Router adapter.
-- [ ] Implement the read-only reconnecting Runner client.
-- [ ] Add disabled-by-default Compose topology and Nginx example.
-- [ ] Run full checks, review, commit, push, and deploy without opening the route.
+- [x] Obtain approval for the six stated assumptions.
+- [x] Add failing gateway and client tests.
+- [x] Implement authenticated upgrade and Router adapter.
+- [x] Implement the read-only reconnecting Runner client.
+- [x] Add disabled-by-default Compose topology; keep the Nginx example closed.
+- [x] Run full checks and review.
+- [ ] Commit, push, and deploy without opening the route.
