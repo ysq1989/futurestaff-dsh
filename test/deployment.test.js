@@ -112,12 +112,15 @@ test('Runner gateway is opt-in, loopback-only, and uses a read-only binding file
 })
 
 test('Runner workspaces declare clean-build dependency order', async () => {
-  const [client, gateway, router] = await Promise.all([
+  const [client, gateway, router, installer] = await Promise.all([
     read('runner/client/package.json'), read('runner/gateway/package.json'), read('runner/router/package.json'),
+    read('runner/installer/package.json'),
   ])
   assert.match(client, /build -w @futurestaff\/local-runner-protocol/)
   assert.match(gateway, /build -w @futurestaff\/local-runner-protocol[\s\S]*build -w @futurestaff\/local-runner-router/)
   assert.match(router, /build -w @futurestaff\/local-runner-protocol/)
+  assert.doesNotMatch(JSON.parse(installer).scripts.build, /build-payload/)
+  assert.match(JSON.parse(installer).scripts.payload, /build-payload/)
 })
 
 test('Runner Nginx snippet bypasses Basic Auth only for the exact authenticated gateway route', async () => {

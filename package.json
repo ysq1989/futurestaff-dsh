@@ -19,7 +19,7 @@
     "runner:client": "npm run build -w @futurestaff/local-runner-client && node --import=./scripts/load-env.mjs runner/client/lib/cli.js",
     "runner:enroll": "node scripts/enroll-runner.mjs",
     "runner:issue-code": "node scripts/issue-runner-enrollment.mjs",
-    "package:runner:windows": "npm run build -w @futurestaff/local-runner-installer",
+    "package:runner:windows": "npm run payload -w @futurestaff/local-runner-installer",
     "installer:runner:windows": "npm run package:runner:windows && npm run compile -w @futurestaff/local-runner-installer"
   },
   "engines": { "node": ">=22" },
