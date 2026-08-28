@@ -11,7 +11,7 @@
 - [x] Inject subject/device during cloud dispatch.
 - [x] Settle jobs on result, remote failure, timeout, and disconnect.
 - [x] Prove `local.system_info` over an in-memory channel.
-- [ ] Add an authenticated WebSocket transport in a separate milestone.
+- [x] Add an authenticated WebSocket transport in a separate milestone.
 
 ## Authenticated WebSocket slice
 
@@ -30,4 +30,4 @@
 - [x] Add failing Gateway and MCP contract tests.
 - [x] Implement authenticated internal dispatch.
 - [x] Add and mount the `local_system_info` MCP Tool.
-- [ ] Run checks, review, deploy, and execute against the real Windows Runner.
+- [x] Run checks, review, deploy, and execute against the real Windows Runner.
