@@ -75,7 +75,7 @@ Do not add `/runner/v1/connect` to Nginx until a real device token has been prov
 
 For manual development, configure the ignored `runner/client/.env` and run `npm run runner:client`.
 
-For installer enrollment, create an ignored `runner-enrollment/` directory, set `RUNNER_ENROLLMENT_OFFERS_DIR=../runner-enrollment` for Compose, and point `RUNNER_ENROLLMENT_OFFERS_FILE` at its `offers.json` file when issuing codes. The directory mount allows atomic offer-file replacement to become visible without recreating the Gateway. Keep the Gateway state volume persistent.
+For installer enrollment, create an ignored `runner-enrollment/` directory with group ownership matching the Gateway user (UID/GID 1000) and setgid permissions, set `RUNNER_ENROLLMENT_OFFERS_DIR=../runner-enrollment` for Compose, and point `RUNNER_ENROLLMENT_OFFERS_FILE` at its `offers.json` file when issuing codes. The issued file is owner-write/group-read only. The directory mount allows atomic offer-file replacement to become visible without recreating the Gateway. Keep the Gateway state volume persistent.
 
 ```bash
 RUNNER_TENANT_ID=tenant-id \

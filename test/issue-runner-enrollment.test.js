@@ -18,5 +18,5 @@ test('issues one expiring code while persisting only its digest', async () => {
   const stored = await readFile(offersFile, 'utf8')
   assert.doesNotMatch(stored, /one-time-code-with-enough-entropy/)
   assert.equal(JSON.parse(stored).offers[0].codeSha256, createHash('sha256').update(result.code).digest('hex'))
-  if (process.platform !== 'win32') assert.equal((await stat(offersFile)).mode & 0o777, 0o600)
+  if (process.platform !== 'win32') assert.equal((await stat(offersFile)).mode & 0o777, 0o640)
 })

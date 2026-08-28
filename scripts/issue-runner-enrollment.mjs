@@ -35,7 +35,10 @@ export async function issueRunnerEnrollmentCode(options) {
   }] }
   await mkdir(path.dirname(options.offersFile), { recursive: true })
   const temporary = `${options.offersFile}.${process.pid}.${randomUUID()}.tmp`
-  await writeFile(temporary, `${JSON.stringify(next, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 })
+  // Group-read allows a root-owned host issuer and the unprivileged Gateway
+  // container to share a setgid enrollment directory without exposing offers
+  // to other users.
+  await writeFile(temporary, `${JSON.stringify(next, null, 2)}\n`, { encoding: 'utf8', mode: 0o640 })
   await rename(temporary, options.offersFile)
   return Object.freeze({ code, expiresAt })
 }
