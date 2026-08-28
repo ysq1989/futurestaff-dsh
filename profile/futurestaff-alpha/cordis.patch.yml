@@ -3,6 +3,7 @@
     - id: futurestaff-core
       name: '@futurestaff/fs-core'
       config:
+        identityMode: !!js process.env.FUTURESTAFF_IDENTITY_MODE
         tenantId: !!js process.env.FUTURESTAFF_TENANT_ID
         userId: !!js process.env.FUTURESTAFF_USER_ID
         deviceId: !!js process.env.FUTURESTAFF_DEVICE_ID || undefined

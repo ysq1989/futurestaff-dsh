@@ -8,6 +8,16 @@ export interface FutureStaffContext {
   current(): FutureStaffIdentity
 }
 
+export type IdentityMode = 'single-subject'
+
+export function assertIdentityMode(value: string | undefined): IdentityMode {
+  if (!value?.trim()) throw new Error('FUTURESTAFF_IDENTITY_MODE must be explicitly configured')
+  if (value !== 'single-subject') {
+    throw new Error(`identity mode ${JSON.stringify(value)} is not implemented; only single-subject is safe`)
+  }
+  return value
+}
+
 export type ToolMetadata =
   | {
       readonly execution: 'cloud'

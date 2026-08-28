@@ -6,6 +6,7 @@ import {
   createIdentityContext,
   defineToolMetadata,
   apply,
+  assertIdentityMode,
   productHubApprovalDecision,
 } from '../lib/index.js'
 
@@ -16,6 +17,12 @@ test('identity context passes configured tenant, user, and device identifiers th
 
 test('identity context rejects blank identifiers at the boundary', () => {
   assert.throws(() => createIdentityContext({ tenantId: ' ', userId: 'user-1' }), /tenantId/)
+})
+
+test('Alpha accepts only an explicitly single-subject identity mode', () => {
+  assert.equal(assertIdentityMode('single-subject'), 'single-subject')
+  assert.throws(() => assertIdentityMode('request-scoped'), /not implemented/)
+  assert.throws(() => assertIdentityMode(''), /FUTURESTAFF_IDENTITY_MODE/)
 })
 
 test('local tools must select a device', () => {
@@ -94,7 +101,7 @@ test('fs-core registers the approval policy in the DSH pre-execution pipeline', 
     },
   }
 
-  apply(context, { tenantId: 'tenant-1', userId: 'user-1' })
+  apply(context, { identityMode: 'single-subject', tenantId: 'tenant-1', userId: 'user-1' })
 
   assert.deepEqual(
     await listener(

@@ -9,7 +9,21 @@ test('production topology excludes the Selection Center Mock and binds DSH to lo
   assert.doesNotMatch(compose, /^\s{2}selection-center-mock:/m)
   assert.match(compose, /127\.0\.0\.1:\$\{DSH_PORT:-3080\}:3080/)
   assert.match(compose, /PRODUCT_HUB_MCP_URL: \$\{PRODUCT_HUB_MCP_URL:\?set PRODUCT_HUB_MCP_URL\}/)
+  assert.match(compose, /FUTURESTAFF_IDENTITY_MODE: \$\{FUTURESTAFF_IDENTITY_MODE:\?set FUTURESTAFF_IDENTITY_MODE to single-subject\}/)
   assert.match(compose, /SELECTION_CENTER_BASE_URL: \$\{SELECTION_CENTER_BASE_URL:-\}/)
+})
+
+test('Alpha declares a fail-closed single-subject identity boundary', async () => {
+  const [profile, development, production, envExample] = await Promise.all([
+    read('profile/futurestaff-alpha/cordis.patch.yml'),
+    read('docker/compose.dev.yml'),
+    read('docker/compose.prod.yml'),
+    read('.env.example'),
+  ])
+  assert.match(profile, /identityMode: !!js process\.env\.FUTURESTAFF_IDENTITY_MODE/)
+  assert.match(development, /FUTURESTAFF_IDENTITY_MODE: \$\{FUTURESTAFF_IDENTITY_MODE:-single-subject\}/)
+  assert.match(production, /FUTURESTAFF_IDENTITY_MODE: \$\{FUTURESTAFF_IDENTITY_MODE:\?set FUTURESTAFF_IDENTITY_MODE to single-subject\}/)
+  assert.match(envExample, /^FUTURESTAFF_IDENTITY_MODE=single-subject$/m)
 })
 
 test('development topology keeps the Mock internal and waits for its health check', async () => {

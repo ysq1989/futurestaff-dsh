@@ -23,6 +23,8 @@ The preferred deployed path is the authenticated Product Hub Streamable HTTP MCP
 
 The DSH policy seam, rather than model instructions, enforces confirmation before Product Hub mutations. See [ADR-005](decisions/005-enforce-product-hub-write-approval.md).
 
+Alpha is deliberately single-subject: one container, persistent volume, and Product Hub Agent Key form one identity boundary. Startup rejects any premature `request-scoped` mode. See [ADR-006](decisions/006-single-subject-until-identity-gateway.md) and the [M3 identity acceptance](m3-identity-acceptance.md).
+
 See [ADR-001](decisions/001-upstream-composition.md) and [ADR-002](decisions/002-tool-execution-metadata.md).
 
 Server container topology and the strict Mock/production split are recorded in [ADR-003](decisions/003-server-container-deployment.md).

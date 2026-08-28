@@ -8,6 +8,7 @@ FutureStaff's upgrade-friendly extension layer for [DeepSeek Harness](https://gi
 - **M1:** mount `fs-core`, expose validated FutureStaff identity context, and standardize Tool execution metadata.
 - **M2:** a contract-first Selection Center MCP with four Tools and an isolated provisional HTTP adapter.
 - **M2 live path:** direct authenticated Streamable HTTP MCP connection to FutureStaff Product Hub.
+- **M3 baseline:** fail-closed single-subject deployment boundary pending a trusted identity gateway.
 - **Deployment:** server-first Docker image with separate test and production Compose topology.
 - **Not in scope:** Vietnam visa business calls, Local Runner, final auth, and billing.
 
