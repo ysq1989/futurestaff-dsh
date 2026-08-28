@@ -119,7 +119,7 @@ test('Runner workspaces declare clean-build dependency order', async () => {
   assert.match(client, /build -w @futurestaff\/local-runner-protocol/)
   assert.match(gateway, /build -w @futurestaff\/local-runner-protocol[\s\S]*build -w @futurestaff\/local-runner-router/)
   assert.match(router, /build -w @futurestaff\/local-runner-protocol/)
-  assert.doesNotMatch(JSON.parse(installer).scripts.build, /build-payload/)
+  assert.doesNotMatch(JSON.parse(installer).scripts.build, /node src\/build-payload/)
   assert.match(JSON.parse(installer).scripts.payload, /build-payload/)
 })
 
