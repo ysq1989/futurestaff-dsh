@@ -32,3 +32,13 @@ Operator-only tools denied by a collector Profile:
 Unknown future tools are denied until classified. The current server does not
 yet expose the M4 target tools for product discovery, review submission,
 correction response, collector application-count reporting, or document status.
+
+## M4.1 development verification
+
+On 2026-08-29, an explicitly approved non-personal test draft was created as
+`VI-604F248C22`. Independent detail and filtered-list reads both returned the
+same `DRAFT` record with zero applicants. No materials, portal submission,
+payment operation, cancellation, or completion were performed.
+
+The server container loads the token only from its ignored private environment
+file and runs with `VISA_ACCESS_ROLE=collector`.

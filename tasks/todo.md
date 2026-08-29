@@ -23,3 +23,5 @@
 - [ ] Execute the M4.1 test-order flow and deploy.
   - Acceptance: product query, approved test draft, status query and application counts succeed without cross-tenant access.
   - Verify: full checks, audit, redacted deployment logs and test-record inspection.
+  - Progress: approved draft `VI-604F248C22` created and independently readable; container deployed healthy in collector mode.
+  - Blocked contract items: product query, collector application counts, workbench-source verification and negative cross-tenant credentials are not exposed by the current MCP/test fixture.
