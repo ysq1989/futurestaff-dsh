@@ -1,44 +1,25 @@
-# Local Runner protocol tasks
+# M4 Vietnam visa tasks
 
-- [x] Specify the v1 protocol and boundaries.
-- [x] Add registration, heartbeat, job, and result contracts.
-- [x] Add fail-closed Runner-side authorization.
-- [x] Add tests for mismatch, expiry, unsupported capability, and replay.
-- [x] Record the architecture decision.
-- [x] Run the full repository check and deploy the non-network protocol package.
-- [x] Parse successful and failed Runner result envelopes.
-- [x] Enforce exact trusted binding and one active connection per Runner.
-- [x] Inject subject/device during cloud dispatch.
-- [x] Settle jobs on result, remote failure, timeout, and disconnect.
-- [x] Prove `local.system_info` over an in-memory channel.
-- [x] Add an authenticated WebSocket transport in a separate milestone.
-
-## Authenticated WebSocket slice
-
-- [x] Draft the transport, authentication, observability, and deployment specification.
-- [x] Obtain approval for the six stated assumptions.
-- [x] Add failing gateway and client tests.
-- [x] Implement authenticated upgrade and Router adapter.
-- [x] Implement the read-only reconnecting Runner client.
-- [x] Add disabled-by-default Compose topology; keep the Nginx example closed.
-- [x] Run full checks and review.
-- [x] Commit, push, and deploy without opening the route.
-
-## System-info dispatch slice
-
-- [x] Approve the fixed-runner, fixed-capability private dispatch assumptions.
-- [x] Add failing Gateway and MCP contract tests.
-- [x] Implement authenticated internal dispatch.
-- [x] Add and mount the `local_system_info` MCP Tool.
-- [x] Run checks, review, deploy, and execute against the real Windows Runner.
-
-## Windows installer slice
-
-- [x] Approve Windows x64 installer assumptions.
-- [x] Record installer specification and architecture decision.
-- [x] Add failing secret-exclusion and payload contract tests.
-- [x] Build a pinned, checksum-verified Runner payload.
-- [x] Add WinSW service and Inno Setup definitions.
-- [x] Compile and inspect the unsigned private Alpha installer.
-- [ ] Implement one-time enrollment and deploy it privately.
-- [ ] Install, connect, restart, dispatch, and uninstall on this computer.
+- [ ] Approve the M4 specification and ADR-012.
+  - Acceptance: tenant, collector, payment and reporting boundaries match the intended business.
+  - Verify: explicit user approval.
+  - Files: specification and ADR.
+- [ ] Enumerate and classify the development collector MCP.
+  - Acceptance: every tool is read, controlled write or forbidden operator capability.
+  - Verify: authenticated read-only discovery; no business mutation.
+  - Files: specification and MCP README.
+- [ ] Enforce collector write approval in `fs-core`.
+  - Acceptance: known writes require approval and unknown visa mutations fail closed.
+  - Verify: focused RED/GREEN policy tests.
+  - Files: approval policy and tests.
+- [ ] Mount the collector MCP in FutureStaff Alpha.
+  - Acceptance: server-only token, disabled when unconfigured, no operator route or credential.
+  - Verify: profile/deployment tests and `profile:dump`.
+  - Files: profile, Compose, environment example and deployment tests.
+- [ ] Ship the collector-safe visa skill.
+  - Acceptance: read-before-write, minimal sensitive data, per-call approval and truthful status rules.
+  - Verify: review against the capability matrix.
+  - Files: `skills/vietnam-visa/`.
+- [ ] Execute the M4.1 test-order flow and deploy.
+  - Acceptance: product query, approved test draft, status query and application counts succeed without cross-tenant access.
+  - Verify: full checks, audit, redacted deployment logs and test-record inspection.
