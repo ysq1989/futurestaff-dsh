@@ -1,22 +1,22 @@
 # M4 Vietnam visa tasks
 
-- [ ] Approve the M4 specification and ADR-012.
+- [x] Approve the M4 specification and ADR-012.
   - Acceptance: tenant, collector, payment and reporting boundaries match the intended business.
   - Verify: explicit user approval.
   - Files: specification and ADR.
-- [ ] Enumerate and classify the development collector MCP.
+- [x] Enumerate and classify the development collector MCP.
   - Acceptance: every tool is read, controlled write or forbidden operator capability.
   - Verify: authenticated read-only discovery; no business mutation.
   - Files: specification and MCP README.
-- [ ] Enforce collector write approval in `fs-core`.
+- [x] Enforce collector write approval in `fs-core`.
   - Acceptance: known writes require approval and unknown visa mutations fail closed.
   - Verify: focused RED/GREEN policy tests.
   - Files: approval policy and tests.
-- [ ] Mount the collector MCP in FutureStaff Alpha.
+- [x] Mount the collector MCP in FutureStaff Alpha.
   - Acceptance: server-only token, disabled when unconfigured, no operator route or credential.
   - Verify: profile/deployment tests and `profile:dump`.
   - Files: profile, Compose, environment example and deployment tests.
-- [ ] Ship the collector-safe visa skill.
+- [x] Ship the collector-safe visa skill.
   - Acceptance: read-before-write, minimal sensitive data, per-call approval and truthful status rules.
   - Verify: review against the capability matrix.
   - Files: `skills/vietnam-visa/`.

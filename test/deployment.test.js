@@ -165,3 +165,23 @@ test('Profile mounts only the fixed Local Runner MCP contract when private dispa
   assert.match(development, /RUNNER_DISPATCH_TOKEN: \$\{RUNNER_DISPATCH_TOKEN:-\}/)
   assert.match(development, /RUNNER_ID: \$\{RUNNER_ID:-\}/)
 })
+
+test('Alpha mounts the authenticated Vietnam visa MCP as a collector boundary', async () => {
+  const [profile, development, production, envExample] = await Promise.all([
+    read('profile/futurestaff-alpha/cordis.patch.yml'),
+    read('docker/compose.dev.yml'),
+    read('docker/compose.prod.yml'),
+    read('.env.example'),
+  ])
+
+  assert.match(profile, /id: mcp-vietnam-visa/)
+  assert.match(profile, /serverName: vietnam-visa/)
+  assert.match(profile, /VISA_ASSISTANT_MCP_URL/)
+  assert.match(profile, /VISA_ASSISTANT_MCP_TOKEN/)
+  assert.match(profile, /visaAccessRole: !!js process\.env\.VISA_ACCESS_ROLE \|\| 'collector'/)
+  assert.match(development, /VISA_ASSISTANT_MCP_TOKEN: \$\{VISA_ASSISTANT_MCP_TOKEN:-\}/)
+  assert.match(production, /VISA_ASSISTANT_MCP_TOKEN: \$\{VISA_ASSISTANT_MCP_TOKEN:-\}/)
+  assert.match(envExample, /^VISA_ASSISTANT_MCP_URL=https:\/\/dev\.fsstory\.net\/api\/immigration\/mcp$/m)
+  assert.match(envExample, /^VISA_ASSISTANT_MCP_TOKEN=$/m)
+  assert.match(envExample, /^VISA_ACCESS_ROLE=collector$/m)
+})

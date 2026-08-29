@@ -9,6 +9,9 @@ import {
   assertIdentityMode,
   localRunnerApprovalDecision,
   productHubApprovalDecision,
+  classifyVietnamVisaTool,
+  vietnamVisaApprovalDecision,
+  assertVietnamVisaAccessRole,
 } from '../lib/index.js'
 
 test('identity context passes configured tenant, user, and device identifiers through', () => {
@@ -132,4 +135,66 @@ test('fs-core registers the approval policy in the DSH pre-execution pipeline', 
     ),
     { kind: 'ask', reason: '此操作会读取当前电脑的系统信息，请确认是否执行。' },
   )
+  assert.deepEqual(
+    await listener(
+      { name: 'mcp__vietnam-visa__visa_order_create' },
+      async () => ({ kind: 'allow' }),
+    ),
+    { kind: 'ask', reason: '此操作会创建或修改越南签证业务数据，请确认是否执行。' },
+  )
+  assert.deepEqual(
+    await listener(
+      { name: 'mcp__vietnam-visa__visa_application_submit' },
+      async () => ({ kind: 'allow' }),
+    ),
+    { kind: 'deny', reason: '当前 DSH 是收单端，不能执行越南签证管理端操作。' },
+  )
+})
+
+test('Vietnam visa read tools execute without approval', () => {
+  const name = 'mcp__vietnam-visa__visa_case_status_read'
+  assert.equal(classifyVietnamVisaTool(name), 'read')
+  assert.equal(vietnamVisaApprovalDecision(name, 'collector'), undefined)
+})
+
+test('Vietnam visa collector writes require explicit approval', () => {
+  const name = 'mcp__vietnam-visa__visa_order_create'
+  assert.equal(classifyVietnamVisaTool(name), 'collector-write')
+  assert.deepEqual(vietnamVisaApprovalDecision(name, 'collector'), {
+    kind: 'ask',
+    reason: '此操作会创建或修改越南签证业务数据，请确认是否执行。',
+  })
+})
+
+test('Vietnam visa operator capabilities are denied to a collector DSH', () => {
+  for (const tool of [
+    'visa_application_submit',
+    'visa_application_payment_link',
+    'visa_case_query_status',
+    'visa_application_query_status',
+    'visa_case_cancel',
+    'visa_case_complete',
+  ]) {
+    const name = `mcp__vietnam-visa__${tool}`
+    assert.equal(classifyVietnamVisaTool(name), 'operator-only')
+    assert.deepEqual(vietnamVisaApprovalDecision(name, 'collector'), {
+      kind: 'deny',
+      reason: '当前 DSH 是收单端，不能执行越南签证管理端操作。',
+    })
+  }
+})
+
+test('unknown future Vietnam visa tools fail closed', () => {
+  const name = 'mcp__vietnam-visa__visa_future_operation'
+  assert.equal(classifyVietnamVisaTool(name), 'unknown')
+  assert.deepEqual(vietnamVisaApprovalDecision(name, 'collector'), {
+    kind: 'deny',
+    reason: '此越南签证工具尚未完成权限分类，已默认拒绝。',
+  })
+})
+
+test('Vietnam visa access role rejects invalid configuration', () => {
+  assert.equal(assertVietnamVisaAccessRole(undefined), 'collector')
+  assert.equal(assertVietnamVisaAccessRole('operator'), 'operator')
+  assert.throws(() => assertVietnamVisaAccessRole('collecter'), /VISA_ACCESS_ROLE/)
 })

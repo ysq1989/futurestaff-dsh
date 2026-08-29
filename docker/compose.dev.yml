@@ -43,6 +43,9 @@ services:
       RUNNER_ID: ${RUNNER_ID:-}
       RUNNER_DEVICE_ID: ${RUNNER_DEVICE_ID:-}
       RUNNER_DISPATCH_TIMEOUT_MS: ${RUNNER_DISPATCH_TIMEOUT_MS:-30000}
+      VISA_ASSISTANT_MCP_URL: ${VISA_ASSISTANT_MCP_URL:-https://dev.fsstory.net/api/immigration/mcp}
+      VISA_ASSISTANT_MCP_TOKEN: ${VISA_ASSISTANT_MCP_TOKEN:-}
+      VISA_ACCESS_ROLE: ${VISA_ACCESS_ROLE:-collector}
     ports:
       - "127.0.0.1:${DSH_PORT:-3080}:3080"
     volumes:

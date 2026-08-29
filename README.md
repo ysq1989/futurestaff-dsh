@@ -57,7 +57,7 @@ runner/router/               Cloud Router state machine (no public transport)
 runner/gateway/              Authenticated WebSocket adapter (opt-in Compose profile)
 runner/client/               Minimal read-only Local Runner client
 skills/jade-sourcing/       Future skill placeholder
-skills/vietnam-visa/        Future skill placeholder
+skills/vietnam-visa/        Collector-safe Vietnam visa operating instructions
 docs/                       Architecture, acceptance criteria, conventions, ADRs
 docker/                     Server image, dev/prod Compose, and Nginx example
 scripts/                    Profile staging utility

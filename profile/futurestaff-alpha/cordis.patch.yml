@@ -7,6 +7,7 @@
         tenantId: !!js process.env.FUTURESTAFF_TENANT_ID
         userId: !!js process.env.FUTURESTAFF_USER_ID
         deviceId: !!js process.env.FUTURESTAFF_DEVICE_ID || undefined
+        visaAccessRole: !!js process.env.VISA_ACCESS_ROLE || 'collector'
 
     - id: mcp-selection-center
       name: '@deepseek-ai/dsh-mcp-client'
@@ -63,4 +64,18 @@
           RUNNER_DEVICE_ID: !!js process.env.RUNNER_DEVICE_ID
           RUNNER_DISPATCH_TIMEOUT_MS: !!js process.env.RUNNER_DISPATCH_TIMEOUT_MS
         toolCallTimeoutMs: 35000
+        failOnStartupError: true
+
+    - id: mcp-vietnam-visa
+      name: '@deepseek-ai/dsh-mcp-client'
+      disabled: !!js >-
+        !process.env.VISA_ASSISTANT_MCP_URL ||
+        !process.env.VISA_ASSISTANT_MCP_TOKEN
+      config:
+        serverName: vietnam-visa
+        transport: streamable-http
+        url: !!js process.env.VISA_ASSISTANT_MCP_URL
+        headers:
+          Authorization: !!js '`Bearer ${process.env.VISA_ASSISTANT_MCP_TOKEN}`'
+        toolCallTimeoutMs: 60000
         failOnStartupError: true
