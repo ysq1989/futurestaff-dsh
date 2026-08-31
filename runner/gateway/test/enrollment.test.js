@@ -8,6 +8,7 @@ import test from 'node:test'
 import { EnrollmentError, createEnrollmentService } from '../lib/enrollment.js'
 
 const code = 'alpha-one-time-code-with-high-entropy-123456'
+const expectedCapabilities = ['local.system_info', 'local.codex_usage']
 
 test('redeems one valid code once and persists only credential digests', async () => {
   const directory = await mkdtemp(path.join(tmpdir(), 'futurestaff-enrollment-'))
@@ -26,7 +27,7 @@ test('redeems one valid code once and persists only credential digests', async (
   const enrolled = await service.redeem(code, 'Office PC')
   assert.deepEqual(enrolled.binding, {
     tenantId: 'tenant-a', userId: 'user-a', runnerId: 'runner-runner-id', deviceId: 'device-device-id',
-    capabilities: ['local.system_info'],
+    capabilities: expectedCapabilities,
     tokenSha256: createHash('sha256').update(enrolled.token).digest('hex'),
   })
   const persisted = await readFile(stateFile, 'utf8')
@@ -37,10 +38,28 @@ test('redeems one valid code once and persists only credential digests', async (
     error => error instanceof EnrollmentError && error.code === 'CODE_CONSUMED',
   )
   const reloaded = await createEnrollmentService({ offersFile, stateFile })
+  assert.deepEqual(reloaded.bindings[0].capabilities, expectedCapabilities)
   await assert.rejects(
     reloaded.redeem(code, 'Replay after restart'),
     error => error instanceof EnrollmentError && error.code === 'CODE_CONSUMED',
   )
+})
+
+test('upgrades legacy system-info-only persisted bindings in memory', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'futurestaff-enrollment-legacy-'))
+  const offersFile = path.join(directory, 'offers.json')
+  const stateFile = path.join(directory, 'state.json')
+  await writeFile(offersFile, JSON.stringify({ offers: [] }))
+  await writeFile(stateFile, JSON.stringify({
+    version: 1,
+    consumedCodeSha256: [],
+    bindings: [{
+      tenantId: 'tenant-a', userId: 'user-a', runnerId: 'runner-a', deviceId: 'office-pc',
+      capabilities: ['local.system_info'], tokenSha256: '0'.repeat(64),
+    }],
+  }))
+  const service = await createEnrollmentService({ offersFile, stateFile })
+  assert.deepEqual(service.bindings[0].capabilities, expectedCapabilities)
 })
 
 test('rejects expired and unknown enrollment codes with stable reasons', async () => {
