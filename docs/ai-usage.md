@@ -116,9 +116,26 @@ M3 does not:
 
 Those remain follow-up Atomic Tasks.
 
-## M4 — reminders / monitoring (future)
+## M4 — reminders / monitoring
 
-Scheduled or conditional quota monitoring and phone notifications remain separate work. The next layer may use M3 output to decide when a useful reset warning exists, but must preserve explicit user control over task execution.
+Run one conditional monitoring check with:
+
+```bash
+npm run ai:monitor
+```
+
+The monitor reuses the M3 recommendation result and returns `ALERT` only when:
+
+- the preferred model is in `HARVEST` or `CLEAR`;
+- at least 25% allowance remains by default;
+- one or more open backlog tasks fit the preferred model; and
+- the same model, urgency state, and task set are outside the alert cooldown.
+
+The default threshold can be changed with `AI_USAGE_MONITOR_MIN_REMAINING_PERCENT`. The default three-hour cooldown can be changed with `AI_USAGE_MONITOR_COOLDOWN_MINUTES`; an urgency transition such as `HARVEST` to `CLEAR` bypasses the previous state's cooldown. Deduplication state is written atomically to the ignored local file `work/ai-usage-monitor-state.json`; override it with `AI_USAGE_MONITOR_STATE_FILE` when a scheduler needs a different persistent path.
+
+A scheduler or notification surface may periodically call this command and notify only for `status: "ALERT"`. The output includes the preferred model, quota state, remaining allowance, reset time, and up to three recommended tasks. It never starts those tasks, modifies the backlog, switches models, or bypasses user approval.
+
+The monitor intentionally does not embed a third-party notification credential. Delivery belongs to the trusted scheduler or host notification layer.
 
 ## Verification
 
@@ -136,3 +153,14 @@ npm run ai:recommend
 ```
 
 With the real account snapshot, confirm that the preferred model matches M2, recommended tasks come only from open `AI-BACKLOG.md` items compatible with that model, and no sensitive credential or identity values appear in output.
+
+M4 additionally requires:
+
+```bash
+node --test test/quota-monitor.test.js
+npm run check
+npm run ai:monitor
+npm run ai:monitor
+```
+
+With a useful near-reset allowance, the first clean-state monitor run must return `ALERT`. The immediate second run must return `QUIET` because the alert is inside its cooldown. Scan both outputs for sensitive credential and identity field names.
