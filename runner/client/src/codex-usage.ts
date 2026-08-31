@@ -71,11 +71,11 @@ export async function readCodexUsage(options: ReadCodexUsageOptions = {}): Promi
     let message: unknown
     try { message = JSON.parse(line) } catch { return }
     const envelope = record(message)
-    if (!envelope || !Number.isSafeInteger(envelope.id)) return
-    const id = envelope.id as number
-    const waiter = pending.get(id)
+    const responseId = envelope?.id
+    if (typeof responseId !== 'number' || !Number.isSafeInteger(responseId)) return
+    const waiter = pending.get(responseId)
     if (!waiter) return
-    pending.delete(id)
+    pending.delete(responseId)
     waiter.resolve(message)
   })
 
