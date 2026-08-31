@@ -14,6 +14,7 @@ const binding = {
   tenantId: 'tenant-a', userId: 'user-a', runnerId: 'runner-a', deviceId: 'office-pc',
   capabilities: ['local.system_info'], tokenSha256: createHash('sha256').update(token).digest('hex'),
 }
+const fullBinding = { ...binding, capabilities: ['local.system_info', 'local.codex_usage'] }
 
 function waitForMessage(socket) {
   return new Promise((resolve, reject) => {
@@ -24,6 +25,7 @@ function waitForMessage(socket) {
 
 test('validates gateway bindings and rejects raw or malformed credentials', () => {
   assert.deepEqual(parseGatewayConfig({ bindings: [binding] }).bindings[0], binding)
+  assert.deepEqual(parseGatewayConfig({ bindings: [fullBinding] }).bindings[0], fullBinding)
   assert.throws(() => parseGatewayConfig({ bindings: [{ ...binding, tokenSha256: token }] }))
   assert.throws(() => parseGatewayConfig({ bindings: [binding, binding] }))
 })
@@ -141,6 +143,43 @@ test('authenticates the private fixed-capability dispatch endpoint', async t => 
   socket.close()
 })
 
+test('dispatches sanitized codex usage through the private endpoint', async t => {
+  const dispatchToken = 'internal-dispatch-token-at-least-32-characters'
+  const gateway = await startRunnerGateway({
+    host: '127.0.0.1', port: 0, bindings: [fullBinding], dispatchToken, log: () => {},
+  })
+  t.after(() => gateway.close())
+  const socket = new WebSocket(gateway.url, { headers: { authorization: `Bearer ${token}` } })
+  await new Promise((resolve, reject) => { socket.once('open', resolve); socket.once('error', reject) })
+  socket.send(JSON.stringify({
+    protocolVersion: 1, kind: 'runner.register', runnerId: 'runner-a',
+    deviceId: 'office-pc', capabilities: fullBinding.capabilities,
+  }))
+  await new Promise(resolve => setTimeout(resolve, 10))
+  socket.once('message', data => {
+    const job = JSON.parse(data.toString())
+    assert.equal(job.tool.name, 'local.codex_usage')
+    socket.send(JSON.stringify({
+      protocolVersion: 1, kind: 'runner.job-result', jobId: job.jobId, runnerId: 'runner-a', outcome: 'succeeded',
+      value: {
+        source: 'codex-app-server', fetchedAt: '2026-08-31T13:00:00.000Z',
+        usage: { rateLimits: { primary: { usedPercent: 12, resetsAt: 1788760000 } } },
+      },
+      completedAt: Date.now(),
+    }))
+  })
+  const response = await fetch(new URL('/internal/v1/codex-usage', gateway.httpUrl), {
+    method: 'POST',
+    headers: { authorization: `Bearer ${dispatchToken}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ runnerId: 'runner-a' }),
+  })
+  assert.equal(response.status, 200)
+  const body = await response.json()
+  assert.equal(body.data.source, 'codex-app-server')
+  assert.equal(body.data.usage.rateLimits.primary.usedPercent, 12)
+  socket.close()
+})
+
 test('maps an offline Runner to a stable private API error', async t => {
   const gateway = await startRunnerGateway({
     host: '127.0.0.1', port: 0, bindings: [binding],
@@ -191,7 +230,7 @@ test('redeems a public one-time code and immediately authenticates the enrolled 
   await new Promise((resolve, reject) => { socket.once('open', resolve); socket.once('error', reject) })
   socket.send(JSON.stringify({
     protocolVersion: 1, kind: 'runner.register', runnerId: data.runnerId,
-    deviceId: data.deviceId, capabilities: ['local.system_info'],
+    deviceId: data.deviceId, capabilities: ['local.system_info', 'local.codex_usage'],
   }))
   await new Promise(resolve => setTimeout(resolve, 10))
   assert.equal(gateway.router.status(data.runnerId).online, true)
