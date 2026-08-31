@@ -2,27 +2,29 @@
 
 Use this backlog when a model allowance is approaching reset. Prefer work that creates durable project value; do not manufacture low-value work only to consume quota.
 
+Optional task tags are `[spark]`, `[codex]`, `[sol]`, `[work]`, and `[any]`. The recommender respects explicit tags first and only infers a model when a tag is absent.
+
 ## High value
 
-- [ ] Review tenant-isolation boundaries across MCP and Runner components.
-- [ ] Review Agent Key security boundaries and audit-log coverage.
-- [ ] Review database/API contracts before the next major milestone.
-- [ ] Review architecture decisions that affect multiple FutureStaff tools.
+- [ ] [sol] Review tenant-isolation boundaries across MCP and Runner components.
+- [ ] [sol] Review Agent Key security boundaries and audit-log coverage.
+- [ ] [codex] Review database/API contracts before the next major milestone.
+- [ ] [sol] Review architecture decisions that affect multiple FutureStaff tools.
 
 ## Medium value
 
-- [ ] Identify integration-test gaps for current milestone code.
-- [ ] Audit API consistency and error contracts.
-- [ ] Audit dependency and upgrade risks.
-- [ ] Audit UI consistency for current user-facing flows.
+- [ ] [spark] Identify integration-test gaps for current milestone code.
+- [ ] [codex] Audit API consistency and error contracts.
+- [ ] [codex] Audit dependency and upgrade risks.
+- [ ] [spark] Audit UI consistency for current user-facing flows.
 
 ## Filler / small atomic tasks
 
-- [ ] Fix lint/typecheck warnings.
-- [ ] Add missing focused tests.
-- [ ] Remove verified dead code.
-- [ ] Triage TODO/FIXME items into Atomic Tasks.
-- [ ] Improve developer documentation where behavior is already stable.
+- [ ] [spark] Fix lint/typecheck warnings.
+- [ ] [spark] Add missing focused tests.
+- [ ] [spark] Remove verified dead code.
+- [ ] [spark] Triage TODO/FIXME items into Atomic Tasks.
+- [ ] [spark] Improve developer documentation where behavior is already stable.
 
 ## Routing policy
 
