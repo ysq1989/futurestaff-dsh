@@ -1,6 +1,8 @@
 import { arch, hostname, platform, release } from 'node:os'
 
 import {
+  CODEX_USAGE_RUNNER_CAPABILITY,
+  INITIAL_RUNNER_CAPABILITY,
   RunnerReplayGuard,
   authorizeRunnerJob,
   type RunnerBinding,
@@ -9,7 +11,10 @@ import {
 } from '@futurestaff/local-runner-protocol'
 import WebSocket from 'ws'
 
+import { readCodexUsage } from './codex-usage.js'
+
 export { enrollRunner, loadInstalledRunnerConfig } from './enrollment.js'
+export { normalizeCodexUsageResponse, readCodexUsage, sanitizeCodexUsage, type CodexUsageSnapshot } from './codex-usage.js'
 
 export interface RunnerClientDescription { readonly url: string; readonly runnerId: string; readonly deviceId: string }
 export interface RunnerClientConfig extends RunnerClientDescription {
@@ -48,15 +53,24 @@ export function parseRunnerClientConfig(input: unknown): RunnerClientConfig {
 
 export async function executeLocalJob(raw: unknown, binding: RunnerBinding): Promise<RunnerJobResult> {
   const job = authorizeRunnerJob(binding, raw, Date.now())
-  if (job.tool.name !== 'local.system_info') throw new Error('unsupported local tool')
-  if (Object.keys(job.tool.arguments).length !== 0) throw new Error('local.system_info does not accept arguments')
+  if (Object.keys(job.tool.arguments).length !== 0) throw new Error(`${job.tool.name} does not accept arguments`)
+
+  let result: unknown
+  if (job.tool.name === INITIAL_RUNNER_CAPABILITY) {
+    result = Object.freeze({ platform: platform(), arch: arch(), release: release(), hostname: hostname() })
+  } else if (job.tool.name === CODEX_USAGE_RUNNER_CAPABILITY) {
+    result = await readCodexUsage()
+  } else {
+    throw new Error('unsupported local tool')
+  }
+
   return Object.freeze({
     protocolVersion: 1,
     kind: 'runner.job-result',
     jobId: job.jobId,
     runnerId: job.runnerId,
     outcome: 'succeeded',
-    value: Object.freeze({ platform: platform(), arch: arch(), release: release(), hostname: hostname() }),
+    value: result,
     completedAt: Date.now(),
   })
 }
@@ -73,9 +87,10 @@ export function connectRunner(rawConfig: unknown): { close(): void } {
   let heartbeat: ReturnType<typeof setInterval> | undefined
   let reconnect: ReturnType<typeof setTimeout> | undefined
   let attempt = 0
+  const capabilities = Object.freeze([INITIAL_RUNNER_CAPABILITY, CODEX_USAGE_RUNNER_CAPABILITY])
   const binding: RunnerBinding = Object.freeze({
     tenantId: config.tenantId, userId: config.userId, runnerId: config.runnerId,
-    deviceId: config.deviceId, capabilities: Object.freeze(['local.system_info']),
+    deviceId: config.deviceId, capabilities,
   })
   const replayGuard = new RunnerReplayGuard()
 
@@ -86,7 +101,7 @@ export function connectRunner(rawConfig: unknown): { close(): void } {
       attempt = 0
       socket?.send(JSON.stringify({
         protocolVersion: 1, kind: 'runner.register', runnerId: config.runnerId,
-        deviceId: config.deviceId, capabilities: ['local.system_info'],
+        deviceId: config.deviceId, capabilities,
       }))
       heartbeat = setInterval(() => socket?.send(JSON.stringify({
         protocolVersion: 1, kind: 'runner.heartbeat', runnerId: config.runnerId,
