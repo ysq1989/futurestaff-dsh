@@ -2,6 +2,11 @@ import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypt
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
+import {
+  CODEX_USAGE_RUNNER_CAPABILITY,
+  INITIAL_RUNNER_CAPABILITY,
+} from '@futurestaff/local-runner-protocol'
+
 import type { GatewayBinding } from './index.js'
 
 export type EnrollmentErrorCode = 'CODE_INVALID' | 'CODE_EXPIRED' | 'CODE_CONSUMED' | 'STATE_CONFLICT'
@@ -31,6 +36,8 @@ export interface EnrollmentService {
   readonly bindings: readonly GatewayBinding[]
   redeem(code: string, deviceName: string): Promise<EnrollmentResult>
 }
+
+const RUNNER_CAPABILITIES = Object.freeze([INITIAL_RUNNER_CAPABILITY, CODEX_USAGE_RUNNER_CAPABILITY])
 
 function record(value: unknown, name: string): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error(`${name} must be an object`)
@@ -71,13 +78,15 @@ function state(value: unknown): EnrollmentState {
   const consumed = input.consumedCodeSha256.map((value, index) => digest(value, `consumedCodeSha256[${index}]`))
   const bindings = input.bindings.map((raw, index) => {
     const binding = record(raw, `bindings[${index}]`)
-    if (!Array.isArray(binding.capabilities) || binding.capabilities.length !== 1 || binding.capabilities[0] !== 'local.system_info') {
-      throw new Error('persisted binding capabilities are invalid')
-    }
+    if (!Array.isArray(binding.capabilities)) throw new Error('persisted binding capabilities are invalid')
+    const persisted = binding.capabilities.map((value, capabilityIndex) => text(value, `capabilities[${capabilityIndex}]`))
+    const legacy = persisted.length === 1 && persisted[0] === INITIAL_RUNNER_CAPABILITY
+    const current = persisted.length === RUNNER_CAPABILITIES.length && RUNNER_CAPABILITIES.every(capability => persisted.includes(capability))
+    if (!legacy && !current) throw new Error('persisted binding capabilities are invalid')
     return Object.freeze({
       tenantId: text(binding.tenantId, 'tenantId'), userId: text(binding.userId, 'userId'),
       runnerId: text(binding.runnerId, 'runnerId'), deviceId: text(binding.deviceId, 'deviceId'),
-      capabilities: Object.freeze(['local.system_info']), tokenSha256: digest(binding.tokenSha256, 'tokenSha256'),
+      capabilities: RUNNER_CAPABILITIES, tokenSha256: digest(binding.tokenSha256, 'tokenSha256'),
     })
   })
   return Object.freeze({ version: 1, consumedCodeSha256: Object.freeze(consumed), bindings: Object.freeze(bindings) })
@@ -137,7 +146,7 @@ export async function createEnrollmentService(options: {
       tenantId: offer.tenantId, userId: offer.userId,
       runnerId: `runner-${text(createId(), 'generated Runner ID')}`,
       deviceId: `device-${text(createId(), 'generated device ID')}`,
-      capabilities: Object.freeze(['local.system_info']),
+      capabilities: RUNNER_CAPABILITIES,
       tokenSha256: createHash('sha256').update(token).digest('hex'),
     })
     if (current.bindings.some(value => value.runnerId === binding.runnerId || value.tokenSha256 === binding.tokenSha256)) {
