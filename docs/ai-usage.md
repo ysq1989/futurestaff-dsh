@@ -2,7 +2,7 @@
 
 ## Goal
 
-Let FutureStaff read the local Codex allowance/reset state without exposing ChatGPT/Codex credentials to an agent. This enables reset-aware model routing and phone-triggered quota checks through the Local Runner bridge.
+Let FutureStaff read the local Codex allowance/reset state without exposing ChatGPT/Codex credentials to an agent, then turn the sanitized snapshot into deterministic routing advice.
 
 ## M0 — local reader
 
@@ -12,22 +12,11 @@ Run on a computer where Codex CLI is installed and logged in:
 npm run ai:usage
 ```
 
-The command:
-
-1. starts `codex app-server --stdio`;
-2. performs the required `initialize` / `initialized` handshake;
-3. calls `account/rateLimits/read`;
-4. prints sanitized JSON only.
-
-It deliberately does **not** read `~/.codex/auth.json` and does not call the model. Authentication stays inside the Codex process.
-
-If `codex` is not on PATH, set `CODEX_BIN` to the Codex executable path.
+The command starts `codex app-server --stdio`, performs the required initialization handshake, calls `account/rateLimits/read`, and prints sanitized JSON only. It deliberately does **not** read `~/.codex/auth.json` and does not call the model.
 
 ## Security boundary
 
-Never return or log authentication material. Output sanitation removes nested keys matching token, secret, cookie, authorization, email and account/accountId patterns. The intended data surface is rate-limit windows, used percentages, reset timestamps, reset-credit metadata and similar non-secret usage information.
-
-The reader and bridge are read-only. Do not add login, logout, token refresh, account switching or model-turn methods to this capability.
+Never return or log authentication material. Output sanitation removes nested keys matching token, secret, cookie, authorization, email and account/accountId patterns. The reader and bridge remain read-only: no login/logout, token refresh, account switching or model-turn methods.
 
 ## M1 — Local Runner bridge
 
@@ -42,11 +31,7 @@ Chat / MCP
   -> account/rateLimits/read
 ```
 
-The Runner uses the same app-server request and recursive sanitation rules as the verified M0 reader. The gateway validates the returned envelope, and the MCP only exposes the sanitized snapshot.
-
-Existing enrollment-state bindings that contain only the original `local.system_info` capability are upgraded in memory to include `local.codex_usage`; newly enrolled runners receive both read-only capabilities. Explicit static gateway bindings should include both capabilities when Codex usage is required.
-
-Example:
+Existing enrollment-state bindings containing only `local.system_info` are upgraded in memory; newly enrolled runners receive both read-only capabilities. Explicit static gateway bindings should include both capabilities when Codex usage is required.
 
 ```json
 {
@@ -54,33 +39,62 @@ Example:
 }
 ```
 
-## M2 — reset-aware routing
+## M2 — deterministic quota router
 
-Use the returned windows to classify each available bucket:
+Run locally against the current Codex snapshot:
 
-- NORMAL: reset is more than 6 hours away;
-- HARVEST: reset is 2–6 hours away and meaningful allowance remains;
-- CLEAR: reset is less than 2 hours away and meaningful allowance remains;
-- EXHAUSTED: little/no allowance remains.
+```bash
+npm run ai:route
+```
 
-Combine the status with `tasks/AI-BACKLOG.md` to recommend high-value work before an allowance resets. Do not create low-value work merely to consume quota.
+The router does not start model work. It converts General Codex and model-specific rate-limit windows into normalized buckets containing:
+
+- model / limit id;
+- primary and secondary windows;
+- used and remaining percentage;
+- reset timestamp and minutes to reset;
+- window state;
+- effective model state;
+- recommendation action and reason.
+
+### State policy
+
+- `NORMAL`: reset is more than 6 hours away and more than 5% allowance remains;
+- `HARVEST`: reset is 2–6 hours away and more than 5% allowance remains;
+- `CLEAR`: reset is within 2 hours and more than 5% allowance remains;
+- `EXHAUSTED`: any active constraint has 5% or less allowance remaining.
+
+For a model with multiple active constraints (for example Spark 5h primary plus 7d secondary), an exhausted constraint blocks that model. Otherwise the most urgent reset state wins. The router preserves every individual window so callers can explain the decision.
+
+### Recommendation policy
+
+- `CLEAR` -> `USE_NOW`: use the model for high-value suitable work before reset;
+- `HARVEST` -> `PREFER`: prefer the model for suitable queued work;
+- `NORMAL` -> `NORMAL`: choose by task fit rather than quota pressure;
+- `EXHAUSTED` -> `AVOID`: route to another usable model.
+
+The current model inference maps the `GPT-5.3-Codex-Spark`/`codex_bengalfox` bucket to Spark and the general Codex bucket to GPT-5.3-Codex.
+
+## M3 — backlog-aware recommendations (not part of M2)
+
+A later task may combine router output with `tasks/AI-BACKLOG.md` to recommend concrete high-value Atomic Tasks. M2 deliberately does not read, modify, schedule, or execute backlog work.
+
+## M4 — reminders / monitoring (not part of M2)
+
+Scheduled or conditional quota monitoring and phone notifications remain separate work. M2 is a pure routing layer and has no background loop.
 
 ## Verification
 
-M0 was verified on Windows against a logged-in ChatGPT Pro Lite / Codex installation and returned General Codex plus GPT-5.3-Codex-Spark rate-limit windows with no sensitive fields.
+M0 and M1 have already been verified on the Windows desktop host against the real account and the full MCP -> Gateway -> Desktop Runner -> Codex app-server path.
 
-M1 must be verified before merge on the desktop Runner host:
+M2 requires:
 
 ```bash
+node --test test/quota-router.test.js
 npm run typecheck
 npm test
 npm run build
+npm run ai:route
 ```
 
-Then start the normal Runner Gateway + Local Runner stack and call `local_codex_usage` through the local-runner MCP. Confirm the end-to-end path is:
-
-```text
-MCP -> Gateway -> Desktop Runner -> Codex app-server
-```
-
-The returned data must include the real General Codex and Spark usage/reset fields while containing no account id, email, token, cookie or authorization values.
+With the real account snapshot, confirm General Codex and GPT-5.3-Codex-Spark are both normalized and the recommendation matches their real reset pressure. No sensitive credential or identity values may appear in the router output.
