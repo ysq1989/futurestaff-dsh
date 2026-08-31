@@ -107,7 +107,7 @@ export async function runQuotaAlert({
   const delivery = dryRun
     ? Object.freeze({ delivered: false, transport: 'dry-run' })
     : await sendQuotaAlert(decision.payload)
-  if (!dryRun) await writeState(stateFile, updateAlertState(state, decision, now))
+  if (delivery.delivered) await writeState(stateFile, updateAlertState(state, decision, now))
   return Object.freeze({ decision, delivery })
 }
 
