@@ -7,7 +7,6 @@ import { buildTaskRecommendations } from './task-recommender.mjs'
 
 const CLEAR_MIN_REMAINING = 20
 const HARVEST_MIN_REMAINING = 50
-const COOLDOWN_MS = 60 * 60 * 1000
 
 function record(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : undefined
@@ -40,8 +39,8 @@ export function decideQuotaAlert(result, { now = Date.now(), state = {} } = {}) 
 
   const key = alertKey(bucket)
   const previous = record(state.alerts)?.[key]
-  if (typeof previous === 'number' && now - previous < COOLDOWN_MS) {
-    return Object.freeze({ notify: false, reason: 'COOLDOWN', key, bucket })
+  if (typeof previous === 'number') {
+    return Object.freeze({ notify: false, reason: 'DUPLICATE_RESET_STATE', key, bucket })
   }
 
   const tasks = Array.isArray(recommendation.tasks) ? recommendation.tasks.slice(0, 3) : []
