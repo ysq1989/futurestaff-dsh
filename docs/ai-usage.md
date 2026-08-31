@@ -2,7 +2,7 @@
 
 ## Goal
 
-Let FutureStaff read the local Codex allowance/reset state without exposing ChatGPT/Codex credentials to an agent, turn the sanitized snapshot into deterministic routing advice, recommend valuable queued work, and optionally alert when useful allowance is close to reset.
+Let FutureStaff read the local Codex allowance/reset state without exposing ChatGPT/Codex credentials, turn that sanitized snapshot into deterministic routing advice, and recommend useful queued work on demand.
 
 ## M0 — local reader
 
@@ -12,15 +12,15 @@ Run on a computer where Codex CLI is installed and logged in:
 npm run ai:usage
 ```
 
-The command starts `codex app-server --stdio`, performs the required initialization handshake, calls `account/rateLimits/read`, and prints sanitized JSON only. It deliberately does **not** read `~/.codex/auth.json` and does not call the model.
+The command starts `codex app-server --stdio`, performs the initialization handshake, calls `account/rateLimits/read`, and prints sanitized JSON. It deliberately does **not** read `~/.codex/auth.json` and does not call the model.
 
 ## Security boundary
 
-Never return or log authentication material. Output sanitation removes nested keys matching token, secret, cookie, authorization, email and account/accountId patterns. The reader and bridge remain read-only: no login/logout, token refresh, account switching or model-turn methods.
+Never return or log authentication material. Output sanitation removes nested keys matching token, secret, cookie, authorization, email and account/accountId patterns. The reader remains read-only: no login/logout, token refresh, account switching or model-turn methods.
 
 ## M1 — Local Runner bridge
 
-The Local Runner bridge exposes the read-only capability `local.codex_usage` through MCP -> Gateway -> enrolled Desktop Runner -> local Codex app-server -> `account/rateLimits/read`.
+The Local Runner exposes the read-only capability `local.codex_usage` through MCP -> Gateway -> enrolled Desktop Runner -> local Codex app-server -> `account/rateLimits/read`.
 
 ## M2 — deterministic quota router
 
@@ -49,82 +49,60 @@ npm run ai:recommend
 
 The recommender reads `tasks/AI-BACKLOG.md` and returns up to three valuable open tasks compatible with the preferred model. Backlog tasks may use `[spark]`, `[codex]`, `[sol]`, `[work]`, or `[any]`. Model fit is a hard filter before value ranking, so Spark is never assigned Sol/Codex-only work merely to consume allowance.
 
-## M4 — quota alerts and monitoring
+## M4 — on-demand usage advisor
 
-Manual dry-run:
-
-```bash
-npm run ai:alert:dry-run
-```
-
-Manual real run:
+Run:
 
 ```bash
-npm run ai:alert
+npm run ai:advisor
 ```
 
-Alert policy:
+This is the normal user-facing entry point. It performs the existing read -> route -> backlog recommendation pipeline and returns one compact object containing:
 
-- `CLEAR` alerts when at least 20% remains;
-- `HARVEST` alerts when at least 50% remains;
-- `NORMAL` and `EXHAUSTED` do not alert;
-- the payload includes model, remaining %, reset time, minutes to reset, and up to three compatible backlog tasks.
+- all normalized quota buckets;
+- each model's state, remaining percentage, next reset and reset distance;
+- the preferred model;
+- an action: `USE_NOW`, `PREFER`, `NORMAL`, or `AVOID`;
+- whether there is current quota-harvest pressure;
+- up to three compatible backlog tasks;
+- a short summary explaining the current recommendation.
 
-### Deduplication
+The advisor is intentionally **on demand**. It does not poll in the background, schedule Windows tasks, send phone notifications, use webhooks, modify backlog state, switch models, or start Codex turns.
 
-A successful delivery stores a key made from `<limitId>|<resetAt>|<state>`. The same model/reset/state is therefore notified at most once for that reset cycle. A later `HARVEST -> CLEAR` escalation has a distinct key and may notify once more.
+Typical interaction:
 
-Dry-run and stdout-only execution do **not** consume the dedupe state. State is persisted only after a real delivery succeeds.
-
-### Mobile delivery
-
-Set `AI_ALERT_WEBHOOK_URL` in the local `.env` to an HTTPS endpoint that ultimately delivers to the user's phone. The webhook URL is never included in the notification payload or normal logs. No notification credential is committed to the repository.
-
-Without `AI_ALERT_WEBHOOK_URL`, `npm run ai:alert` safely prints the decision/payload to stdout and does not mark the alert delivered.
-
-### Windows automatic monitoring
-
-On the desktop Runner host, install an hourly Windows Task Scheduler entry:
-
-```bash
-npm run ai:alert:install
+```text
+User: 看看现在额度怎么用
+FutureStaff: read current quota -> route -> recommend -> return advisor result
 ```
 
-The scheduled task executes the repository-owned `scripts/run-ai-alert.cmd`. That runner changes into the repository directory, loads `.env` at runtime, invokes the quota alert command, and appends output to `.dsh/ai-alert.log`.
+Example shape:
 
-The Task Scheduler command itself contains no webhook URL, token, or other notification credential.
-
-To change the interval at installation time:
-
-```bash
-node scripts/install-ai-alert-schedule.mjs --every-hours=2
+```json
+{
+  "preferredModel": "GPT-5.3-Codex-Spark",
+  "action": "PREFER",
+  "shouldHarvestNow": true,
+  "summary": "GPT-5.3-Codex-Spark: HARVEST; 80% remaining; reset in about 240 minutes.",
+  "models": [],
+  "tasks": []
+}
 ```
-
-Allowed interval: 1–24 hours. Default: 1 hour.
-
-Remove the scheduled task with:
-
-```bash
-npm run ai:alert:uninstall
-```
-
-### Explicit non-goals
-
-M4 does not execute recommended tasks, start Codex/model turns, switch models automatically, or mark backlog tasks completed. Task execution always remains a separate explicit action.
 
 ## Verification
 
 M0/M1/M2/M3 have desktop verification history. M4 requires:
 
 ```bash
-node --test test/quota-alert.test.js
-node --test test/ai-alert-schedule.test.js
+node --test test/usage-advisor.test.js
 node --test test/task-recommender.test.js
 node --test test/quota-router.test.js
 npm run typecheck
 npm test
 npm run build
-npm run ai:alert:dry-run
+npm run ai:advisor
 ```
 
-On Windows also verify `npm run ai:alert:install` creates `FutureStaff AI Quota Alert`, its task action references only `scripts/run-ai-alert.cmd`, and no credentials appear in the Task Scheduler action. Do not merge the TASK-AIUSAGE-005 PR without explicit user approval.
+With the real desktop account, confirm that `ai:advisor` returns current General Codex and GPT-5.3-Codex-Spark data, selects the same preferred model as the quota router, returns only compatible open backlog tasks, and contains no token/cookie/authorization/email/accountId/secret values.
+
+TASK-AIUSAGE-005 remains read-only and on-demand. Verification may commit + push fixes, but the PR must not be merged unless the user explicitly approves merging.
