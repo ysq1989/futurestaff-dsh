@@ -5,7 +5,7 @@
       "userId": "user-example",
       "runnerId": "runner-example",
       "deviceId": "office-pc",
-      "capabilities": ["local.system_info"],
+      "capabilities": ["local.system_info", "local.codex_usage"],
       "tokenSha256": "0000000000000000000000000000000000000000000000000000000000000000"
     }
   ]
