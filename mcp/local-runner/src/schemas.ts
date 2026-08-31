@@ -8,4 +8,12 @@ export const localSystemInfoOutputSchema = z.object({
   hostname: z.string().min(1).max(200),
 })
 
+export const localCodexUsageInputSchema = z.object({}).strict()
+export const localCodexUsageOutputSchema = z.object({
+  source: z.literal('codex-app-server'),
+  fetchedAt: z.string().min(1),
+  usage: z.object({}).passthrough(),
+})
+
 export type LocalSystemInfo = z.infer<typeof localSystemInfoOutputSchema>
+export type LocalCodexUsage = z.infer<typeof localCodexUsageOutputSchema>
