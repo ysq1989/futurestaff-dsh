@@ -2,7 +2,13 @@ import { createHash, randomUUID, timingSafeEqual } from 'node:crypto'
 import { createServer, type IncomingMessage } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
-import { parseRunnerRegistration, type RunnerBinding } from '@futurestaff/local-runner-protocol'
+import {
+  CODEX_USAGE_RUNNER_CAPABILITY,
+  INITIAL_RUNNER_CAPABILITY,
+  SUPPORTED_RUNNER_CAPABILITIES,
+  parseRunnerRegistration,
+  type RunnerBinding,
+} from '@futurestaff/local-runner-protocol'
 import { LocalRunnerRouter, RunnerRouterError, type RunnerChannel, type RunnerDispatch } from '@futurestaff/local-runner-router'
 import WebSocket, { WebSocketServer, type RawData } from 'ws'
 
@@ -56,6 +62,14 @@ function systemInfo(value: unknown): Record<string, string> {
   return Object.freeze(output)
 }
 
+function codexUsage(value: unknown): Record<string, unknown> {
+  const input = object(value, 'codex usage result')
+  if (input.source !== 'codex-app-server') throw new Error('codex usage source is invalid')
+  if (typeof input.fetchedAt !== 'string' || input.fetchedAt.trim() === '') throw new Error('codex usage fetchedAt is invalid')
+  const usage = object(input.usage, 'codex usage payload')
+  return Object.freeze({ source: 'codex-app-server', fetchedAt: input.fetchedAt, usage: Object.freeze({ ...usage }) })
+}
+
 function object(value: unknown, name: string): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error(`${name} must be an object`)
   return value as Record<string, unknown>
@@ -81,7 +95,7 @@ export function parseGatewayConfig(value: unknown): GatewayConfig {
     digests.add(tokenSha256)
     if (!Array.isArray(binding.capabilities) || binding.capabilities.length === 0) throw new Error('capabilities must be non-empty')
     const capabilities = binding.capabilities.map((capability, capabilityIndex) => id(capability, `capabilities[${capabilityIndex}]`))
-    if (capabilities.some(capability => capability !== 'local.system_info')) throw new Error('unsupported capability')
+    if (capabilities.some(capability => !(SUPPORTED_RUNNER_CAPABILITIES as readonly string[]).includes(capability))) throw new Error('unsupported capability')
     return Object.freeze({
       tenantId: id(binding.tenantId, 'tenantId'), userId: id(binding.userId, 'userId'),
       runnerId, deviceId: id(binding.deviceId, 'deviceId'),
@@ -151,7 +165,7 @@ export async function startRunnerGateway(options: GatewayOptions) {
       response.writeHead(200, { 'content-type': 'application/json' }).end('{"status":"ok"}')
       return
     }
-    if (request.method === 'POST' && request.url === '/internal/v1/system-info' && dispatchToken) {
+    if (request.method === 'POST' && ['/internal/v1/system-info', '/internal/v1/codex-usage'].includes(request.url ?? '') && dispatchToken) {
       void (async () => {
         const incomingRequestId = request.headers['x-request-id']
         const requestId = typeof incomingRequestId === 'string' && /^[A-Za-z0-9._-]{1,100}$/.test(incomingRequestId)
@@ -169,7 +183,13 @@ export async function startRunnerGateway(options: GatewayOptions) {
           const body = object(await jsonBody(request), 'request body')
           if (Object.keys(body).length !== 1) throw new Error('request body has unknown fields')
           const runnerId = id(body.runnerId, 'runnerId')
-          const data = systemInfo(await dispatch({ runnerId, toolName: 'local.system_info', arguments: {} }, requestId))
+          const isCodexUsage = request.url === '/internal/v1/codex-usage'
+          const raw = await dispatch({
+            runnerId,
+            toolName: isCodexUsage ? CODEX_USAGE_RUNNER_CAPABILITY : INITIAL_RUNNER_CAPABILITY,
+            arguments: {},
+          }, requestId)
+          const data = isCodexUsage ? codexUsage(raw) : systemInfo(raw)
           outcome = 'succeeded'
           response.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify({ data }))
         } catch (error) {
