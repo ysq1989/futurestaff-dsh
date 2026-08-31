@@ -2,7 +2,7 @@
 
 ## Goal
 
-Let FutureStaff read the local Codex allowance/reset state without exposing ChatGPT/Codex credentials to an agent, turn the sanitized snapshot into deterministic routing advice, and recommend valuable queued work that fits the preferred model.
+Let FutureStaff read the local Codex allowance/reset state without exposing ChatGPT/Codex credentials to an agent, turn the sanitized snapshot into deterministic routing advice, recommend valuable queued work, and optionally alert when useful allowance is close to reset.
 
 ## M0 — local reader
 
@@ -20,50 +20,24 @@ Never return or log authentication material. Output sanitation removes nested ke
 
 ## M1 — Local Runner bridge
 
-The Local Runner bridge exposes the read-only capability `local.codex_usage`:
-
-```text
-Chat / MCP
-  -> FutureStaff local-runner MCP (`local_codex_usage`)
-  -> Runner Gateway (`POST /internal/v1/codex-usage`)
-  -> enrolled desktop Local Runner (`local.codex_usage`)
-  -> local Codex app-server
-  -> account/rateLimits/read
-```
-
-Existing enrollment-state bindings containing only `local.system_info` are upgraded in memory; newly enrolled runners receive both read-only capabilities. Explicit static gateway bindings should include both capabilities when Codex usage is required.
-
-```json
-{
-  "capabilities": ["local.system_info", "local.codex_usage"]
-}
-```
+The Local Runner bridge exposes the read-only capability `local.codex_usage` through MCP -> Gateway -> enrolled Desktop Runner -> local Codex app-server -> `account/rateLimits/read`.
 
 ## M2 — deterministic quota router
 
-Run locally against the current Codex snapshot:
+Run:
 
 ```bash
 npm run ai:route
 ```
 
-The router does not start model work. It converts General Codex and model-specific rate-limit windows into normalized buckets containing model/limit id, primary and secondary windows, used/remaining percentage, reset time, state, and recommendation action.
+State policy:
 
-### State policy
+- `NORMAL`: reset is more than 6 hours away and more than 5% remains;
+- `HARVEST`: reset is 2–6 hours away and more than 5% remains;
+- `CLEAR`: reset is within 2 hours and more than 5% remains;
+- `EXHAUSTED`: an active constraint has 5% or less remaining.
 
-- `NORMAL`: reset is more than 6 hours away and more than 5% allowance remains;
-- `HARVEST`: reset is 2–6 hours away and more than 5% allowance remains;
-- `CLEAR`: reset is within 2 hours and more than 5% allowance remains;
-- `EXHAUSTED`: any active constraint has 5% or less allowance remaining.
-
-For a model with multiple active constraints, an exhausted constraint blocks that model. Otherwise the most urgent reset state wins.
-
-### Recommendation policy
-
-- `CLEAR` -> `USE_NOW`;
-- `HARVEST` -> `PREFER`;
-- `NORMAL` -> `NORMAL`;
-- `EXHAUSTED` -> `AVOID`.
+For multiple active constraints, an exhausted constraint blocks the model. Otherwise the most urgent reset state wins.
 
 ## M3 — backlog-aware task recommendations
 
@@ -73,66 +47,84 @@ Run:
 npm run ai:recommend
 ```
 
-This reads the current sanitized Codex quota snapshot, runs the M2 quota router, reads `tasks/AI-BACKLOG.md`, and returns up to three valuable queued tasks compatible with the preferred Codex model.
+The recommender reads `tasks/AI-BACKLOG.md` and returns up to three valuable open tasks compatible with the preferred model. Backlog tasks may use `[spark]`, `[codex]`, `[sol]`, `[work]`, or `[any]`. Model fit is a hard filter before value ranking, so Spark is never assigned Sol/Codex-only work merely to consume allowance.
 
-Backlog tasks may use lightweight explicit model tags:
+## M4 — quota alerts and monitoring
 
-```text
-[spark] [codex] [sol] [work] [any]
+Manual dry-run:
+
+```bash
+npm run ai:alert:dry-run
 ```
 
-Example:
+Manual real run:
 
-```markdown
-- [ ] [spark] Add missing focused tests.
-- [ ] [codex] Audit API consistency and error contracts.
-- [ ] [sol] Review tenant-isolation boundaries.
+```bash
+npm run ai:alert
 ```
 
-The recommender respects explicit tags first. Untagged tasks use conservative keyword inference. Completed checkbox items are ignored.
+Alert policy:
 
-### Ranking policy
+- `CLEAR` alerts when at least 20% remains;
+- `HARVEST` alerts when at least 50% remains;
+- `NORMAL` and `EXHAUSTED` do not alert;
+- the payload includes model, remaining %, reset time, minutes to reset, and up to three compatible backlog tasks.
 
-Task ranking combines:
+### Deduplication
 
-1. durable value from the backlog section (`High` > `Medium` > `Filler`);
-2. fit with the quota router's preferred model;
-3. quota urgency (`CLEAR` > `HARVEST` > `NORMAL`).
+A successful delivery stores a key made from `<limitId>|<resetAt>|<state>`. The same model/reset/state is therefore notified at most once for that reset cycle. A later `HARVEST -> CLEAR` escalation has a distinct key and may notify once more.
 
-A Spark reset does not cause the recommender to select a high-value Sol-only architecture task. Model fit is a hard filter before value ranking. General Codex may accept Spark-compatible work when useful, but Spark does not absorb Codex/Sol work merely to consume quota.
+Dry-run and stdout-only execution do **not** consume the dedupe state. State is persisted only after a real delivery succeeds.
 
-If the preferred model is `EXHAUSTED`, the recommender returns no tasks for that model.
+### Mobile delivery
+
+Set `AI_ALERT_WEBHOOK_URL` in the local `.env` to an HTTPS endpoint that ultimately delivers to the user's phone. The webhook URL is never included in the notification payload or normal logs. No notification credential is committed to the repository.
+
+Without `AI_ALERT_WEBHOOK_URL`, `npm run ai:alert` safely prints the decision/payload to stdout and does not mark the alert delivered.
+
+### Windows automatic monitoring
+
+On the desktop Runner host, install an hourly Windows Task Scheduler entry:
+
+```bash
+npm run ai:alert:install
+```
+
+The scheduled task executes the repository-owned `scripts/run-ai-alert.cmd`. That runner changes into the repository directory, loads `.env` at runtime, invokes the quota alert command, and appends output to `.dsh/ai-alert.log`.
+
+The Task Scheduler command itself contains no webhook URL, token, or other notification credential.
+
+To change the interval at installation time:
+
+```bash
+node scripts/install-ai-alert-schedule.mjs --every-hours=2
+```
+
+Allowed interval: 1–24 hours. Default: 1 hour.
+
+Remove the scheduled task with:
+
+```bash
+npm run ai:alert:uninstall
+```
 
 ### Explicit non-goals
 
-M3 does not:
-
-- execute a recommended task;
-- modify the backlog;
-- create Codex turns;
-- schedule polling;
-- send notifications;
-- automatically switch models.
-
-Those remain follow-up Atomic Tasks.
-
-## M4 — reminders / monitoring (future)
-
-Scheduled or conditional quota monitoring and phone notifications remain separate work. The next layer may use M3 output to decide when a useful reset warning exists, but must preserve explicit user control over task execution.
+M4 does not execute recommended tasks, start Codex/model turns, switch models automatically, or mark backlog tasks completed. Task execution always remains a separate explicit action.
 
 ## Verification
 
-M0 and M1 have been verified on the Windows desktop host against the real account and the full MCP -> Gateway -> Desktop Runner -> Codex app-server path. M2 has also passed desktop verification.
-
-M3 requires:
+M0/M1/M2/M3 have desktop verification history. M4 requires:
 
 ```bash
+node --test test/quota-alert.test.js
+node --test test/ai-alert-schedule.test.js
 node --test test/task-recommender.test.js
 node --test test/quota-router.test.js
 npm run typecheck
 npm test
 npm run build
-npm run ai:recommend
+npm run ai:alert:dry-run
 ```
 
-With the real account snapshot, confirm that the preferred model matches M2, recommended tasks come only from open `AI-BACKLOG.md` items compatible with that model, and no sensitive credential or identity values appear in output.
+On Windows also verify `npm run ai:alert:install` creates `FutureStaff AI Quota Alert`, its task action references only `scripts/run-ai-alert.cmd`, and no credentials appear in the Task Scheduler action. Do not merge the TASK-AIUSAGE-005 PR without explicit user approval.
