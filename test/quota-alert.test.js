@@ -44,12 +44,12 @@ test('does not alert for NORMAL, EXHAUSTED, or low remaining CLEAR quota', () =>
   assert.equal(decideQuotaAlert(fixture({ state: 'CLEAR', remainingPercent: 19 }), { now: 1_000, state: {} }).notify, false)
 })
 
-test('deduplicates the same model/reset/state during cooldown', () => {
+test('deduplicates the same model/reset/state for the whole reset cycle', () => {
   const first = decideQuotaAlert(fixture(), { now: 3_600_000, state: {} })
   const state = updateAlertState({}, first, 3_600_000)
-  const second = decideQuotaAlert(fixture(), { now: 3_600_000 + 30 * 60_000, state })
+  const second = decideQuotaAlert(fixture(), { now: 3_600_000 + 3 * 60 * 60_000, state })
   assert.equal(second.notify, false)
-  assert.equal(second.reason, 'COOLDOWN')
+  assert.equal(second.reason, 'DUPLICATE_RESET_STATE')
 })
 
 test('state transition HARVEST to CLEAR creates a distinct alert key', () => {
