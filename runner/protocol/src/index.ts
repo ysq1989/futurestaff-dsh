@@ -1,5 +1,10 @@
 export const RUNNER_PROTOCOL_VERSION = 1 as const
 export const INITIAL_RUNNER_CAPABILITY = 'local.system_info' as const
+export const CODEX_USAGE_RUNNER_CAPABILITY = 'local.codex_usage' as const
+export const SUPPORTED_RUNNER_CAPABILITIES = Object.freeze([
+  INITIAL_RUNNER_CAPABILITY,
+  CODEX_USAGE_RUNNER_CAPABILITY,
+] as const)
 export const MAX_RUNNER_CLOCK_SKEW_MS = 30_000
 
 export type RunnerProtocolErrorCode =
@@ -129,7 +134,7 @@ export function parseRunnerRegistration(value: unknown): RunnerRegistration {
   const input = v1Envelope(value, 'runner.register')
   const displayName = input.displayName === undefined ? undefined : identifier(input.displayName, 'displayName')
   const declaredCapabilities = capabilities(input.capabilities)
-  if (declaredCapabilities.some(capability => capability !== INITIAL_RUNNER_CAPABILITY)) {
+  if (declaredCapabilities.some(capability => !(SUPPORTED_RUNNER_CAPABILITIES as readonly string[]).includes(capability))) {
     throw new RunnerProtocolError('CAPABILITY_DENIED', 'Runner declared a capability not supported by protocol v1')
   }
   return Object.freeze({
