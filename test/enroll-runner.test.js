@@ -22,5 +22,6 @@ test('writes the raw device token only to the client environment', async () => {
   assert.match(client, new RegExp(`RUNNER_DEVICE_TOKEN=${token}`))
   assert.doesNotMatch(bindings, new RegExp(token))
   assert.match(bindings, new RegExp(createHash('sha256').update(token).digest('hex')))
+  assert.deepEqual(JSON.parse(bindings).bindings[0].capabilities, ['local.system_info', 'local.codex_usage'])
   assert.deepEqual(enrollment, { runnerId: 'runner-a', deviceId: 'office-pc', clientEnvPath, bindingsPath })
 })

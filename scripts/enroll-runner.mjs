@@ -33,7 +33,7 @@ export async function createRunnerEnrollment(options) {
   const bindings = {
     bindings: [{
       tenantId, userId, runnerId, deviceId,
-      capabilities: ['local.system_info'],
+      capabilities: ['local.system_info', 'local.codex_usage'],
       tokenSha256: createHash('sha256').update(token).digest('hex'),
     }],
   }

@@ -53,12 +53,13 @@ export function parseRunnerClientConfig(input: unknown): RunnerClientConfig {
 
 export async function executeLocalJob(raw: unknown, binding: RunnerBinding): Promise<RunnerJobResult> {
   const job = authorizeRunnerJob(binding, raw, Date.now())
-  if (Object.keys(job.tool.arguments).length !== 0) throw new Error(`${job.tool.name} does not accept arguments`)
 
   let result: unknown
   if (job.tool.name === INITIAL_RUNNER_CAPABILITY) {
+    if (Object.keys(job.tool.arguments).length !== 0) throw new Error(`${job.tool.name} does not accept arguments`)
     result = Object.freeze({ platform: platform(), arch: arch(), release: release(), hostname: hostname() })
   } else if (job.tool.name === CODEX_USAGE_RUNNER_CAPABILITY) {
+    if (Object.keys(job.tool.arguments).length !== 0) throw new Error(`${job.tool.name} does not accept arguments`)
     result = await readCodexUsage()
   } else {
     throw new Error('unsupported local tool')
