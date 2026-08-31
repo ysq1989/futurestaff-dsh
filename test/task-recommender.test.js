@@ -46,7 +46,7 @@ test('prefers Spark-compatible medium work over high-value Sol/Codex work when S
   assert.deepEqual(result.tasks.map(task => task.title), [
     'Add integration tests.',
     'Audit UI consistency.',
-    'Improve stable documentation.',
+    'Fix lint/typecheck warnings.',
   ])
   assert.equal(result.tasks.some(task => task.model === 'sol' || task.model === 'codex'), false)
 })
