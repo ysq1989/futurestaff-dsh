@@ -2,9 +2,9 @@
 
 ## Goal
 
-Let FutureStaff read the local Codex allowance/reset state without exposing ChatGPT/Codex credentials to an agent. This enables reset-aware model routing and, later, phone-triggered quota checks through the Local Runner bridge.
+Let FutureStaff read the local Codex allowance/reset state without exposing ChatGPT/Codex credentials to an agent. This enables reset-aware model routing and phone-triggered quota checks through the Local Runner bridge.
 
-## M0 — local reader (this change)
+## M0 — local reader
 
 Run on a computer where Codex CLI is installed and logged in:
 
@@ -27,22 +27,32 @@ If `codex` is not on PATH, set `CODEX_BIN` to the Codex executable path.
 
 Never return or log authentication material. Output sanitation removes nested keys matching token, secret, cookie, authorization, email and account/accountId patterns. The intended data surface is rate-limit windows, used percentages, reset timestamps, reset-credit metadata and similar non-secret usage information.
 
-The CLI must remain read-only. Do not add login, logout, token refresh, account switching or model-turn methods to this reader.
+The reader and bridge are read-only. Do not add login, logout, token refresh, account switching or model-turn methods to this capability.
 
 ## M1 — Local Runner bridge
 
-Add the read-only capability `local.codex_usage` to the existing Local Runner protocol:
+The Local Runner bridge exposes the read-only capability `local.codex_usage`:
 
 ```text
 Chat / MCP
-  -> FutureStaff local-runner MCP
-  -> Runner Gateway
-  -> enrolled desktop Local Runner
+  -> FutureStaff local-runner MCP (`local_codex_usage`)
+  -> Runner Gateway (`POST /internal/v1/codex-usage`)
+  -> enrolled desktop Local Runner (`local.codex_usage`)
   -> local Codex app-server
   -> account/rateLimits/read
 ```
 
-This is the step that makes the usage status available while the user is communicating from a phone. The gateway should only return the same sanitized data contract as M0.
+The Runner uses the same app-server request and recursive sanitation rules as the verified M0 reader. The gateway validates the returned envelope, and the MCP only exposes the sanitized snapshot.
+
+Existing enrollment-state bindings that contain only the original `local.system_info` capability are upgraded in memory to include `local.codex_usage`; newly enrolled runners receive both read-only capabilities. Explicit static gateway bindings should include both capabilities when Codex usage is required.
+
+Example:
+
+```json
+{
+  "capabilities": ["local.system_info", "local.codex_usage"]
+}
+```
 
 ## M2 — reset-aware routing
 
@@ -57,13 +67,20 @@ Combine the status with `tasks/AI-BACKLOG.md` to recommend high-value work befor
 
 ## Verification
 
-Required before merge on a machine with Codex installed:
+M0 was verified on Windows against a logged-in ChatGPT Pro Lite / Codex installation and returned General Codex plus GPT-5.3-Codex-Spark rate-limit windows with no sensitive fields.
+
+M1 must be verified before merge on the desktop Runner host:
 
 ```bash
-npm run ai:usage
-node --test test/codex-usage.test.js
 npm run typecheck
 npm test
+npm run build
 ```
 
-Confirm the output contains real rate-limit/reset fields but no account id, email, token, cookie or authorization values.
+Then start the normal Runner Gateway + Local Runner stack and call `local_codex_usage` through the local-runner MCP. Confirm the end-to-end path is:
+
+```text
+MCP -> Gateway -> Desktop Runner -> Codex app-server
+```
+
+The returned data must include the real General Codex and Spark usage/reset fields while containing no account id, email, token, cookie or authorization values.
