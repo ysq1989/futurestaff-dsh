@@ -5,12 +5,12 @@ import { AI_ALERT_TASK_NAME, buildCreateArgs, buildDeleteArgs } from '../scripts
 
 test('builds an hourly Windows Task Scheduler command without embedding notification credentials', () => {
   const args = buildCreateArgs({ runnerPath: 'C:\\FutureStaff\\scripts\\run-ai-alert.cmd', everyHours: 1 })
-  assert.deepEqual(args.slice(0, 8), [
+  assert.deepEqual(args.slice(0, 7), [
     '/Create', '/TN', AI_ALERT_TASK_NAME,
     '/SC', 'HOURLY', '/MO', '1',
   ])
-  assert.equal(args[8], '/TR')
-  assert.match(args[9], /run-ai-alert\.cmd"$/)
+  assert.equal(args[7], '/TR')
+  assert.match(args[8], /run-ai-alert\.cmd"$/)
   assert.equal(args.at(-1), '/F')
   const serialized = JSON.stringify(args)
   assert.doesNotMatch(serialized, /webhook|token|secret|authorization/i)
