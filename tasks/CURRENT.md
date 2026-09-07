@@ -1,3 +1,3 @@
 # Current Atomic Task
 
-No active task. B02a is complete locally and recorded in `tasks/DONE.md`.
+No active Atomic Task. B02b is complete and recorded in `tasks/DONE.md`.

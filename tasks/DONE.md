@@ -48,10 +48,20 @@
 
 ## B02a: Pin A02 and add the Platform DEV API boundary
 
-- Status: Completed locally; not committed or pushed.
+- Status: Completed and committed as `9e7774401a1d841e746f49c499d62efea76a1112`; pushed with the B02b close.
 - Contract: A02 `0.1.1`, Platform DEV source `d789faceb7971deb111fec3e4948237d21e81346`, handoff `2c31ed720d8f9ee4fd8087f758c928ea5f8c0ac2`, bundle SHA-256 `9921cc5084925ceea4e6e9d224e5434d4af294974a736a300ed34c73d2950687`.
 - Result: the foundation now pins independent A01 Mock and A02 DEV inputs; `PlatformDevApi` supports the existing desktop identity routes and strict one-minute application-token exchange at the exact root-level DEV origin.
 - Safety: the DEV boundary rejects `/api`, alternate origins, simulated or wrong-version metadata, unsafe application IDs, cross-tenant token responses, invalid token TTL/audience/permissions, malformed envelopes, and unbounded transport failures without reflecting credentials.
 - Compatibility: the immutable `0.1.0` Mock, its six routes, proof headers, embedded implementation, and disconnected UI remain unchanged; the application-token endpoint was not added to the Mock.
 - Verification: RED tests failed before the DEV export and nested contract pin existed; platform-access tests passed 27/27; focused foundation/profile tests passed 8/8; full `npm run check` passed including every workspace typecheck/test/build and 52 top-level tests; `git diff --check` passed with only Git line-ending conversion warnings; exact diff review passed.
 - Boundaries: no real login, credential storage, Platform DEV call, Computer A or controlled-desktop edit, deployment, or push was performed.
+
+## B02b: Add OS-protected desktop session storage
+
+- Status: Desktop portion committed and pushed as `bd54da63577a5d2595ced66060999e12468f42a8`; product portion and updated desktop release pin are recorded by this B02b close commit.
+- Desktop result: added the generation-scoped, Host-only `desktopProtectedSecrets` Cordis service backed by Electron `safeStorage`; keys are validated and hashed, state is atomically written with private permissions, symlink/path/state hazards fail closed, and only sealed bytes reach disk.
+- Product result: added `PlatformSessionVault` for the exact A02 `0.1.1` session/user shape with OS-protection gating, local-first idempotent clear, presence-only credential-free diagnostics, and bounded failures.
+- TDD: missing service/Vault tests first failed, then passed; added first-run empty operations, corruption, unavailable protection, invalid runtime input, no-diagnostic-decryption, and plaintext-at-rest checks.
+- Verification: product full `npm run check` passed, including every workspace typecheck/test/build and 52 top-level tests; desktop build and typecheck passed; the focused protected-secret suite passed 5/5. Desktop full check reached 1019 passed and 12 skipped tests, with two reproducible unrelated environment failures in diagnostic-export linked-directory setup and recovery pnpm PATH selection. The edited service documents have matching bilingual blob records; the repository-wide bilingual gate remains red only because the unchanged Desktop README pair already has stale recorded hashes.
+- Documentation: updated the bilingual public Desktop Host service contract and product/foundation integration boundaries.
+- Boundaries: no renderer/IPC/browser storage, real account, DEV request, PKCE launch, deployment, or upstream Harness edit was performed.

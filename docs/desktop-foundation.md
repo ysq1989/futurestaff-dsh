@@ -13,11 +13,11 @@ inputs.
 - License: MIT
 - Official `deepseek-harness` gitlink: `a66e4702047846cdaa10c66c9d3df3951f5ea70d`
 
-The reviewed Profile-installation release commit is pinned at
-`8f7dbd6ce960daa1e80a96010488b982932381bd` on the controlled fork's `main`
-branch. It preserves the original productization boundary and adds verified,
-first-launch installation of the staged FutureStaff Profile. Do not replace it
-with an uncommitted tree or a moving branch name.
+The reviewed desktop release commit is pinned at
+`bd54da63577a5d2595ced66060999e12468f42a8` on the controlled fork's `main`
+branch. It preserves the original productization boundary and verified
+first-launch Profile installation, and adds the Host-only OS-protected secret
+service. Do not replace it with an uncommitted tree or a moving branch name.
 
 ## Distribution boundary
 
@@ -40,9 +40,11 @@ The foundation manifest preserves two independent inputs:
   commit `2c31ed7...`, bundle SHA-256 `9921cc50...`, the exact
   `https://dev.fsstory.net` origin, and `http://127.0.0.1:43821/callback`.
 
-The DEV pin does not enable PROD or authorize real login by itself. The desktop
-must provide OS-protected session storage before the Web Settings panel switches
-from Mock to Platform DEV.
+The DEV pin does not enable PROD or authorize real login by itself. B02b adds a
+Host-only `desktopProtectedSecrets` contract backed by Electron `safeStorage`
+in the pinned controlled desktop release, plus a product `PlatformSessionVault`
+that validates the A02 shape. The Web Settings panel still stays on Mock pending
+PKCE callback and controller wiring.
 
 ## Verification
 

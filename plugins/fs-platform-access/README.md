@@ -2,8 +2,8 @@
 
 This product-layer workspace preserves the pinned Agent PC contract `0.1.0` and
 its loopback Mock while preparing a separate A02 `0.1.1` Platform DEV boundary.
-The current Settings panel still uses the Mock; no real login or credential
-storage is enabled by the adapter alone.
+The current Settings panel still uses the Mock; no real login is enabled by the
+adapter or Vault alone.
 
 The adapter rejects non-loopback base URLs, responses without
 `X-FutureStaff-Mock: true`, responses from another contract version, and any
@@ -46,6 +46,13 @@ It returns the short-lived credential only to the caller; it does not persist,
 render, or log it. The immutable `0.1.0` Mock remains separate and deliberately
 does not implement this endpoint.
 
-This adapter is not enabled in the Settings panel yet. Real login must first be
-wired through PKCE and an operating-system protected session store; browser
-storage and plaintext files are not acceptable substitutes.
+The package exports `PlatformSessionVault` for the next Host integration step.
+It validates and serializes only the A02 `0.1.1` session and user shape, delegates
+persistence to the Desktop Host `desktopProtectedSecrets` contract, and exposes
+presence-only diagnostics. It never falls back to browser storage or plaintext
+files, and local-first clear does not require the operating-system protector to
+be available.
+
+The Vault and DEV adapter are not enabled in the Settings panel yet. Real login
+still requires PKCE callback orchestration and controller wiring; this package
+does not launch a browser, call DEV, or persist a real credential by itself.
