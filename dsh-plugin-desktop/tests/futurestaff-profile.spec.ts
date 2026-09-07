@@ -3,7 +3,10 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { installBundledFutureStaffProfile } from '../src/futurestaff-profile.ts'
+import {
+  applyBundledFutureStaffBootstrapIdentity,
+  installBundledFutureStaffProfile,
+} from '../src/futurestaff-profile.ts'
 import { readDesktopProfileState } from '../src/profile-manager.ts'
 
 function fixture() {
@@ -40,6 +43,24 @@ function fixture() {
 }
 
 describe('bundled FutureStaff Profile', () => {
+  it('owns an explicit non-authoritative bootstrap identity for the product Profile', () => {
+    const environment: NodeJS.ProcessEnv = {
+      FUTURESTAFF_IDENTITY_MODE: 'request-scoped',
+      FUTURESTAFF_TENANT_ID: 'caller-controlled-tenant',
+      FUTURESTAFF_USER_ID: 'caller-controlled-user',
+    }
+    expect(applyBundledFutureStaffBootstrapIdentity('futurestaff-alpha', environment)).toBe(true)
+    expect(environment).toMatchObject({
+      FUTURESTAFF_IDENTITY_MODE: 'single-subject',
+      FUTURESTAFF_TENANT_ID: 'futurestaff-desktop-bootstrap-tenant',
+      FUTURESTAFF_USER_ID: 'futurestaff-desktop-bootstrap-user',
+    })
+
+    const unrelated = { FUTURESTAFF_IDENTITY_MODE: 'request-scoped' }
+    expect(applyBundledFutureStaffBootstrapIdentity('desktop', unrelated)).toBe(false)
+    expect(unrelated.FUTURESTAFF_IDENTITY_MODE).toBe('request-scoped')
+  })
+
   it('atomically installs and selects a verified Profile on first launch', () => {
     const value = fixture()
     expect(installBundledFutureStaffProfile(value)).toBe('installed')

@@ -75,7 +75,10 @@ import {
   selectDesktopProfile,
 } from './profile-manager.ts'
 import { DesktopProfileService } from './profile-service.ts'
-import { installBundledFutureStaffProfile } from './futurestaff-profile.ts'
+import {
+  applyBundledFutureStaffBootstrapIdentity,
+  installBundledFutureStaffProfile,
+} from './futurestaff-profile.ts'
 import { DesktopActionsService } from './desktop-actions.ts'
 import {
   FileDesktopProtectedSecrets,
@@ -716,6 +719,7 @@ async function start(): Promise<void> {
     const locale = desktopLocaleFromLanguageTag(app.getLocale())
     const recoveryProfileToken = randomUUID()
     let activeProfileName = readDesktopProfileState(selectionStatePath).active
+    applyBundledFutureStaffBootstrapIdentity(activeProfileName, process.env)
     let expectedRecoveryProfileName = activeProfileName
     const openStartupProfileCreator = async (): Promise<void> => {
       await new Promise<void>(resolve => {

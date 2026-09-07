@@ -45,6 +45,25 @@ const DEPENDENCY_METADATA = new Set([
   'pnpm-workspace.yaml',
 ])
 const LEGACY_GENERATED_FILES = new Set(['cordis.yml', 'pnpm-workspace.yaml'])
+const BOOTSTRAP_IDENTITY = {
+  FUTURESTAFF_IDENTITY_MODE: 'single-subject',
+  FUTURESTAFF_TENANT_ID: 'futurestaff-desktop-bootstrap-tenant',
+  FUTURESTAFF_USER_ID: 'futurestaff-desktop-bootstrap-user',
+} as const
+
+/**
+ * Provide the product Profile's process-scoped startup identity. These fixed
+ * values only let fail-closed policy services compose before sign-in; platform
+ * application authorization continues to come from the server-owned session.
+ */
+export function applyBundledFutureStaffBootstrapIdentity(
+  profileName: string,
+  environment: NodeJS.ProcessEnv,
+): boolean {
+  if (profileName !== PROFILE_NAME) return false
+  Object.assign(environment, BOOTSTRAP_IDENTITY)
+  return true
+}
 
 function safeRelativePath(value: string): boolean {
   if (value.length === 0 || value.includes('\\') || isAbsolute(value)) return false
