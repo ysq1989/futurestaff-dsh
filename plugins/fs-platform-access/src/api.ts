@@ -5,12 +5,16 @@ import {
   isRecord,
   PLATFORM_CLIENT_ID,
   PLATFORM_CONTRACT_VERSION,
+  PLATFORM_DEV_BASE_URL,
+  PLATFORM_DEV_CONTRACT_VERSION,
   PLATFORM_MOCK_BASE_URL,
   requireBoundedString,
   requireHttpUrl,
+  requireMinimumString,
   requireString,
   requireUuid,
   type ApplicationList,
+  type ApplicationTokenResult,
   type AuthCallbackInput,
   type AuthResult,
   type AuthorizedApplication,
@@ -51,6 +55,14 @@ function assertLoopbackMockBaseUrl(raw: string): string {
   const url = new URL(raw)
   if (url.protocol !== 'http:' || url.hostname !== '127.0.0.1' || url.port !== '43821' || url.pathname !== '/') {
     throw new Error('B01a accepts only http://127.0.0.1:43821')
+  }
+  return url.origin
+}
+
+function assertPlatformDevBaseUrl(raw: string): string {
+  const url = new URL(raw)
+  if (url.origin !== PLATFORM_DEV_BASE_URL || url.href !== `${PLATFORM_DEV_BASE_URL}/`) {
+    throw new Error('B02a accepts only the exact Platform DEV origin')
   }
   return url.origin
 }
@@ -112,12 +124,22 @@ function user(value: unknown): User {
   })
 }
 
-export class PlatformMockApi {
+interface ResponseContract {
+  readonly version: '0.1.0' | '0.1.1'
+  readonly simulated: boolean
+  readonly requireMockProof: boolean
+  readonly unavailableCode: 'MOCK_UNAVAILABLE' | 'PLATFORM_UNAVAILABLE'
+  readonly unavailableMessage: string
+}
+
+abstract class PlatformApiClient {
   readonly baseUrl: string
 
-  constructor(private readonly fetcher: Fetch = globalThis.fetch, baseUrl = PLATFORM_MOCK_BASE_URL) {
-    this.baseUrl = assertLoopbackMockBaseUrl(baseUrl)
-  }
+  protected constructor(
+    private readonly fetcher: Fetch,
+    baseUrl: string,
+    private readonly responseContract: ResponseContract,
+  ) { this.baseUrl = baseUrl }
 
   async login(input: AuthCallbackInput, signal?: AbortSignal): Promise<AuthResult> {
     const body = await this.request('/desktop/v1/auth/callback', {
@@ -127,7 +149,7 @@ export class PlatformMockApi {
     return this.decode(() => {
       if (!isRecord(body)) throw new Error('invalid login response')
       assertKeys(body, ['session', 'user', 'meta'])
-      return Object.freeze({ session: assertSession(body.session), user: user(body.user), meta: assertMeta(body.meta) })
+      return Object.freeze({ session: assertSession(body.session), user: user(body.user), meta: this.meta(body.meta) })
     })
   }
 
@@ -139,7 +161,7 @@ export class PlatformMockApi {
     return this.decode(() => {
       if (!isRecord(body)) throw new Error('invalid refresh response')
       assertKeys(body, ['session', 'meta'])
-      return Object.freeze({ session: assertSession(body.session), meta: assertMeta(body.meta) })
+      return Object.freeze({ session: assertSession(body.session), meta: this.meta(body.meta) })
     })
   }
 
@@ -157,7 +179,7 @@ export class PlatformMockApi {
         || Number(body.revocationEffectiveWithinSeconds) > 60) {
         throw new Error('invalid logout result')
       }
-      assertMeta(body.meta)
+      this.meta(body.meta)
     })
   }
 
@@ -167,7 +189,7 @@ export class PlatformMockApi {
       if (!isRecord(body) || !Array.isArray(body.items)) throw new Error('invalid tenant list')
       assertKeys(body, ['activeTenantId', 'items', 'meta'])
       return Object.freeze({
-        activeTenantId: requireUuid(body, 'activeTenantId'), items: Object.freeze(body.items.map(tenant)), meta: assertMeta(body.meta),
+        activeTenantId: requireUuid(body, 'activeTenantId'), items: Object.freeze(body.items.map(tenant)), meta: this.meta(body.meta),
       })
     })
   }
@@ -182,7 +204,7 @@ export class PlatformMockApi {
       const session = assertSession(body.session)
       const selectedTenant = tenant(body.tenant)
       if (session.activeTenantId !== selectedTenant.tenantId) throw new Error('tenant switch identity mismatch')
-      return Object.freeze({ tenant: selectedTenant, session, meta: assertMeta(body.meta) })
+      return Object.freeze({ tenant: selectedTenant, session, meta: this.meta(body.meta) })
     })
   }
 
@@ -196,15 +218,15 @@ export class PlatformMockApi {
       if (responseTenantId !== activeTenantId || items.some(item => item.tenantId !== activeTenantId)) {
         throw new Error('application response crossed the active tenant boundary')
       }
-      return Object.freeze({ activeTenantId, items: Object.freeze(items), meta: assertMeta(body.meta) })
+      return Object.freeze({ activeTenantId, items: Object.freeze(items), meta: this.meta(body.meta) })
     })
   }
 
-  private authorization(accessToken: string): HeadersInit {
+  protected authorization(accessToken: string): HeadersInit {
     return { Authorization: `Bearer ${accessToken}` }
   }
 
-  private async request(path: string, init: RequestInit): Promise<unknown> {
+  protected async request(path: string, init: RequestInit): Promise<unknown> {
     let response: Response
     try {
       response = await this.fetcher(`${this.baseUrl}${path}`, {
@@ -213,21 +235,21 @@ export class PlatformMockApi {
       })
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') throw error
-      throw new PlatformApiError('MOCK_UNAVAILABLE', '本地 FutureStaff Mock 不可用。', true)
+      throw new PlatformApiError(this.responseContract.unavailableCode, this.responseContract.unavailableMessage, true)
     }
     let body: unknown
     try {
       body = await response.json()
     } catch {
-      throw this.mismatch('mock returned non-JSON data', response.status)
+      throw this.mismatch('platform returned non-JSON data', response.status)
     }
-    if (response.headers.get('x-futurestaff-mock') !== 'true'
-      || response.headers.get('x-futurestaff-contract-version') !== PLATFORM_CONTRACT_VERSION) {
+    if (this.responseContract.requireMockProof && (response.headers.get('x-futurestaff-mock') !== 'true'
+      || response.headers.get('x-futurestaff-contract-version') !== this.responseContract.version)) {
       throw this.mismatch('response is not from the pinned local mock', response.status)
     }
     try {
       if (!isRecord(body)) throw new Error('invalid response body')
-      assertMeta(body.meta)
+      this.meta(body.meta)
     } catch {
       throw this.mismatch('response metadata does not match the pinned contract', response.status)
     }
@@ -261,11 +283,74 @@ export class PlatformMockApi {
     return body
   }
 
-  private mismatch(message: string, status?: number): PlatformApiError {
+  protected meta(value: unknown) {
+    return assertMeta(value, this.responseContract.version, this.responseContract.simulated)
+  }
+
+  protected mismatch(message: string, status?: number): PlatformApiError {
     return new PlatformApiError('CONTRACT_MISMATCH', message, false, status)
   }
 
-  private decode<T>(decoder: () => T): T {
+  protected decode<T>(decoder: () => T): T {
     try { return decoder() } catch { throw this.mismatch('platform response does not match the pinned contract') }
+  }
+}
+
+export class PlatformMockApi extends PlatformApiClient {
+  constructor(fetcher: Fetch = globalThis.fetch, baseUrl = PLATFORM_MOCK_BASE_URL) {
+    super(fetcher, assertLoopbackMockBaseUrl(baseUrl), {
+      version: PLATFORM_CONTRACT_VERSION,
+      simulated: true,
+      requireMockProof: true,
+      unavailableCode: 'MOCK_UNAVAILABLE',
+      unavailableMessage: '本地 FutureStaff Mock 不可用。',
+    })
+  }
+}
+
+export class PlatformDevApi extends PlatformApiClient {
+  constructor(fetcher: Fetch = globalThis.fetch, baseUrl = PLATFORM_DEV_BASE_URL) {
+    super(fetcher, assertPlatformDevBaseUrl(baseUrl), {
+      version: PLATFORM_DEV_CONTRACT_VERSION,
+      simulated: false,
+      requireMockProof: false,
+      unavailableCode: 'PLATFORM_UNAVAILABLE',
+      unavailableMessage: 'FutureStaff Platform DEV 暂时不可用。',
+    })
+  }
+
+  async issueApplicationToken(
+    accessToken: string,
+    appId: string,
+    activeTenantId: string,
+    signal?: AbortSignal,
+  ): Promise<ApplicationTokenResult> {
+    if (!appIdPattern.test(appId)) throw this.mismatch('application ID is not safe for the contract route')
+    try { requireUuid({ tenantId: activeTenantId }, 'tenantId') } catch {
+      throw this.mismatch('active tenant ID is not valid for the contract route')
+    }
+    const body = await this.request(`/desktop/v1/apps/${appId}/token`, {
+      method: 'POST', signal: signal ?? null, headers: this.authorization(accessToken),
+    })
+    return this.decode(() => {
+      if (!isRecord(body) || !Array.isArray(body.permissions)) throw new Error('invalid application token')
+      assertKeys(body, ['accessToken', 'tokenType', 'expiresIn', 'audience', 'tenantId', 'permissions', 'meta'])
+      const tenantId = requireUuid(body, 'tenantId')
+      const permissions = body.permissions.map((permission) => {
+        if (typeof permission !== 'string' || permission.length < 3) throw new Error('invalid application permission')
+        return permission
+      })
+      if (permissions.length === 0 || new Set(permissions).size !== permissions.length) {
+        throw new Error('invalid application permissions')
+      }
+      if (tenantId !== activeTenantId) throw new Error('application token crossed the active tenant boundary')
+      return Object.freeze({
+        accessToken: requireMinimumString(body, 'accessToken', 20),
+        tokenType: body.tokenType === 'Bearer' ? 'Bearer' as const : (() => { throw new Error('invalid tokenType') })(),
+        expiresIn: body.expiresIn === 60 ? 60 as const : (() => { throw new Error('invalid expiresIn') })(),
+        audience: requireBoundedString(body, 'audience', 3, 100), tenantId,
+        permissions: Object.freeze(permissions), meta: this.meta(body.meta),
+      })
+    })
   }
 }

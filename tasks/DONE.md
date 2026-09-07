@@ -38,10 +38,20 @@
 
 ## B01f: Polish the local Mock access center
 
-- Status: Completed locally; not committed or pushed.
+- Status: Completed and committed locally on `main`; not pushed.
 - Result: the Settings access panel now presents polished signed-out, loading, expired, error, empty, and ready states; tenant selection, active role, application count, and capability labels remain explicit.
 - Accessibility: labelled regions and tenant control, live loading and alert semantics, button types, visible keyboard focus, responsive single-column layouts, and reduced-motion handling were added.
 - Safety: all account, tenant, application, and capability strings remain HTML-escaped; no credentials are rendered or logged.
 - Demo: the local browser demo now shares the production panel styles and uses the existing embedded A01 Mock, so it does not depend on A02 or a separate process.
 - Verification: TDD regression coverage first failed against the old markup; platform-access tests passed 21/21; full `npm run check` passed; desktop and 390px browser checks passed with no horizontal overflow and a visible 3px keyboard focus outline; `git diff --check` passed with only Git line-ending conversion warnings; exact diff review passed.
 - Boundaries: no A02 endpoint or field was added; no Computer A or controlled-desktop file changed; no real account, persistence, external write, deployment, commit, or push was used.
+
+## B02a: Pin A02 and add the Platform DEV API boundary
+
+- Status: Completed locally; not committed or pushed.
+- Contract: A02 `0.1.1`, Platform DEV source `d789faceb7971deb111fec3e4948237d21e81346`, handoff `2c31ed720d8f9ee4fd8087f758c928ea5f8c0ac2`, bundle SHA-256 `9921cc5084925ceea4e6e9d224e5434d4af294974a736a300ed34c73d2950687`.
+- Result: the foundation now pins independent A01 Mock and A02 DEV inputs; `PlatformDevApi` supports the existing desktop identity routes and strict one-minute application-token exchange at the exact root-level DEV origin.
+- Safety: the DEV boundary rejects `/api`, alternate origins, simulated or wrong-version metadata, unsafe application IDs, cross-tenant token responses, invalid token TTL/audience/permissions, malformed envelopes, and unbounded transport failures without reflecting credentials.
+- Compatibility: the immutable `0.1.0` Mock, its six routes, proof headers, embedded implementation, and disconnected UI remain unchanged; the application-token endpoint was not added to the Mock.
+- Verification: RED tests failed before the DEV export and nested contract pin existed; platform-access tests passed 27/27; focused foundation/profile tests passed 8/8; full `npm run check` passed including every workspace typecheck/test/build and 52 top-level tests; `git diff --check` passed with only Git line-ending conversion warnings; exact diff review passed.
+- Boundaries: no real login, credential storage, Platform DEV call, Computer A or controlled-desktop edit, deployment, or push was performed.

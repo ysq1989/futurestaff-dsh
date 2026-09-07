@@ -61,16 +61,29 @@ test('desktop foundation retains the required local shell capabilities', () => {
   assert.deepEqual(validateDesktopFoundation(foundation), [])
 })
 
-test('B01a pins the published local-only platform contract bundle', () => {
+test('platform access preserves the immutable A01 Mock and pins the deployed A02 contract', () => {
   const { platformContract } = loadDesktopFoundation()
 
-  assert.deepEqual(platformContract, {
+  assert.deepEqual(platformContract.mock, {
     mode: 'local-mock',
     version: '0.1.0',
     platformCommit: '93ca162566225894a8cd317b7bc51b096d16a0ec',
     bundleSha256: '5ae4e07157b5c7c1b8007f514d47cc0bb05734841341f59c44c37a978b7f9fe9',
     baseUrl: 'http://127.0.0.1:43821',
     clientId: 'futurestaff-agent-pc-dev',
+  })
+  assert.deepEqual(platformContract.dev, {
+    mode: 'platform-dev',
+    version: '0.1.1',
+    status: 'deployed-platform-dev',
+    platformCommit: 'd789faceb7971deb111fec3e4948237d21e81346',
+    handoffCommit: '2c31ed720d8f9ee4fd8087f758c928ea5f8c0ac2',
+    bundleSha256: '9921cc5084925ceea4e6e9d224e5434d4af294974a736a300ed34c73d2950687',
+    authorizationUrl: 'https://dev.fsstory.net/login',
+    baseUrl: 'https://dev.fsstory.net',
+    callbackUrl: 'http://127.0.0.1:43821/callback',
+    clientId: 'futurestaff-agent-pc-dev',
+    pkceMethod: 'S256',
     productionEnabled: false,
   })
 })

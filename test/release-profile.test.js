@@ -33,12 +33,17 @@ test('pins the release runtime and platform contract in the staged manifest', as
   try {
     const result = await stageReleaseProfile({ sourceRoot: root, outputRoot: temporary })
     assert.equal(result.releaseManifest.dshVersion, '0.1.2-rc.1')
-    assert.equal(result.releaseManifest.platformContract.version, '0.1.0')
+    assert.equal(result.releaseManifest.platformContract.mock.version, '0.1.0')
     assert.equal(
-      result.releaseManifest.platformContract.bundleSha256,
+      result.releaseManifest.platformContract.mock.bundleSha256,
       '5ae4e07157b5c7c1b8007f514d47cc0bb05734841341f59c44c37a978b7f9fe9',
     )
-    assert.equal(result.releaseManifest.platformContract.productionEnabled, false)
+    assert.equal(result.releaseManifest.platformContract.dev.version, '0.1.1')
+    assert.equal(
+      result.releaseManifest.platformContract.dev.bundleSha256,
+      '9921cc5084925ceea4e6e9d224e5434d4af294974a736a300ed34c73d2950687',
+    )
+    assert.equal(result.releaseManifest.platformContract.dev.productionEnabled, false)
   } finally {
     await rm(temporary, { recursive: true, force: true })
   }

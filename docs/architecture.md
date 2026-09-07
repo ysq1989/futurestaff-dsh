@@ -16,15 +16,18 @@ Browser -> official DSH Web bundle -> FutureStaff Profile overlay
 2. `ToolMetadata` decides where a Tool executes and whether approval/tenant isolation is required. Local Tools require a device; cloud Tools cannot name one.
 3. A `tools/pre-execute` policy asks for DSH's one-time user approval before every Product Hub operation except an explicit read allowlist. Unknown future Product Hub tools fail closed into approval instead of executing silently.
 
-The B01a platform-access plugin is a local Mock-only composition seam. Its Host
-half exposes six exact loopback routes and forwards only JSON plus the inert Mock
-Authorization label to the pinned `127.0.0.1:43821` service. Its Web half mounts a
-FutureStaff Settings section for login state, tenant selection, and authorized
-applications. Responses must prove both Mock origin and contract `0.1.0`; tenant
-switch and logout invalidate the current request generation and clear request
-cache, workspace state, and application credentials before another subject can
-become active. This seam is not a production identity gateway and stores no real
-credential.
+The platform-access plugin keeps two explicit contract boundaries. Its B01a Mock
+path exposes six exact loopback routes and accepts only responses proving Mock
+origin and contract `0.1.0`; that immutable Mock remains the disconnected test
+baseline. Its A02 DEV adapter is separately pinned to contract `0.1.1`, the exact
+root-level `https://dev.fsstory.net/desktop/v1/**` routes, and non-simulated
+metadata. It adds fail-closed decoding for one-minute, tenant-bound application
+tokens without adding that endpoint to the Mock. The Web Settings panel still
+uses the Mock until PKCE and operating-system protected session storage are
+wired. Tenant switch and logout invalidate the request generation and clear
+request cache, workspace state, application credentials, and MCP connections
+before another subject can become active; platform access tokens must never be
+forwarded to a business application.
 
 The Profile installer stages source into `$DSH_HOME/profiles/futurestaff-alpha`, because DSH discovers profiles there. This keeps repository layout readable while respecting the upstream runtime contract.
 

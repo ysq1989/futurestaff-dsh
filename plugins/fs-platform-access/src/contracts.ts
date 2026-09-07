@@ -1,10 +1,13 @@
-export const PLATFORM_CONTRACT_VERSION = '0.1.0' as const
+export const PLATFORM_MOCK_CONTRACT_VERSION = '0.1.0' as const
+export const PLATFORM_DEV_CONTRACT_VERSION = '0.1.1' as const
+export const PLATFORM_CONTRACT_VERSION = PLATFORM_MOCK_CONTRACT_VERSION
 export const PLATFORM_CLIENT_ID = 'futurestaff-agent-pc-dev' as const
 export const PLATFORM_MOCK_BASE_URL = 'http://127.0.0.1:43821' as const
+export const PLATFORM_DEV_BASE_URL = 'https://dev.fsstory.net' as const
 
 export interface ContractMeta {
-  readonly contractVersion: typeof PLATFORM_CONTRACT_VERSION
-  readonly simulated: true
+  readonly contractVersion: typeof PLATFORM_MOCK_CONTRACT_VERSION | typeof PLATFORM_DEV_CONTRACT_VERSION
+  readonly simulated: boolean
   readonly requestId?: string
 }
 
@@ -72,6 +75,16 @@ export interface ApplicationList {
   readonly meta: ContractMeta
 }
 
+export interface ApplicationTokenResult {
+  readonly accessToken: string
+  readonly tokenType: 'Bearer'
+  readonly expiresIn: 60
+  readonly audience: string
+  readonly tenantId: string
+  readonly permissions: readonly string[]
+  readonly meta: ContractMeta
+}
+
 export type PlatformErrorCode =
   | 'INVALID_REQUEST'
   | 'AUTHENTICATION_REQUIRED'
@@ -82,6 +95,7 @@ export type PlatformErrorCode =
   | 'TOKEN_EXPIRED'
   | 'NOT_FOUND'
   | 'MOCK_UNAVAILABLE'
+  | 'PLATFORM_UNAVAILABLE'
   | 'CONTRACT_MISMATCH'
 
 export interface PlatformFailure {
@@ -153,11 +167,15 @@ export function requireHttpUrl(record: Record<string, unknown>, key: string): st
   return value
 }
 
-export function assertMeta(value: unknown): ContractMeta {
+export function assertMeta(
+  value: unknown,
+  contractVersion: ContractMeta['contractVersion'] = PLATFORM_MOCK_CONTRACT_VERSION,
+  simulated = true,
+): ContractMeta {
   if (!isRecord(value)
-    || value.contractVersion !== PLATFORM_CONTRACT_VERSION
-    || value.simulated !== true) {
-    throw new Error('response is not simulated contract v0.1.0 data')
+    || value.contractVersion !== contractVersion
+    || value.simulated !== simulated) {
+    throw new Error('response metadata does not match the selected platform contract')
   }
   assertKeys(value, ['contractVersion', 'simulated'], ['requestId'])
   if (value.requestId !== undefined && (typeof value.requestId !== 'string' || value.requestId.length === 0)) {

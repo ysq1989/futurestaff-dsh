@@ -30,6 +30,20 @@ SHA-256 verification, and rollback artifact are available.
 Window, tray, terminal, Profile management, recovery, and Windows installer
 capabilities remain part of the distribution.
 
+## Platform contract pins
+
+The foundation manifest preserves two independent inputs:
+
+- A01 `0.1.0` at platform commit `93ca1625...` remains the immutable loopback
+  Mock used by disconnected tests.
+- A02 `0.1.1` at deployed Platform DEV source `d789face...` is pinned with handoff
+  commit `2c31ed7...`, bundle SHA-256 `9921cc50...`, the exact
+  `https://dev.fsstory.net` origin, and `http://127.0.0.1:43821/callback`.
+
+The DEV pin does not enable PROD or authorize real login by itself. The desktop
+must provide OS-protected session storage before the Web Settings panel switches
+from Mock to Platform DEV.
+
 ## Verification
 
 Run the product-level manifest check:
