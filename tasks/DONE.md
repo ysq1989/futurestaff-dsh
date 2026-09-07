@@ -148,8 +148,8 @@
 
 ## B02l: Make the bundled Profile first-launch safe
 
-- Status: Completed locally after commit `5dae84d`; fix commit and replacement installer pending.
+- Status: Completed by product commit `644322f` and controlled desktop commit `ab7a889b9e`; replacement installer pending.
 - Incident: the private Windows candidate copied the three built first-party packages into `node_modules` but omitted pnpm layout metadata. On a fresh installation the desktop migration detector treated that verified package tree as legacy, invoked packaged pnpm, and entered recovery mode when the private package versions could not be materialized from a registry.
-- Result: release staging now emits deterministic pnpm 11 hoisted-layout workspace, modules, and lock metadata before hashing the Profile. Release verification requires the exact metadata contract, so a future installer cannot silently ship the same incomplete dependency state.
+- Result: release staging now emits deterministic pnpm 11 hoisted-layout workspace, modules, and lock metadata before hashing the Profile. Release verification requires the exact metadata contract, so a future installer cannot silently ship the same incomplete dependency state. On upgrade, the desktop atomically repairs only the exact hash-matched defective Profile; any changed managed file or unexpected extra file preserves the user's Profile untouched.
 - Verification: the focused regression failed before the fix and then passed 2/2; the staged Profile returned `requiresDependencyMigration=false` through the real desktop preparation function on Windows; release Profile composition included all three FutureStaff plugins; full `npm run check` passed, including every workspace and 52/52 top-level tests.
 - Boundaries: no existing user Profile was deleted or modified, no real account or service was contacted, and no installer was executed, signed, or publicly uploaded.
