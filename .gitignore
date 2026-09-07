@@ -10,5 +10,7 @@ runner/client/.env
 work/
 dist/
 outputs/
+output/
+.playwright-cli/
 *.log
 .DS_Store

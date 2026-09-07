@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "project": {
+    "name": "futurestaff-dsh",
+    "productType": "desktop agent workbench",
+    "stack": ["React", "TypeScript", "Vite"]
+  },
+  "sources": {
+    "tokens": [],
+    "components": [],
+    "assets": [],
+    "instructions": []
+  },
+  "design": {
+    "colorMode": "light",
+    "colors": {
+      "primary": "#176b4b",
+      "background": "#f3f5f3",
+      "surface": "#ffffff",
+      "border": "#dfe5e1"
+    },
+    "typography": {},
+    "spacing": {},
+    "radius": { "control": "8px", "surface": "14px" },
+    "shadows": {},
+    "motion": {},
+    "density": "compact"
+  },
+  "components": {
+    "installed": [],
+    "preferredPrimitives": [],
+    "patterns": []
+  },
+  "constraints": {
+    "must": [
+      "Keep explicit human approval visually separate from Agent recommendations",
+      "Use buyer-facing server data only",
+      "Design real loading, empty, error, expired, read-only, rejected, superseded and published states"
+    ],
+    "avoid": [
+      "Decorative gradients and glass effects",
+      "Excessive cards or rounded containers",
+      "Client-authored tenant and product facts"
+    ]
+  },
+  "decisions": [
+    {
+      "id": "product-hub-approval-split",
+      "decision": "Use a restrained split approval surface with frozen products on the left and the explicit publication action on the right; collapse to one column below 980px.",
+      "date": "2026-09-07"
+    }
+  ],
+  "evidence": [
+    "Playwright desktop and 390px mobile screenshots",
+    "No horizontal overflow at 1440px or 390px",
+    "Zero browser console errors after favicon repair"
+  ],
+  "generatedAt": "2026-09-07T13:53:19.803Z"
+}
