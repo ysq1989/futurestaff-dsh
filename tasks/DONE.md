@@ -26,3 +26,12 @@
 - Result: the packaged Host runs the pinned B01a contract through an in-process Mock, while retaining the loopback bridge, explicit simulated metadata, all session states, and tenant-change cleanup. No Python service, real account, credential, signing, publishing, or cloud deployment is required.
 - Artifact: ignored private Alpha `FutureStaff-Agent-2.0.5-x64-Setup.exe`, 134,257,457 bytes, SHA-256 `22fdb50439094ae3ae434c587a90b009cb3db9e353a1a7dd9c69d084b21e83c1`.
 - Verification: product full check, embedded Mock integration tests, release Profile checks, 188 Windows package tests, 228-node runtime closure, NSIS build, installer/application PE verification, independent SHA-256 comparison, and unsigned Authenticode status check passed.
+
+## B01e: Enforce the pinned A01 response contract at the client boundary
+
+- Status: Completed.
+- Contract: A01 `0.1.0`, platform commit `93ca162566225894a8cd317b7bc51b096d16a0ec`, bundle SHA-256 `5ae4e07157b5c7c1b8007f514d47cc0bb05734841341f59c44c37a978b7f9fe9`.
+- Result: success and error payloads now fail closed on invalid/extra fields, UUIDs, integer TTL limits, roles, user fields, HTTP(S) URLs, application IDs, deep links, duplicate or malformed capabilities, metadata, logout revocation limits, and unknown error codes. All decoder failures become a bounded local `CONTRACT_MISMATCH` without reflecting payloads or credentials.
+- TDD: five new negative cases first failed against the permissive decoder, then passed after strict boundary validation.
+- Verification: platform-access tests 18 passed; focused TypeScript check passed; original A01 Python Mock smoke completed login, refresh, tenant list/switch, application discovery, and logout; full `npm run check` passed, including every workspace typecheck/test/build and 50 top-level tests; `git diff --check` passed with only line-ending conversion warnings.
+- Boundaries: no A02 endpoints or fields were guessed; no platform or controlled-desktop repository files changed; no real identity, credential, service, signing, publishing, deployment, or external write was used.

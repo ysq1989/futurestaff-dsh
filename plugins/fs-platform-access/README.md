@@ -8,6 +8,9 @@ The adapter rejects non-loopback base URLs, responses without
 `X-FutureStaff-Mock: true`, responses from another contract version, and any
 application record whose tenant differs from the active tenant. Session tokens
 remain private to the controller and are absent from public snapshots and views.
+Success and error bodies are decoded against the pinned A01 field, UUID, TTL,
+URL, capability, role, and enum constraints. Unknown fields or error codes fail
+closed as the local `CONTRACT_MISMATCH` code without reflecting response data.
 
 `PlatformAccessController` exposes signed-out, loading, ready, no-application,
 expired, and error states. Before tenant switch or logout it cancels the current

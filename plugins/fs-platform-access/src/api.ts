@@ -1,11 +1,15 @@
 import {
   assertMeta,
   assertSession,
+  assertKeys,
   isRecord,
   PLATFORM_CLIENT_ID,
   PLATFORM_CONTRACT_VERSION,
   PLATFORM_MOCK_BASE_URL,
+  requireBoundedString,
+  requireHttpUrl,
   requireString,
+  requireUuid,
   type ApplicationList,
   type AuthCallbackInput,
   type AuthResult,
@@ -22,6 +26,14 @@ import {
 type Fetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>
 
 const roles: readonly TenantRole[] = ['member', 'agent_admin', 'org_admin', 'platform_admin']
+const serverErrorCodes: readonly PlatformErrorCode[] = [
+  'INVALID_REQUEST', 'AUTHENTICATION_REQUIRED', 'TENANT_MEMBERSHIP_REQUIRED',
+  'TENANT_ACCESS_DENIED', 'APPLICATION_ACCESS_DENIED', 'TOKEN_AUDIENCE_INVALID',
+  'TOKEN_EXPIRED', 'NOT_FOUND',
+]
+const slugPattern = /^[a-z0-9][a-z0-9-]{1,62}$/
+const appIdPattern = /^[a-z][a-z0-9_]{1,63}$/
+const capabilityPattern = /^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/
 
 export class PlatformApiError extends Error {
   constructor(
@@ -45,13 +57,18 @@ function assertLoopbackMockBaseUrl(raw: string): string {
 
 function tenant(value: unknown): Tenant {
   if (!isRecord(value)) throw new Error('invalid tenant')
+  assertKeys(value, ['tenantId', 'displayName', 'slug', 'role'], ['logoUrl'])
   const role = requireString(value, 'role') as TenantRole
   if (!roles.includes(role)) throw new Error('invalid tenant role')
+  const slug = requireBoundedString(value, 'slug', 2, 63)
+  if (!slugPattern.test(slug)) throw new Error('invalid tenant slug')
+  const logoUrl = value.logoUrl
+  if (logoUrl !== undefined && logoUrl !== null) requireHttpUrl(value, 'logoUrl')
   return Object.freeze({
-    tenantId: requireString(value, 'tenantId'),
-    displayName: requireString(value, 'displayName'),
-    slug: requireString(value, 'slug'),
-    logoUrl: typeof value.logoUrl === 'string' || value.logoUrl === null ? value.logoUrl : null,
+    tenantId: requireUuid(value, 'tenantId'),
+    displayName: requireBoundedString(value, 'displayName', 1, 120),
+    slug,
+    logoUrl: typeof logoUrl === 'string' || logoUrl === null ? logoUrl : null,
     role,
   })
 }
@@ -60,18 +77,22 @@ function application(value: unknown): AuthorizedApplication {
   if (!isRecord(value) || !isRecord(value.deepLinks) || !Array.isArray(value.capabilities)) {
     throw new Error('invalid application')
   }
-  const tenantId = requireString(value, 'tenantId')
+  assertKeys(value, ['appId', 'tenantId', 'displayName', 'baseUrl', 'deepLinks', 'capabilities', 'contractRange'])
+  const appId = requireBoundedString(value, 'appId', 2, 64)
+  if (!appIdPattern.test(appId)) throw new Error('invalid application id')
+  const tenantId = requireUuid(value, 'tenantId')
   const deepLinks = Object.fromEntries(Object.entries(value.deepLinks).map(([key, path]) => {
     if (typeof path !== 'string' || !path.startsWith('/')) throw new Error('invalid application deep link')
     return [key, path]
   }))
   const capabilities = value.capabilities.map((item) => {
-    if (typeof item !== 'string' || item.length === 0) throw new Error('invalid application capability')
+    if (typeof item !== 'string' || !capabilityPattern.test(item)) throw new Error('invalid application capability')
     return item
   })
+  if (new Set(capabilities).size !== capabilities.length) throw new Error('duplicate application capability')
   return Object.freeze({
-    appId: requireString(value, 'appId'), tenantId,
-    displayName: requireString(value, 'displayName'), baseUrl: requireString(value, 'baseUrl'),
+    appId, tenantId,
+    displayName: requireBoundedString(value, 'displayName', 1, 120), baseUrl: requireHttpUrl(value, 'baseUrl'),
     deepLinks: Object.freeze(deepLinks), capabilities: Object.freeze(capabilities),
     contractRange: requireString(value, 'contractRange'),
   })
@@ -79,9 +100,15 @@ function application(value: unknown): AuthorizedApplication {
 
 function user(value: unknown): User {
   if (!isRecord(value)) throw new Error('invalid user')
+  assertKeys(value, ['userId', 'displayName'], ['email'])
+  const email = value.email
+  if (email !== undefined && email !== null
+    && (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+$/.test(email))) {
+    throw new Error('invalid user email')
+  }
   return Object.freeze({
-    userId: requireString(value, 'userId'), displayName: requireString(value, 'displayName'),
-    email: typeof value.email === 'string' || value.email === null ? value.email : null,
+    userId: requireUuid(value, 'userId'), displayName: requireBoundedString(value, 'displayName', 1, 100),
+    email: typeof email === 'string' || email === null ? email : null,
   })
 }
 
@@ -97,8 +124,11 @@ export class PlatformMockApi {
       method: 'POST', signal: signal ?? null,
       body: JSON.stringify({ clientId: PLATFORM_CLIENT_ID, ...input }),
     })
-    if (!isRecord(body)) throw this.mismatch('invalid login response')
-    return Object.freeze({ session: assertSession(body.session), user: user(body.user), meta: assertMeta(body.meta) })
+    return this.decode(() => {
+      if (!isRecord(body)) throw new Error('invalid login response')
+      assertKeys(body, ['session', 'user', 'meta'])
+      return Object.freeze({ session: assertSession(body.session), user: user(body.user), meta: assertMeta(body.meta) })
+    })
   }
 
   async refresh(refreshToken: string, signal?: AbortSignal): Promise<RefreshResult> {
@@ -106,22 +136,39 @@ export class PlatformMockApi {
       method: 'POST', signal: signal ?? null,
       body: JSON.stringify({ clientId: PLATFORM_CLIENT_ID, refreshToken }),
     })
-    if (!isRecord(body)) throw this.mismatch('invalid refresh response')
-    return Object.freeze({ session: assertSession(body.session), meta: assertMeta(body.meta) })
+    return this.decode(() => {
+      if (!isRecord(body)) throw new Error('invalid refresh response')
+      assertKeys(body, ['session', 'meta'])
+      return Object.freeze({ session: assertSession(body.session), meta: assertMeta(body.meta) })
+    })
   }
 
   async logout(refreshToken: string | undefined, signal?: AbortSignal): Promise<void> {
-    await this.request('/desktop/v1/auth/logout', {
+    const body = await this.request('/desktop/v1/auth/logout', {
       method: 'POST', signal: signal ?? null,
       body: JSON.stringify(refreshToken === undefined ? {} : { refreshToken }),
+    })
+    this.decode(() => {
+      if (!isRecord(body)) throw new Error('invalid logout response')
+      assertKeys(body, ['ok', 'revocationEffectiveWithinSeconds', 'meta'])
+      if (body.ok !== true
+        || !Number.isInteger(body.revocationEffectiveWithinSeconds)
+        || Number(body.revocationEffectiveWithinSeconds) < 0
+        || Number(body.revocationEffectiveWithinSeconds) > 60) {
+        throw new Error('invalid logout result')
+      }
+      assertMeta(body.meta)
     })
   }
 
   async listTenants(accessToken: string, signal?: AbortSignal): Promise<TenantList> {
     const body = await this.request('/desktop/v1/tenants', { signal: signal ?? null, headers: this.authorization(accessToken) })
-    if (!isRecord(body) || !Array.isArray(body.items)) throw this.mismatch('invalid tenant list')
-    return Object.freeze({
-      activeTenantId: requireString(body, 'activeTenantId'), items: Object.freeze(body.items.map(tenant)), meta: assertMeta(body.meta),
+    return this.decode(() => {
+      if (!isRecord(body) || !Array.isArray(body.items)) throw new Error('invalid tenant list')
+      assertKeys(body, ['activeTenantId', 'items', 'meta'])
+      return Object.freeze({
+        activeTenantId: requireUuid(body, 'activeTenantId'), items: Object.freeze(body.items.map(tenant)), meta: assertMeta(body.meta),
+      })
     })
   }
 
@@ -129,21 +176,28 @@ export class PlatformMockApi {
     const body = await this.request('/desktop/v1/tenants/switch', {
       method: 'POST', signal: signal ?? null, headers: this.authorization(accessToken), body: JSON.stringify({ tenantId }),
     })
-    if (!isRecord(body)) throw this.mismatch('invalid tenant switch response')
-    const session = assertSession(body.session)
-    const selectedTenant = tenant(body.tenant)
-    if (session.activeTenantId !== selectedTenant.tenantId) throw this.mismatch('tenant switch identity mismatch')
-    return Object.freeze({ tenant: selectedTenant, session, meta: assertMeta(body.meta) })
+    return this.decode(() => {
+      if (!isRecord(body)) throw new Error('invalid tenant switch response')
+      assertKeys(body, ['tenant', 'session', 'meta'])
+      const session = assertSession(body.session)
+      const selectedTenant = tenant(body.tenant)
+      if (session.activeTenantId !== selectedTenant.tenantId) throw new Error('tenant switch identity mismatch')
+      return Object.freeze({ tenant: selectedTenant, session, meta: assertMeta(body.meta) })
+    })
   }
 
   async listApplications(accessToken: string, activeTenantId: string, signal?: AbortSignal): Promise<ApplicationList> {
     const body = await this.request('/desktop/v1/apps', { signal: signal ?? null, headers: this.authorization(accessToken) })
-    if (!isRecord(body) || !Array.isArray(body.items)) throw this.mismatch('invalid application list')
-    const items = body.items.map(application)
-    if (requireString(body, 'activeTenantId') !== activeTenantId || items.some(item => item.tenantId !== activeTenantId)) {
-      throw this.mismatch('application response crossed the active tenant boundary')
-    }
-    return Object.freeze({ activeTenantId, items: Object.freeze(items), meta: assertMeta(body.meta) })
+    return this.decode(() => {
+      if (!isRecord(body) || !Array.isArray(body.items)) throw new Error('invalid application list')
+      assertKeys(body, ['activeTenantId', 'items', 'meta'])
+      const responseTenantId = requireUuid(body, 'activeTenantId')
+      const items = body.items.map(application)
+      if (responseTenantId !== activeTenantId || items.some(item => item.tenantId !== activeTenantId)) {
+        throw new Error('application response crossed the active tenant boundary')
+      }
+      return Object.freeze({ activeTenantId, items: Object.freeze(items), meta: assertMeta(body.meta) })
+    })
   }
 
   private authorization(accessToken: string): HeadersInit {
@@ -178,11 +232,29 @@ export class PlatformMockApi {
       throw this.mismatch('response metadata does not match the pinned contract', response.status)
     }
     if (!response.ok) {
-      const error = isRecord(body.error) ? body.error : {}
+      let code: PlatformErrorCode
+      let message: string
+      let retryable: boolean
+      try {
+        assertKeys(body, ['error', 'meta'])
+        if (!isRecord(body.error)) throw new Error('invalid error')
+        const error = body.error
+        assertKeys(error, ['code', 'message', 'retryable'], ['details'])
+        if (typeof error.code !== 'string' || !serverErrorCodes.includes(error.code as PlatformErrorCode)) {
+          throw new Error('invalid error code')
+        }
+        if (typeof error.retryable !== 'boolean') throw new Error('invalid retryable')
+        if (error.details !== undefined && !isRecord(error.details)) throw new Error('invalid error details')
+        code = error.code as PlatformErrorCode
+        message = requireString(error, 'message')
+        retryable = error.retryable
+      } catch {
+        throw this.mismatch('platform error response does not match the pinned contract', response.status)
+      }
       throw new PlatformApiError(
-        (typeof error.code === 'string' ? error.code : 'CONTRACT_MISMATCH') as PlatformErrorCode,
-        typeof error.message === 'string' ? error.message : '平台请求失败。',
-        error.retryable === true,
+        code,
+        message,
+        retryable,
         response.status,
       )
     }
@@ -191,5 +263,9 @@ export class PlatformMockApi {
 
   private mismatch(message: string, status?: number): PlatformApiError {
     return new PlatformApiError('CONTRACT_MISMATCH', message, false, status)
+  }
+
+  private decode<T>(decoder: () => T): T {
+    try { return decoder() } catch { throw this.mismatch('platform response does not match the pinned contract') }
   }
 }

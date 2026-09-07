@@ -97,6 +97,19 @@ export interface AuthCallbackInput {
   readonly state: string
 }
 
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export function assertKeys(
+  record: Record<string, unknown>,
+  required: readonly string[],
+  optional: readonly string[] = [],
+): void {
+  const allowed = new Set([...required, ...optional])
+  if (required.some(key => !(key in record)) || Object.keys(record).some(key => !allowed.has(key))) {
+    throw new Error('invalid object fields')
+  }
+}
+
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
@@ -107,24 +120,64 @@ export function requireString(record: Record<string, unknown>, key: string): str
   return value
 }
 
+export function requireBoundedString(
+  record: Record<string, unknown>,
+  key: string,
+  minimum: number,
+  maximum: number,
+): string {
+  const value = requireString(record, key)
+  if (value.length < minimum || value.length > maximum) throw new Error(`invalid ${key}`)
+  return value
+}
+
+export function requireMinimumString(record: Record<string, unknown>, key: string, minimum: number): string {
+  const value = requireString(record, key)
+  if (value.length < minimum) throw new Error(`invalid ${key}`)
+  return value
+}
+
+export function requireUuid(record: Record<string, unknown>, key: string): string {
+  const value = requireString(record, key)
+  if (!uuidPattern.test(value)) throw new Error(`invalid ${key}`)
+  return value
+}
+
+export function requireHttpUrl(record: Record<string, unknown>, key: string): string {
+  const value = requireString(record, key)
+  let url: URL
+  try { url = new URL(value) } catch { throw new Error(`invalid ${key}`) }
+  if ((url.protocol !== 'https:' && url.protocol !== 'http:') || url.username !== '' || url.password !== '') {
+    throw new Error(`invalid ${key}`)
+  }
+  return value
+}
+
 export function assertMeta(value: unknown): ContractMeta {
   if (!isRecord(value)
     || value.contractVersion !== PLATFORM_CONTRACT_VERSION
     || value.simulated !== true) {
     throw new Error('response is not simulated contract v0.1.0 data')
   }
+  assertKeys(value, ['contractVersion', 'simulated'], ['requestId'])
+  if (value.requestId !== undefined && (typeof value.requestId !== 'string' || value.requestId.length === 0)) {
+    throw new Error('invalid requestId')
+  }
   return value as unknown as ContractMeta
 }
 
 export function assertSession(value: unknown): DesktopSession {
   if (!isRecord(value)) throw new Error('invalid session')
+  assertKeys(value, ['accessToken', 'refreshToken', 'tokenType', 'expiresIn', 'audience', 'activeTenantId'])
   const session: DesktopSession = {
-    accessToken: requireString(value, 'accessToken'),
-    refreshToken: requireString(value, 'refreshToken'),
+    accessToken: requireMinimumString(value, 'accessToken', 20),
+    refreshToken: requireMinimumString(value, 'refreshToken', 20),
     tokenType: value.tokenType === 'Bearer' ? 'Bearer' : (() => { throw new Error('invalid tokenType') })(),
-    expiresIn: typeof value.expiresIn === 'number' ? value.expiresIn : (() => { throw new Error('invalid expiresIn') })(),
+    expiresIn: Number.isInteger(value.expiresIn) && Number(value.expiresIn) >= 60 && Number(value.expiresIn) <= 3600
+      ? Number(value.expiresIn)
+      : (() => { throw new Error('invalid expiresIn') })(),
     audience: value.audience === PLATFORM_CLIENT_ID ? PLATFORM_CLIENT_ID : (() => { throw new Error('invalid audience') })(),
-    activeTenantId: requireString(value, 'activeTenantId'),
+    activeTenantId: requireUuid(value, 'activeTenantId'),
   }
   return Object.freeze(session)
 }
