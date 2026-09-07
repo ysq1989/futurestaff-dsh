@@ -88,7 +88,7 @@ test('platform access preserves the immutable A01 Mock and pins the deployed A02
   })
 })
 
-test('FutureStaff Profile mounts the B01a Host and Web client plugin', async () => {
+test('FutureStaff Profile mounts platform access and Product Hub UI plugins', async () => {
   const [profilePackage, profilePatch, installer] = await Promise.all([
     readFile(new URL('../profile/futurestaff-alpha/package.json', import.meta.url), 'utf8'),
     readFile(new URL('../profile/futurestaff-alpha/cordis.patch.yml', import.meta.url), 'utf8'),
@@ -98,4 +98,7 @@ test('FutureStaff Profile mounts the B01a Host and Web client plugin', async () 
   assert.match(profilePackage, /"@futurestaff\/fs-platform-access"/)
   assert.match(profilePatch, /id: futurestaff-platform-access[\s\S]*name: '@futurestaff\/fs-platform-access'/)
   assert.match(installer, /manifest\.dependencies\['@futurestaff\/fs-platform-access'\]/)
+  assert.match(profilePackage, /"@futurestaff\/fs-product-hub-ui"/)
+  assert.match(profilePatch, /id: futurestaff-product-hub-ui[\s\S]*name: '@futurestaff\/fs-product-hub-ui'/)
+  assert.match(installer, /manifest\.dependencies\['@futurestaff\/fs-product-hub-ui'\]/)
 })

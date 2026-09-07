@@ -92,3 +92,12 @@ client selects this DEV controller when the Host service exists, validates every
 nested response field, launches login through the B02f helper, and refreshes the
 snapshot when the desktop window regains focus. A definite missing Host route
 falls back to the unchanged local Mock workflow.
+
+B02h adds one fixed Host broker for the currently authorized `product_hub`
+application. Token minting is serialized with refresh, tenant switch, and
+logout; it is rejected without a restored session or matching application in
+the server-fetched snapshot. The guarded loopback route returns only the A02
+60-second Product Hub credential fields with `no-store`. The Web helper verifies
+the exact audience, active tenant, TTL, visible-ASCII token, and
+`product_hub.*` permissions, returns the token directly to its caller, and does
+not cache or persist it. No Product Hub business request is made by the broker.

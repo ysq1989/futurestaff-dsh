@@ -3,6 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import { PlatformDevApi } from './api.js'
 import { PLATFORM_CONTRACT_VERSION, PLATFORM_MOCK_BASE_URL } from './contracts.js'
+import type { ApplicationTokenResult } from './contracts.js'
 import { PlatformDevAccessController, type PlatformDevAccessSnapshot } from './dev-access.js'
 import { PlatformDevLoginCoordinator } from './dev-login.js'
 import { dispatchEmbeddedMock } from './embedded-mock.js'
@@ -59,6 +60,7 @@ export interface PlatformDevLoginService {
   refresh(): Promise<PlatformDevAccessSnapshot>
   switchTenant(tenantId: string): Promise<PlatformDevAccessSnapshot>
   logout(): Promise<PlatformDevAccessSnapshot>
+  issueApplicationToken(appId: string): Promise<ApplicationTokenResult>
   diagnostics(): Promise<{ readonly pending: boolean; readonly exchanging: boolean; readonly vault: 'stored' | 'empty' | 'unavailable' }>
   cancel(): void
 }
@@ -151,6 +153,7 @@ function mountDevLogin(ctx: Context): void {
     refresh: () => access.refresh(),
     switchTenant: (tenantId: string) => access.switchTenant(tenantId),
     logout: () => access.logout(),
+    issueApplicationToken: (appId: string) => access.issueApplicationToken(appId),
     diagnostics: () => coordinator.diagnostics(),
     cancel: close,
   })
@@ -220,6 +223,28 @@ function mountDevLogin(ctx: Context): void {
       }
     },
   }), 'futurestaff-platform-access: clear Platform DEV session')
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact', path: '/_futurestaff/platform-dev/apps/product_hub/token',
+    handler: async (request, response) => {
+      if (request.method !== 'POST' || !isLoopback(request.socket.remoteAddress)
+        || request.headers['x-futurestaff-application'] !== 'product_hub') {
+        return loginJson(response, request.method === 'POST' ? 403 : 405, { error: 'APPLICATION_UNAVAILABLE' })
+      }
+      try {
+        const token = await service.issueApplicationToken('product_hub')
+        loginJson(response, 200, {
+          accessToken: token.accessToken,
+          tokenType: token.tokenType,
+          expiresIn: token.expiresIn,
+          audience: token.audience,
+          tenantId: token.tenantId,
+          permissions: token.permissions,
+        })
+      } catch {
+        loginJson(response, 403, { error: 'APPLICATION_UNAVAILABLE' })
+      }
+    },
+  }), 'futurestaff-platform-access: issue Product Hub application token')
 }
 
 async function proxy(request: IncomingMessage, response: ServerResponse, path: string, embeddedMock: boolean): Promise<void> {

@@ -14,7 +14,7 @@
     "desktop:verify": "node scripts/desktop-foundation.mjs",
     "platform:mock:demo": "npm run build -w @futurestaff/fs-platform-access && node scripts/platform-mock-demo.mjs",
     "platform:mock:smoke": "node scripts/platform-mock-smoke.mjs",
-    "release:profile": "npm run build -w @futurestaff/fs-core && npm run build -w @futurestaff/fs-platform-access && node scripts/stage-release-profile.mjs",
+    "release:profile": "npm run build -w @futurestaff/fs-core && npm run build -w @futurestaff/fs-platform-access && npm run build -w @futurestaff/fs-product-hub-ui && node scripts/stage-release-profile.mjs",
     "profile:dump:release": "npm run release:profile && cross-env DSH_HOME=dist/desktop-profile NODE_OPTIONS=--import=./scripts/load-env.mjs dsh --profile futurestaff-alpha --dump-config",
     "desktop:stage": "node scripts/stage-desktop-release.mjs",
     "installer:windows": "node scripts/build-desktop-installer.mjs",

@@ -21,4 +21,22 @@ describe('Product Hub approval workbench', () => {
     screen.getByRole('button', { name: '重新加载' }).click()
     expect(await screen.findByRole('heading', { name: '秋日玉镯精选' })).toBeInTheDocument()
   })
+
+  it('loads a real desktop draft only through the injected authorized client', async () => {
+    window.history.replaceState({}, '', '/?draft=68cd8450-6a26-4c70-9440-e6618a295a70')
+    const client = {
+      loadDraft: async () => ({
+        draftId: '68cd8450-6a26-4c70-9440-e6618a295a70', name: '服务端选品草稿', description: null,
+        status: 'DRAFT' as const, expiresAt: '2026-09-08T13:00:00Z',
+        products: [{ id: 'p1', title: '服务端商品', description: null, price: 100, mainImage: null, images: [] }],
+      }),
+      approve: async () => { throw new Error('not used') },
+    }
+
+    render(<App connectClient={async () => ({ client, canApprove: false })} />)
+
+    expect(screen.getByRole('region', { name: '正在加载选品草稿' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '服务端选品草稿' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '需要发布权限' })).toBeDisabled()
+  })
 })

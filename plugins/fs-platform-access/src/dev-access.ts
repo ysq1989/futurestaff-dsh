@@ -8,6 +8,7 @@ import {
   requireString,
   requireUuid,
   type AuthorizedApplication,
+  type ApplicationTokenResult,
   type DesktopSession,
   type PlatformFailure,
   type RefreshResult,
@@ -41,6 +42,12 @@ interface PlatformDevAccessApi {
     readonly activeTenantId: string
     readonly items: readonly AuthorizedApplication[]
   }>
+  issueApplicationToken(
+    accessToken: string,
+    appId: string,
+    activeTenantId: string,
+    signal?: AbortSignal,
+  ): Promise<ApplicationTokenResult>
 }
 
 interface PlatformDevAccessVault {
@@ -223,6 +230,9 @@ export class PlatformDevAccessController {
     return this.#enqueue(() => this.#switchTenant(tenantId))
   }
   logout(): Promise<PlatformDevAccessSnapshot> { return this.#enqueue(() => this.#logout()) }
+  issueApplicationToken(appId: string): Promise<ApplicationTokenResult> {
+    return this.#enqueue(() => this.#issueApplicationToken(appId))
+  }
 
   async #restore(): Promise<PlatformDevAccessSnapshot> {
     const operation = this.#beginOperation()
@@ -307,6 +317,23 @@ export class PlatformDevAccessController {
     }
     try { await this.api.logout(refreshToken, operation.signal) } catch { /* local-first logout */ }
     return this.#snapshot
+  }
+
+  async #issueApplicationToken(appId: string): Promise<ApplicationTokenResult> {
+    const session = this.#session
+    if (session === undefined || this.#snapshot.activeTenantId !== session.activeTenantId
+      || !this.#snapshot.applications.some(application => application.appId === appId)) {
+      throw new Error('fs-platform-access: requested application is not authorized.')
+    }
+    const result = await this.api.issueApplicationToken(
+      session.accessToken, appId, session.activeTenantId, this.#request.signal,
+    )
+    if (appId === 'product_hub' && (result.audience !== 'futurestaff-product-hub-dev'
+      || result.permissions.length === 0
+      || result.permissions.some(permission => !permission.startsWith('product_hub.')))) {
+      throw new Error('fs-platform-access: application token contract mismatch.')
+    }
+    return result
   }
 
   async #loadContext(generation: number): Promise<void> {

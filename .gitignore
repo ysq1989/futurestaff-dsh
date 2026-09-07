@@ -9,6 +9,7 @@ runner-enrollment/
 runner/client/.env
 work/
 dist/
+plugins/fs-product-hub-ui/ui/
 outputs/
 output/
 .playwright-cli/

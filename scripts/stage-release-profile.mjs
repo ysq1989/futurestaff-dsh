@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 const scriptRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const defaultOutput = path.join(scriptRoot, 'dist', 'desktop-profile')
 const profileName = 'futurestaff-alpha'
-const packages = ['fs-core', 'fs-platform-access']
+const packages = ['fs-core', 'fs-platform-access', 'fs-product-hub-ui']
 
 function releasePackageManifest(source) {
   const keys = ['name', 'version', 'type', 'main', 'types', 'exports', 'dsh', 'peerDependencies']
@@ -39,6 +39,8 @@ export async function verifyReleaseProfile(outputRoot, sourceRoot = scriptRoot) 
     'package.json',
     'node_modules/@futurestaff/fs-core/package.json',
     'node_modules/@futurestaff/fs-platform-access/package.json',
+    'node_modules/@futurestaff/fs-product-hub-ui/package.json',
+    'node_modules/@futurestaff/fs-product-hub-ui/ui/index.html',
   ]
   for (const relative of required) {
     if (!files.includes(relative)) throw new Error(`release Profile is missing ${relative}`)
@@ -74,6 +76,9 @@ export async function stageReleaseProfile(options = {}) {
     const packageTarget = path.join(target, 'node_modules', '@futurestaff', packageName)
     await mkdir(packageTarget, { recursive: true })
     await cp(path.join(packageRoot, 'lib'), path.join(packageTarget, 'lib'), { recursive: true })
+    if (packageName === 'fs-product-hub-ui') {
+      await cp(path.join(packageRoot, 'ui'), path.join(packageTarget, 'ui'), { recursive: true })
+    }
     await writeFile(
       path.join(packageTarget, 'package.json'),
       `${JSON.stringify(releasePackageManifest(sourceManifest), null, 2)}\n`,

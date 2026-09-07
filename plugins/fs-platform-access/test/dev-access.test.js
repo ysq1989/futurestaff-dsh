@@ -37,6 +37,7 @@ class FakeVault {
 class FakeDevApi {
   order = []
   activeTenantId = tenantId
+  tokenRequests = []
   async refresh() { return { session: session(this.activeTenantId, 'refreshed'), meta: { contractVersion: '0.1.1', simulated: false } } }
   async logout(token) { this.order.push(`remote:${token}`) }
   async listTenants() { return { activeTenantId: this.activeTenantId, items: tenants, meta: { contractVersion: '0.1.1', simulated: false } } }
@@ -46,6 +47,14 @@ class FakeDevApi {
   async switchTenant(_token, activeTenantId) {
     this.activeTenantId = activeTenantId
     return { tenant: tenants.find(item => item.tenantId === activeTenantId), session: session(activeTenantId, 'switched'), meta: { contractVersion: '0.1.1', simulated: false } }
+  }
+  async issueApplicationToken(accessToken, appId, activeTenantId) {
+    this.tokenRequests.push({ accessToken, appId, activeTenantId })
+    return {
+      accessToken: 'short-lived-product-hub-token-with-entropy', tokenType: 'Bearer', expiresIn: 60,
+      audience: 'futurestaff-product-hub-dev', tenantId: activeTenantId,
+      permissions: ['product_hub.read'], meta: { contractVersion: '0.1.1', simulated: false },
+    }
   }
 }
 
@@ -140,4 +149,28 @@ test('DEV access maps an application authorization denial to the safe empty stat
   assert.equal(snapshot.applications.length, 0)
   assert.equal(snapshot.tenants.length, 2)
   assert.doesNotMatch(JSON.stringify(snapshot), /must not reflect|private-/)
+})
+
+test('DEV access issues an application token only for the active authorized Product Hub', async () => {
+  const api = new FakeDevApi()
+  api.listApplications = async (_token, activeTenantId) => ({
+    activeTenantId, items: [application(activeTenantId), {
+      ...application(activeTenantId), appId: 'product_hub', displayName: '未来市集',
+      capabilities: ['product_hub.read'],
+    }], meta: { contractVersion: '0.1.1', simulated: false },
+  })
+  const controller = new PlatformDevAccessController(api, new FakeVault(), new InMemoryTenantResources())
+  await controller.restore()
+
+  const token = await controller.issueApplicationToken('product_hub')
+  assert.equal(token.expiresIn, 60)
+  assert.equal(token.tenantId, tenantId)
+  assert.deepEqual(api.tokenRequests, [{
+    accessToken: session().accessToken, appId: 'product_hub', activeTenantId: tenantId,
+  }])
+  await assert.rejects(() => controller.issueApplicationToken('erp'), /not authorized/)
+  assert.equal(api.tokenRequests.length, 1)
+  await controller.logout()
+  await assert.rejects(() => controller.issueApplicationToken('product_hub'), /not authorized/)
+  assert.equal(api.tokenRequests.length, 1)
 })

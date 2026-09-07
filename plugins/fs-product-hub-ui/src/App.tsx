@@ -1,7 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
+import type { ProductHubApprovalClient } from './client.js'
+import {
+  createDesktopProductHubApprovalClient,
+  type DesktopProductHubConnection,
+} from './desktop-client.js'
 import { ProductHubApprovalCard } from './ProductHubApprovalCard.js'
-import type { ApprovalResult, DraftPreview } from './model.js'
+import type { ApprovalChoice, ApprovalResult, DraftPreview } from './model.js'
 
 const baseDraft: DraftPreview = {
   draftId: '68cd8450-6a26-4c70-9440-e6618a295a70',
@@ -10,9 +15,9 @@ const baseDraft: DraftPreview = {
   status: 'DRAFT',
   expiresAt: '2026-09-08T13:00:00Z',
   products: [
-    { id: 'p1', title: '春彩圆条手镯', description: '紫绿相融，条形饱满', price: 12800, mainImage: '/jade-spring.svg', images: [] },
-    { id: 'p2', title: '冰糯飘花正圈', description: '底色清透，飘花舒展', price: 9800, mainImage: '/jade-ice.svg', images: [] },
-    { id: 'p3', title: '晴水贵妃手镯', description: '柔和晴水底，贴腕轻盈', price: 8600, mainImage: '/jade-water.svg', images: [] },
+    { id: 'p1', title: '春彩圆条手镯', description: '紫绿相融，条形饱满', price: 12800, mainImage: '/_futurestaff/product-hub-ui/jade-spring.svg', images: [] },
+    { id: 'p2', title: '冰糯飘花正圈', description: '底色清透，飘花舒展', price: 9800, mainImage: '/_futurestaff/product-hub-ui/jade-ice.svg', images: [] },
+    { id: 'p3', title: '晴水贵妃手镯', description: '柔和晴水底，贴腕轻盈', price: 8600, mainImage: '/_futurestaff/product-hub-ui/jade-water.svg', images: [] },
   ],
 }
 
@@ -25,8 +30,26 @@ function scenarioFromUrl(): Scenario {
     : 'ready'
 }
 
-export function App() {
-  const [scenario, setScenario] = useState<Scenario>(scenarioFromUrl)
+function draftIdFromUrl(): string | null {
+  const value = new URLSearchParams(window.location.search).get('draft')
+  return value !== null && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(value)
+    ? value
+    : null
+}
+
+export interface AppProps {
+  connectClient?: () => Promise<DesktopProductHubConnection>
+}
+
+export function App({ connectClient = createDesktopProductHubApprovalClient }: AppProps) {
+  const draftId = draftIdFromUrl()
+  const live = draftId !== null
+  const [scenario, setScenario] = useState<Scenario>(() => live ? 'loading' : scenarioFromUrl())
+  const [draft, setDraft] = useState<DraftPreview | undefined>(() => live ? undefined : baseDraft)
+  const [client, setClient] = useState<Pick<ProductHubApprovalClient, 'loadDraft' | 'approve'>>()
+  const [canApprove, setCanApprove] = useState(false)
+  const [reload, setReload] = useState(0)
+  const intent = useRef<{ choice: ApprovalChoice; idempotencyKey: string }>()
   const [result, setResult] = useState<ApprovalResult | undefined>(() => {
     if (scenario === 'published') {
       return {
@@ -56,12 +79,41 @@ export function App() {
   })
 
   useEffect(() => {
+    if (draftId === null) return
+    let active = true
+    setScenario('loading')
+    void connectClient().then(async connection => {
+      const nextDraft = await connection.client.loadDraft(draftId)
+      if (!active) return
+      setClient(connection.client)
+      setCanApprove(connection.canApprove)
+      setDraft(nextDraft)
+      setResult(undefined)
+      setScenario('ready')
+    }).catch(() => { if (active) setScenario('error') })
+    return () => { active = false }
+  }, [connectClient, draftId, reload])
+
+  useEffect(() => {
+    if (live) return
     const onPopState = () => setScenario(scenarioFromUrl())
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
-  }, [])
+  }, [live])
 
-  async function approve(): Promise<void> {
+  async function approve(choice: ApprovalChoice): Promise<void> {
+    if (live) {
+      if (client === undefined || draft === undefined) throw new Error('Product Hub is not ready')
+      const previous = intent.current
+      const idempotencyKey = previous !== undefined
+        && previous.choice.title === choice.title
+        && previous.choice.templateId === choice.templateId
+        ? previous.idempotencyKey
+        : crypto.randomUUID()
+      intent.current = { choice, idempotencyKey }
+      setResult(await client.approve(draft.draftId, { ...choice, idempotencyKey }))
+      return
+    }
     await new Promise(resolve => window.setTimeout(resolve, 850))
     setResult({
       releaseId: '0a862c81-cae6-4d06-b932-754162745630',
@@ -72,11 +124,15 @@ export function App() {
   }
 
   function retry(): void {
+    if (live) {
+      setReload(value => value + 1)
+      return
+    }
     window.history.replaceState({}, '', window.location.pathname)
     setScenario('ready')
   }
 
-  const draft = scenario === 'expired' ? { ...baseDraft, status: 'EXPIRED' as const } : baseDraft
+  const visibleDraft = scenario === 'expired' ? { ...baseDraft, status: 'EXPIRED' as const } : draft
 
   return (
     <div className="workbench-shell">
@@ -126,14 +182,14 @@ export function App() {
               <p>平台连接没有完成，请检查登录状态后重试。草稿内容没有被修改。</p>
               <button type="button" onClick={retry}>重新加载</button>
             </section>
-          ) : (
+          ) : visibleDraft !== undefined ? (
             <ProductHubApprovalCard
-              draft={draft}
-              canApprove={scenario !== 'readonly'}
+              draft={visibleDraft}
+              canApprove={live ? canApprove : scenario !== 'readonly'}
               onApprove={approve}
               {...(result === undefined ? {} : { result })}
             />
-          )}
+          ) : null}
           <p className="workbench-footnote">FutureStaff Agent 仅整理和展示建议，商品事实、权限、审核与发布状态由 Product Hub 服务端确认。</p>
         </div>
       </main>

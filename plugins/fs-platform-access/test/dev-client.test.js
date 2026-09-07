@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { PlatformDevClientController } from '../lib/client/index.js'
+import {
+  getPlatformDevAccessSnapshot,
+  getProductHubApplicationToken,
+  PlatformDevClientController,
+} from '../lib/client/index.js'
 
 const tenantId = '10000000-0000-4000-8000-000000000001'
 const snapshot = {
@@ -38,6 +42,18 @@ test('DEV client uses only guarded Host session routes and keeps responses crede
   assert.doesNotMatch(JSON.stringify(controller.getSnapshot()), /accessToken|refreshToken/)
 })
 
+test('DEV snapshot helper returns only the strict credential-free Host contract', async () => {
+  const result = await getPlatformDevAccessSnapshot(async (input, init) => {
+    assert.equal(input, '/_futurestaff/platform-dev/session')
+    assert.equal(init.method, 'GET')
+    assert.equal(init.headers['x-futurestaff-session'], '1')
+    assert.equal(init.cache, 'no-store')
+    return new Response(JSON.stringify(snapshot), { status: 200 })
+  })
+  assert.equal(result.activeTenantId, tenantId)
+  assert.doesNotMatch(JSON.stringify(result), /accessToken|refreshToken/)
+})
+
 test('DEV client rejects malformed or credential-bearing Host snapshots without reflecting them', async () => {
   const controller = new PlatformDevClientController(async () => new Response(JSON.stringify({
     ...snapshot, accessToken: 'private-token-must-not-escape',
@@ -69,4 +85,31 @@ test('DEV client ignores an older session response after a newer restore complet
   releaseFirst()
   await older
   assert.equal(controller.getSnapshot().phase, 'signed_out')
+})
+
+test('Product Hub token helper accepts only the exact active-tenant 60-second credential', async () => {
+  const token = await getProductHubApplicationToken(tenantId, async (input, init) => {
+    assert.equal(input, '/_futurestaff/platform-dev/apps/product_hub/token')
+    assert.equal(init.method, 'POST')
+    assert.equal(init.headers['x-futurestaff-application'], 'product_hub')
+    return new Response(JSON.stringify({
+      accessToken: 'short-lived-product-hub-token-with-entropy', tokenType: 'Bearer', expiresIn: 60,
+      audience: 'futurestaff-product-hub-dev', tenantId, permissions: ['product_hub.read'],
+    }), { status: 200 })
+  })
+  assert.equal(token, 'short-lived-product-hub-token-with-entropy')
+
+  await assert.rejects(() => getProductHubApplicationToken(tenantId, async () => new Response(JSON.stringify({
+    accessToken: 'private-wrong-tenant-token-with-entropy', tokenType: 'Bearer', expiresIn: 60,
+    audience: 'futurestaff-product-hub-dev', tenantId: '10000000-0000-4000-8000-000000000099',
+    permissions: ['product_hub.read'],
+  }), { status: 200 })), error => {
+    assert.equal(error.message, 'Product Hub authorization is unavailable.')
+    assert.doesNotMatch(error.message, /private-wrong/)
+    return true
+  })
+  await assert.rejects(() => getProductHubApplicationToken(tenantId, async () => new Response(JSON.stringify({
+    accessToken: 'credential with unsafe whitespace', tokenType: 'Bearer', expiresIn: 60,
+    audience: 'futurestaff-product-hub-dev', tenantId, permissions: ['product_hub.read'],
+  }), { status: 200 })), /unavailable/)
 })

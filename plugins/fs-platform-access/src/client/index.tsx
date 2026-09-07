@@ -11,6 +11,7 @@ import { mountPlatformAccessPanel } from '../view.js'
 const ROUTE_PREFIX = '/_futurestaff/platform-mock'
 const DEV_ROUTE_PREFIX = '/_futurestaff/platform-dev'
 const DEV_LOGIN_ROUTE = `${DEV_ROUTE_PREFIX}/login`
+const PRODUCT_HUB_TOKEN_ROUTE = `${DEV_ROUTE_PREFIX}/apps/product_hub/token`
 export const platformAccessPanelCss = `
 .futurestaff-access{--fs-accent:#5b6cff;--fs-accent-soft:color-mix(in srgb,var(--fs-accent) 12%,transparent);--fs-border:color-mix(in srgb,currentColor 13%,transparent);--fs-muted:color-mix(in srgb,currentColor 66%,transparent);box-sizing:border-box;max-width:880px;min-width:0;color:var(--color-text,#172033);font-size:14px;line-height:1.5}
 .futurestaff-access *{box-sizing:border-box}.futurestaff-access h2,.futurestaff-access h3,.futurestaff-access p{margin:0}.futurestaff-access button,.futurestaff-access select{font:inherit;color:inherit}
@@ -62,11 +63,57 @@ export async function beginPlatformDevLogin(
   opener(url.href, '_blank', 'noopener,noreferrer')
 }
 
+export async function getProductHubApplicationToken(
+  activeTenantId: string,
+  fetcher: typeof fetch = fetch,
+): Promise<string> {
+  const unavailable = (): Error => new Error('Product Hub authorization is unavailable.')
+  let response: Response
+  try {
+    response = await fetcher(PRODUCT_HUB_TOKEN_ROUTE, {
+      method: 'POST',
+      headers: { accept: 'application/json', 'x-futurestaff-application': 'product_hub' },
+      cache: 'no-store',
+    })
+  } catch { throw unavailable() }
+  let value: unknown
+  try { value = await response.json() } catch { throw unavailable() }
+  if (!response.ok || value === null || typeof value !== 'object' || Array.isArray(value)) throw unavailable()
+  const token = value as Record<string, unknown>
+  const permissions = token.permissions
+  if (Object.keys(token).sort().join(',') !== 'accessToken,audience,expiresIn,permissions,tenantId,tokenType'
+    || typeof token.accessToken !== 'string' || !/^[\x21-\x7e]{20,8192}$/u.test(token.accessToken)
+    || token.tokenType !== 'Bearer' || token.expiresIn !== 60
+    || token.audience !== 'futurestaff-product-hub-dev' || token.tenantId !== activeTenantId
+    || !Array.isArray(permissions) || permissions.length === 0
+    || permissions.some(permission => typeof permission !== 'string'
+      || !/^product_hub\.[a-z][a-z0-9_]*$/u.test(permission))
+    || new Set(permissions).size !== permissions.length) throw unavailable()
+  return token.accessToken
+}
+
 export class PlatformDevClientUnavailableError extends Error {
   constructor() {
     super('FutureStaff desktop session service is unavailable.')
     this.name = 'PlatformDevClientUnavailableError'
   }
+}
+
+export async function getPlatformDevAccessSnapshot(
+  fetcher: typeof fetch = fetch,
+): Promise<PlatformAccessSnapshot> {
+  let response: Response
+  try {
+    response = await fetcher(`${DEV_ROUTE_PREFIX}/session`, {
+      method: 'GET', headers: { accept: 'application/json', 'x-futurestaff-session': '1' },
+      cache: 'no-store',
+    })
+  } catch { throw new Error('session request failed') }
+  if (response.status === 404) throw new PlatformDevClientUnavailableError()
+  let value: unknown
+  try { value = await response.json() } catch { throw new Error('session response invalid') }
+  if (!response.ok) throw new Error('session request rejected')
+  try { return decodePlatformDevAccessSnapshot(value) } catch { throw new Error('session response invalid') }
 }
 
 type Listener = () => void
@@ -135,6 +182,7 @@ export class PlatformDevClientController {
   }
 
   async #request(path: string, init: RequestInit): Promise<PlatformAccessSnapshot> {
+    if (path === '/session' && init.method === 'GET') return getPlatformDevAccessSnapshot(this.fetcher)
     let response: Response
     try {
       response = await this.fetcher(`${DEV_ROUTE_PREFIX}${path}`, {

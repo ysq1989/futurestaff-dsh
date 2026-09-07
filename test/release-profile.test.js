@@ -15,12 +15,15 @@ test('stages a relocatable built-only FutureStaff Profile', async () => {
     const files = await verifyReleaseProfile(temporary, root)
     assert.ok(files.includes('node_modules/@futurestaff/fs-core/lib/index.js'))
     assert.ok(files.includes('node_modules/@futurestaff/fs-platform-access/lib/client/index.js'))
+    assert.ok(files.includes('node_modules/@futurestaff/fs-product-hub-ui/lib/client/index.js'))
+    assert.ok(files.includes('node_modules/@futurestaff/fs-product-hub-ui/ui/index.html'))
     assert.ok(files.every(file => !file.includes('/src/') && !file.includes('/test/')))
 
     const profile = JSON.parse(await readFile(path.join(result.target, 'package.json'), 'utf8'))
     assert.deepEqual(profile.dependencies, {
       '@futurestaff/fs-core': '0.1.0',
       '@futurestaff/fs-platform-access': '0.1.0',
+      '@futurestaff/fs-product-hub-ui': '0.1.0',
     })
     assert.ok(Object.values(profile.dependencies).every(value => !value.startsWith('file:')))
   } finally {

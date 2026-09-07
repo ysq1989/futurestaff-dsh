@@ -10,7 +10,6 @@ import {
   PLATFORM_MOCK_BASE_URL,
   requireBoundedString,
   requireHttpUrl,
-  requireMinimumString,
   requireString,
   requireUuid,
   type ApplicationList,
@@ -337,15 +336,19 @@ export class PlatformDevApi extends PlatformApiClient {
       assertKeys(body, ['accessToken', 'tokenType', 'expiresIn', 'audience', 'tenantId', 'permissions', 'meta'])
       const tenantId = requireUuid(body, 'tenantId')
       const permissions = body.permissions.map((permission) => {
-        if (typeof permission !== 'string' || permission.length < 3) throw new Error('invalid application permission')
+        if (typeof permission !== 'string' || !capabilityPattern.test(permission)) {
+          throw new Error('invalid application permission')
+        }
         return permission
       })
       if (permissions.length === 0 || new Set(permissions).size !== permissions.length) {
         throw new Error('invalid application permissions')
       }
       if (tenantId !== activeTenantId) throw new Error('application token crossed the active tenant boundary')
+      const accessToken = requireBoundedString(body, 'accessToken', 20, 8192)
+      if (!/^[\x21-\x7e]+$/u.test(accessToken)) throw new Error('invalid application access token')
       return Object.freeze({
-        accessToken: requireMinimumString(body, 'accessToken', 20),
+        accessToken,
         tokenType: body.tokenType === 'Bearer' ? 'Bearer' as const : (() => { throw new Error('invalid tokenType') })(),
         expiresIn: body.expiresIn === 60 ? 60 as const : (() => { throw new Error('invalid expiresIn') })(),
         audience: requireBoundedString(body, 'audience', 3, 100), tenantId,

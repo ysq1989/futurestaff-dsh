@@ -76,9 +76,10 @@ package versions. It contains no source-tree junctions, absolute `file:`
 dependencies, credentials, sessions, caches, source files, or tests.
 
 Run `npm run profile:dump:release` before desktop packaging. The repository-pinned
-DSH runtime must compose both `futurestaff-core` and
-`futurestaff-platform-access`; transient `pnpm dlx` resolution is not a release
-input.
+DSH runtime must compose `futurestaff-core`, `futurestaff-platform-access`, and
+`futurestaff-product-hub-ui`; transient `pnpm dlx` resolution is not a release
+input. Product Hub contributes only additive sidebar/overlay slots and serves
+its built UI from a fixed loopback Host route.
 
 `npm run desktop:stage` verifies the exact controlled-fork commit, clean tracked
 state, untouched official Harness gitlink, FutureStaff package identity, and

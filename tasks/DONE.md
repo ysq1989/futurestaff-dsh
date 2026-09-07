@@ -109,3 +109,39 @@
 - UI: the Settings access center distinguishes Platform DEV `0.1.1` from local Mock `0.1.0`, keeps loading/error/expired/empty states and keyboard semantics, and introduces no new UI dependency or theme system.
 - Verification: RED coverage first failed on the missing DEV controller; platform-access tests passed 46/46 with TypeScript build; a fake protected-session flow completed browser start, loopback callback, Vault restore, safe Web snapshot, refresh/switch/logout boundaries, malformed response rejection, concurrent mutation serialization, and stale response rejection; full `npm run check` passed including every workspace typecheck/test/build and 52 top-level tests; `git diff --check` passed with line-ending conversion warnings only.
 - Boundaries: no real account, real Platform DEV request, credential read outside fake tests, schema, deployment, controlled-desktop edit, commit, or push was performed.
+
+## B02h: Broker the short-lived Product Hub application token
+
+- Status: Completed locally after commit `d2b1f7c`; not committed or pushed.
+- Result: the Host-owned DEV controller now mints an A02 application token only when `product_hub` is present in the current server-fetched application snapshot and the protected session still matches the active tenant. Issuance is serialized with refresh, tenant switch, restore, and logout.
+- Web boundary: added one exact loopback POST route guarded by `X-FutureStaff-Application: product_hub`; its response is `no-store` and contains only the 60-second application credential contract. `getProductHubApplicationToken()` validates the exact active tenant, audience, TTL, visible-ASCII token, unique `product_hub.*` permissions, and response fields, then returns without caching or persistence.
+- Safety: missing/expired sessions, unauthorized applications, cross-tenant responses, unsafe tokens, malformed permissions, missing guard headers, extra fields, and post-logout issuance fail closed with bounded errors. The platform access token and refresh token never enter the Web response.
+- Verification: RED tests first failed on the missing controller method and client helper; platform-access tests passed 48/48 with TypeScript build; the real loopback fake flow covered Host minting and Web delivery; full `npm run check` passed including every workspace typecheck/test/build and 52 top-level tests; `git diff --check` passed with line-ending conversion warnings only.
+- Boundaries: no Product Hub business request, real Platform DEV request, credential persistence in Web, schema, deployment, controlled-desktop edit, commit, or push was performed.
+
+## B02i: Connect the Product Hub client to the desktop authorization boundary
+
+- Status: Completed locally after commit `d2b1f7c`; not committed or pushed.
+- Result: the live Product Hub approval page now accepts only a valid `draft` UUID, resolves the current Product Hub endpoint and tenant from the strict credential-free Host snapshot, obtains a fresh 60-second application token per business request, and sends the server-owned draft/approval contract through `ProductHubApprovalClient`.
+- Tenant and permission safety: every token mint revalidates the active tenant, application authorization, and base URL; a switch or revocation fails before Product Hub is called. Only server-issued `product_hub.operator` or `product_hub.admin` enables approval, while read-only users can inspect the draft without a writable control.
+- Mutation safety: approval transmits only title, allowlisted template, and a client-generated idempotency key; an identical retry reuses that key. Platform credentials and tenant IDs never enter the Product Hub request body, Web storage, or logs.
+- Verification: fake loopback integration proved snapshot -> token -> business request ordering and rejected switched tenants, missing applications, and read-only approval; platform-access tests passed 49/49; Product Hub UI tests passed 15/15 and its Vite production build passed; full `npm run check` passed before the final permission-interface tightening, followed by the affected tests/build and `git diff --check` passing.
+- Boundaries: no real Platform DEV account/request, Product Hub business request, external mutation, schema, controlled-desktop edit, commit, push, or server deployment was performed.
+
+## B02j: Build and stage the private Windows client candidate
+
+- Status: Completed locally after commit `d2b1f7c`; source changes remain uncommitted and unpushed.
+- Result: staged the built-only `futurestaff-alpha` Profile into the pinned controlled desktop shell at `bd54da63577a5d2595ced66060999e12468f42a8`, built exactly one private unsigned Windows x64 installer, and exported it to `outputs/FutureStaff-Agent-2.0.5-x64-Setup.exe`.
+- Artifact: 134,282,271 bytes; SHA-256 `ebac3e3fe0f052951bff105884e9bd49fef85369d8f4ed60c2c289aa7686cf77`; companion `.sha256` file exported beside it. Authenticode is intentionally absent for this private Alpha candidate.
+- Verification: controlled desktop `main` and its official DSH gitlink were clean before packaging and remained clean afterward; desktop tests passed 188/188; the first-party runtime closure contained 228 reachable nodes; Electron/NSIS packaging and the installer verification gate exited 0; the staged release manifest pins A01 Mock `0.1.0`, A02 DEV `0.1.1`, exact built file hashes, and `productionEnabled: false`.
+- Boundaries: the installer contains the mounted Profile packages `fs-core` and `fs-platform-access`, including B02h. The separately built Product Hub approval UI/B02i is not yet mounted as a DSH Profile navigation plugin and therefore is not claimed as installed by this artifact. No installer execution, signing, public upload, real login, server deployment, migration, Product Hub mutation, commit, or push was performed.
+
+## B02k: Mount Product Hub UI in the DSH Profile
+
+- Status: Completed locally after commit `d2b1f7c`; not committed, pushed, or packaged into a new installer.
+- Result: `fs-product-hub-ui` is now a DSH Host/Web plugin in both developer and release Profiles. It contributes an additive Product Hub action to `sidebar.footer.action` and a dismissible `shell.overlay`, preserving the official sidebar, conversation, and details occupants.
+- Static boundary: the Host serves only allowlisted built `lib/ui` assets from the fixed loopback `/_futurestaff/product-hub-ui` prefix. Responses use a restrictive CSP, no-store, no-referrer, nosniff, explicit MIME types, and reject non-loopback, unsupported methods, traversal, and unknown files.
+- Client boundary: only a valid outer `productHubDraft` UUID is transferred into the isolated same-origin UI as `draft`; missing or malformed values open the safe empty state. The overlay has an accessible dialog name, focused close control, and Escape dismissal. B02i continues to revalidate tenant/application state and mint a fresh 60-second token for each business call.
+- Release integration: developer install, release build, Profile manifest, staging verifier, and composition tests now include exact `@futurestaff/fs-product-hub-ui@0.1.0`. The final staged Profile contains only package metadata, compiled `lib`, hashed Vite assets, and public SVG fixtures—no source, tests, absolute source paths, sessions, or credentials.
+- Verification: Product Hub package typecheck/build and 18/18 tests passed; Host route and client slot interaction tests passed; release/Profile focused tests passed 8/8; `npm run profile:dump:release` showed `futurestaff-product-hub-ui` in the final DSH tree; final `npm run check` exited 0 including all workspaces and 52/52 top-level tests; `git diff --check` passed with line-ending warnings only.
+- Boundaries: no real account, Platform DEV request, Product Hub business request, installer rebuild, installer execution, desktop-shell edit, signing, public upload, server deployment, commit, or push was performed.

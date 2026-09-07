@@ -1,6 +1,6 @@
 # Agent PC Product Hub approval UI
 
-Status: local visual slice implemented and browser-verified; desktop session wiring pending.
+Status: desktop authorization, live draft/approval client, and DSH Profile mounting implemented locally; rebuilt installer smoke pending.
 
 ## Goal
 
@@ -18,8 +18,12 @@ Let an authenticated FutureStaff Agent PC user verify a server-owned Product Hub
 ## Boundary
 
 - The UI never accepts or sends tenant identifiers, product facts, publication state, HTML, CSS or JavaScript.
-- Tokens are supplied by the future platform-session adapter and are never persisted by this package.
-- This slice uses a typed client boundary and local fixtures. Wiring the platform login session into the desktop host remains a separate task.
+- Tokens are supplied by the platform-access Host broker and are never persisted by this package.
+- A valid `?draft=<uuid>` enters the live desktop flow. The client derives the active tenant and Product Hub base URL only from the strict credential-free Host snapshot, revalidates both before every token mint, and fails closed after tenant or application changes.
+- Only server-issued `product_hub.operator` or `product_hub.admin` capability enables approval in the UI. Product Hub remains the final authorization authority.
+- The `state=` fixtures remain available only for disconnected visual acceptance and never enter the live request path.
+- The DSH integration uses the additive `sidebar.footer.action` and `shell.overlay` slots. It does not replace the official sidebar, conversation, or details occupants.
+- Built UI assets are served only from the fixed loopback `/_futurestaff/product-hub-ui` prefix with a restrictive CSP, no referrer, no cache, and MIME sniffing disabled.
 - No change is made to the pinned DeepSeek Harness checkout or the generic desktop shell.
 
 ## Responsive direction
