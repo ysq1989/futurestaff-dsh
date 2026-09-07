@@ -17,7 +17,23 @@ test('stages a relocatable built-only FutureStaff Profile', async () => {
     assert.ok(files.includes('node_modules/@futurestaff/fs-platform-access/lib/client/index.js'))
     assert.ok(files.includes('node_modules/@futurestaff/fs-product-hub-ui/lib/client/index.js'))
     assert.ok(files.includes('node_modules/@futurestaff/fs-product-hub-ui/ui/index.html'))
+    assert.ok(files.includes('node_modules/.modules.yaml'))
+    assert.ok(files.includes('pnpm-lock.yaml'))
+    assert.ok(files.includes('pnpm-workspace.yaml'))
     assert.ok(files.every(file => !file.includes('/src/') && !file.includes('/test/')))
+
+    const [modulesState, lockfile, workspace] = await Promise.all([
+      readFile(path.join(result.target, 'node_modules', '.modules.yaml'), 'utf8'),
+      readFile(path.join(result.target, 'pnpm-lock.yaml'), 'utf8'),
+      readFile(path.join(result.target, 'pnpm-workspace.yaml'), 'utf8'),
+    ])
+    assert.match(modulesState, /^nodeLinker: hoisted$/m)
+    assert.match(modulesState, /^packageManager: pnpm@1[01]\./m)
+    assert.match(modulesState, /^virtualStoreDirMaxLength: 60$/m)
+    assert.match(lockfile, /^settings:\n  autoInstallPeers: false$/m)
+    assert.match(workspace, /^nodeLinker: hoisted$/m)
+    assert.match(workspace, /^autoInstallPeers: false$/m)
+    assert.match(workspace, /^virtualStoreDirMaxLength: 60$/m)
 
     const profile = JSON.parse(await readFile(path.join(result.target, 'package.json'), 'utf8'))
     assert.deepEqual(profile.dependencies, {

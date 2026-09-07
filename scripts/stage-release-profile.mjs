@@ -7,6 +7,23 @@ const scriptRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '.
 const defaultOutput = path.join(scriptRoot, 'dist', 'desktop-profile')
 const profileName = 'futurestaff-alpha'
 const packages = ['fs-core', 'fs-platform-access', 'fs-product-hub-ui']
+const pnpmVersion = '11.8.0'
+const pnpmWorkspace = `packages:
+  - .
+
+nodeLinker: hoisted
+autoInstallPeers: false
+virtualStoreDirMaxLength: 60
+`
+const pnpmModulesState = `nodeLinker: hoisted
+packageManager: pnpm@${pnpmVersion}
+virtualStoreDirMaxLength: 60
+`
+const pnpmLockfile = `lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: false
+`
 
 function releasePackageManifest(source) {
   const keys = ['name', 'version', 'type', 'main', 'types', 'exports', 'dsh', 'peerDependencies']
@@ -37,6 +54,9 @@ export async function verifyReleaseProfile(outputRoot, sourceRoot = scriptRoot) 
   const required = [
     'cordis.patch.yml',
     'package.json',
+    'pnpm-lock.yaml',
+    'pnpm-workspace.yaml',
+    'node_modules/.modules.yaml',
     'node_modules/@futurestaff/fs-core/package.json',
     'node_modules/@futurestaff/fs-platform-access/package.json',
     'node_modules/@futurestaff/fs-product-hub-ui/package.json',
@@ -44,6 +64,14 @@ export async function verifyReleaseProfile(outputRoot, sourceRoot = scriptRoot) 
   ]
   for (const relative of required) {
     if (!files.includes(relative)) throw new Error(`release Profile is missing ${relative}`)
+  }
+  const [workspace, modulesState, lockfile] = await Promise.all([
+    readFile(path.join(target, 'pnpm-workspace.yaml'), 'utf8'),
+    readFile(path.join(target, 'node_modules', '.modules.yaml'), 'utf8'),
+    readFile(path.join(target, 'pnpm-lock.yaml'), 'utf8'),
+  ])
+  if (workspace !== pnpmWorkspace || modulesState !== pnpmModulesState || lockfile !== pnpmLockfile) {
+    throw new Error('release Profile dependency metadata is incompatible with the packaged pnpm runtime')
   }
   if (files.some(file => /\/(?:src|test)\//u.test(`/${file}/`) || file.endsWith('/tsconfig.json'))) {
     throw new Error('release Profile contains development source, tests, or TypeScript configuration')
@@ -66,6 +94,11 @@ export async function stageReleaseProfile(options = {}) {
   await rm(outputRoot, { recursive: true, force: true })
   await mkdir(path.join(target, 'node_modules', '@futurestaff'), { recursive: true })
   await cp(path.join(profileSource, 'cordis.patch.yml'), path.join(target, 'cordis.patch.yml'))
+  await Promise.all([
+    writeFile(path.join(target, 'pnpm-workspace.yaml'), pnpmWorkspace),
+    writeFile(path.join(target, 'node_modules', '.modules.yaml'), pnpmModulesState),
+    writeFile(path.join(target, 'pnpm-lock.yaml'), pnpmLockfile),
+  ])
 
   const dependencyVersions = {}
   for (const packageName of packages) {

@@ -81,6 +81,11 @@ DSH runtime must compose `futurestaff-core`, `futurestaff-platform-access`, and
 input. Product Hub contributes only additive sidebar/overlay slots and serves
 its built UI from a fixed loopback Host route.
 
+The built-only release Profile also carries deterministic pnpm 11 hoisted-layout
+metadata. Those files are included in `release-manifest.json` and prevent the
+desktop first-launch migration detector from treating the verified, prebuilt
+first-party package directories as an obsolete dependency installation.
+
 `npm run desktop:stage` verifies the exact controlled-fork commit, clean tracked
 state, untouched official Harness gitlink, FutureStaff package identity, and
 `extraResources` destination before writing only the ignored

@@ -145,3 +145,11 @@
 - Release integration: developer install, release build, Profile manifest, staging verifier, and composition tests now include exact `@futurestaff/fs-product-hub-ui@0.1.0`. The final staged Profile contains only package metadata, compiled `lib`, hashed Vite assets, and public SVG fixtures—no source, tests, absolute source paths, sessions, or credentials.
 - Verification: Product Hub package typecheck/build and 18/18 tests passed; Host route and client slot interaction tests passed; release/Profile focused tests passed 8/8; `npm run profile:dump:release` showed `futurestaff-product-hub-ui` in the final DSH tree; final `npm run check` exited 0 including all workspaces and 52/52 top-level tests; `git diff --check` passed with line-ending warnings only.
 - Boundaries: no real account, Platform DEV request, Product Hub business request, installer rebuild, installer execution, desktop-shell edit, signing, public upload, server deployment, commit, or push was performed.
+
+## B02l: Make the bundled Profile first-launch safe
+
+- Status: Completed locally after commit `5dae84d`; fix commit and replacement installer pending.
+- Incident: the private Windows candidate copied the three built first-party packages into `node_modules` but omitted pnpm layout metadata. On a fresh installation the desktop migration detector treated that verified package tree as legacy, invoked packaged pnpm, and entered recovery mode when the private package versions could not be materialized from a registry.
+- Result: release staging now emits deterministic pnpm 11 hoisted-layout workspace, modules, and lock metadata before hashing the Profile. Release verification requires the exact metadata contract, so a future installer cannot silently ship the same incomplete dependency state.
+- Verification: the focused regression failed before the fix and then passed 2/2; the staged Profile returned `requiresDependencyMigration=false` through the real desktop preparation function on Windows; release Profile composition included all three FutureStaff plugins; full `npm run check` passed, including every workspace and 52/52 top-level tests.
+- Boundaries: no existing user Profile was deleted or modified, no real account or service was contacted, and no installer was executed, signed, or publicly uploaded.
