@@ -14,10 +14,11 @@ inputs.
 - Official `deepseek-harness` gitlink: `a66e4702047846cdaa10c66c9d3df3951f5ea70d`
 
 The reviewed desktop release commit is pinned at
-`ab7a889b9e17a97881af84d22c6b4789f5378858` on the controlled fork's `main`
+`2a0a98fac0b95152cd101c850e6ce8ac1675fce2` on the controlled fork's `main`
 branch. It preserves the original productization boundary and verified
 first-launch Profile installation, adds the Host-only OS-protected secret
-service, and safely repairs the exact hash-matched incomplete Alpha Profile.
+service, safely repairs the exact hash-matched incomplete Alpha Profile, and
+provides a fixed non-authoritative desktop bootstrap identity before sign-in.
 Do not replace it with an uncommitted tree or a moving branch name.
 
 ## Distribution boundary

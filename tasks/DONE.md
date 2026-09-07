@@ -153,3 +153,11 @@
 - Result: release staging now emits deterministic pnpm 11 hoisted-layout workspace, modules, and lock metadata before hashing the Profile. Release verification requires the exact metadata contract, so a future installer cannot silently ship the same incomplete dependency state. On upgrade, the desktop atomically repairs only the exact hash-matched defective Profile; any changed managed file or unexpected extra file preserves the user's Profile untouched.
 - Verification: the focused regression failed before the fix and then passed 2/2; the staged Profile returned `requiresDependencyMigration=false` through the real desktop preparation function on Windows; release Profile composition included all three FutureStaff plugins; full `npm run check` passed, including every workspace and 52/52 top-level tests.
 - Boundaries: no existing user Profile was deleted or modified, no real account or service was contacted, and no installer was executed, signed, or publicly uploaded.
+
+## B02m: Bootstrap the desktop Alpha identity policy
+
+- Status: Completed in controlled desktop commit `2a0a98fac0`; product release pin and replacement installer pending.
+- Incident: after the dependency-layout repair, the packaged Profile reached Host composition but `fs-core` correctly rejected the missing `FUTURESTAFF_IDENTITY_MODE` before any plugin could start.
+- Result: the desktop Host now injects the explicit `single-subject` mode plus fixed bootstrap-only tenant/user labels whenever the reserved `futurestaff-alpha` Profile is selected. It overwrites caller-controlled environment values for that Profile and leaves every unrelated Profile untouched.
+- Security: the bootstrap labels are not application authorization and are never accepted as a Platform tenant choice. A02 remains the authority for authenticated user, active tenant, application grants, and short-lived Product Hub credentials.
+- Verification: the regression failed before implementation; identity, Profile repair, migration, and preparation tests passed 52/52 with desktop build/typecheck; product checks and replacement packaging remain the final release gate.
