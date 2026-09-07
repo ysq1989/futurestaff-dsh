@@ -37,7 +37,14 @@ export interface BundledFutureStaffProfileOptions {
   readonly selectionStatePath: string
 }
 
-export type BundledFutureStaffProfileResult = 'absent' | 'installed' | 'preserved'
+export type BundledFutureStaffProfileResult = 'absent' | 'installed' | 'repaired' | 'preserved'
+
+const DEPENDENCY_METADATA = new Set([
+  'node_modules/.modules.yaml',
+  'pnpm-lock.yaml',
+  'pnpm-workspace.yaml',
+])
+const LEGACY_GENERATED_FILES = new Set(['cordis.yml', 'pnpm-workspace.yaml'])
 
 function safeRelativePath(value: string): boolean {
   if (value.length === 0 || value.includes('\\') || isAbsolute(value)) return false
@@ -99,6 +106,28 @@ function verifySource(source: string): ReleaseManifest {
   return manifest
 }
 
+function isRepairableLegacyProfile(target: string, current: ReleaseManifest): boolean {
+  try {
+    const legacy = readManifest(target)
+    const currentFiles = Object.keys(current.files).sort()
+    const expectedLegacyFiles = currentFiles.filter(file => !DEPENDENCY_METADATA.has(file))
+    const legacyFiles = Object.keys(legacy.files).sort()
+    if (legacyFiles.length !== expectedLegacyFiles.length
+      || legacyFiles.some((file, index) => file !== expectedLegacyFiles[index]
+        || legacy.files[file] !== current.files[file])) return false
+
+    const actual = inventory(target).filter(file => file !== RELEASE_MANIFEST)
+    if (actual.some(file => !Object.hasOwn(legacy.files, file) && !LEGACY_GENERATED_FILES.has(file))) return false
+    for (const relativePath of legacyFiles) {
+      const digest = createHash('sha256').update(readFileSync(join(target, relativePath))).digest('hex')
+      if (digest !== legacy.files[relativePath]) return false
+    }
+    return true
+  } catch {
+    return false
+  }
+}
+
 function copyVerifiedTree(source: string, target: string): void {
   mkdirSync(target, { recursive: false, mode: 0o700 })
   for (const relativePath of inventory(source)) {
@@ -110,32 +139,46 @@ function copyVerifiedTree(source: string, target: string): void {
 }
 
 /**
- * Install and select the bundled Profile only for a fresh desktop selection.
- * Existing Profile data and selection state are never overwritten.
+ * Install and select the bundled Profile for a fresh desktop selection.
+ * One exact, hash-matched legacy product Profile may be atomically repaired;
+ * user-modified Profiles and existing selection state are always preserved.
  */
 export function installBundledFutureStaffProfile(
   options: BundledFutureStaffProfileOptions,
 ): BundledFutureStaffProfileResult {
   const source = resolve(options.resourcesPath, PROFILE_RESOURCE_DIRECTORY, 'profiles', PROFILE_NAME)
   if (!existsSync(source)) return 'absent'
-  verifySource(source)
+  const sourceManifest = verifySource(source)
 
   const target = resolve(options.homeDir, 'profiles', PROFILE_NAME)
-  if (existsSync(target)) return 'preserved'
+  const repairLegacy = existsSync(target) && isRepairableLegacyProfile(target, sourceManifest)
+  if (existsSync(target) && !repairLegacy) return 'preserved'
   const profilesDir = dirname(target)
   mkdirSync(profilesDir, { recursive: true, mode: 0o700 })
   const staging = join(profilesDir, `.${basename(target)}.creating-${process.pid}-${randomUUID()}`)
+  const backup = join(profilesDir, `.${basename(target)}.legacy-${process.pid}-${randomUUID()}`)
   try {
     copyVerifiedTree(source, staging)
     verifySource(staging)
-    if (existsSync(target)) throw new Error('FutureStaff release Profile appeared during installation')
+    if (repairLegacy) {
+      renameSync(target, backup)
+      if (!isRepairableLegacyProfile(backup, sourceManifest)) {
+        renameSync(backup, target)
+        rmSync(staging, { recursive: true, force: true })
+        return 'preserved'
+      }
+    } else if (existsSync(target)) {
+      throw new Error('FutureStaff release Profile appeared during installation')
+    }
     renameSync(staging, target)
+    if (repairLegacy) rmSync(backup, { recursive: true, force: true })
     if (!existsSync(options.selectionStatePath)) {
       selectDesktopProfile(options.selectionStatePath, options.homeDir, PROFILE_NAME)
     }
-    return 'installed'
+    return repairLegacy ? 'repaired' : 'installed'
   } catch (cause) {
     rmSync(staging, { recursive: true, force: true })
+    if (!existsSync(target) && existsSync(backup)) renameSync(backup, target)
     throw cause
   }
 }
