@@ -46,3 +46,16 @@ npm run desktop:verify
 
 This check does not initialize submodules, create a GitHub repository, publish,
 sign, or deploy anything.
+
+## Product Profile staging
+
+`npm run release:profile` creates an ignored release tree at
+`dist/desktop-profile/profiles/futurestaff-alpha`. Unlike the developer Profile,
+the release tree contains physical copies of built package files and exact
+package versions. It contains no source-tree junctions, absolute `file:`
+dependencies, credentials, sessions, caches, source files, or tests.
+
+Run `npm run profile:dump:release` before desktop packaging. The repository-pinned
+DSH runtime must compose both `futurestaff-core` and
+`futurestaff-platform-access`; transient `pnpm dlx` resolution is not a release
+input.
