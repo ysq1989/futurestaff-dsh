@@ -12,6 +12,7 @@
     }
   },
   "dependencies": {
-    "@futurestaff/fs-core": "PROFILE_INSTALLER_REPLACES_THIS"
+    "@futurestaff/fs-core": "PROFILE_INSTALLER_REPLACES_THIS",
+    "@futurestaff/fs-platform-access": "PROFILE_INSTALLER_REPLACES_THIS"
   }
 }

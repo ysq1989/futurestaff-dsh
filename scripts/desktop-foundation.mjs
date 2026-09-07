@@ -20,6 +20,7 @@ export function validateDesktopFoundation(value) {
   const security = isRecord(value?.securityDefaults) ? value.securityDefaults : {}
   const updates = isRecord(security.thirdPartyUpdates) ? security.thirdPartyUpdates : {}
   const remote = isRecord(security.remoteControl) ? security.remoteControl : {}
+  const platformContract = isRecord(value?.platformContract) ? value.platformContract : {}
 
   if (value?.schemaVersion !== 1) errors.push('schemaVersion must be 1')
   if (product.name !== 'FutureStaff Agent') errors.push('product.name must be FutureStaff Agent')
@@ -39,6 +40,17 @@ export function validateDesktopFoundation(value) {
   if (security.communityMarket !== false || security.dshMarket !== false) errors.push('third-party markets must be disabled')
   if (security.sponsorAndAggregationLinks !== false) errors.push('sponsor and aggregation links must be disabled')
   if (remote.enabled !== false || remote.exposure !== 'loopback') errors.push('remote control must be disabled and loopback-only')
+  if (platformContract.mode !== 'local-mock') errors.push('B01a platform contract must remain local-mock only')
+  if (platformContract.version !== '0.1.0') errors.push('platform contract version must remain 0.1.0')
+  if (platformContract.platformCommit !== '93ca162566225894a8cd317b7bc51b096d16a0ec') {
+    errors.push('platform contract commit does not match the A01b handoff')
+  }
+  if (platformContract.bundleSha256 !== '5ae4e07157b5c7c1b8007f514d47cc0bb05734841341f59c44c37a978b7f9fe9') {
+    errors.push('platform contract bundle digest does not match the A01b handoff')
+  }
+  if (platformContract.baseUrl !== 'http://127.0.0.1:43821') errors.push('platform mock must use the fixed loopback endpoint')
+  if (platformContract.clientId !== 'futurestaff-agent-pc-dev') errors.push('platform mock client ID is incorrect')
+  if (platformContract.productionEnabled !== false) errors.push('B01a must not enable a production platform endpoint')
 
   const expectedCapabilities = ['window', 'tray', 'terminal', 'profile', 'recovery', 'windows-installer']
   if (JSON.stringify(value?.retainedCapabilities) !== JSON.stringify(expectedCapabilities)) {

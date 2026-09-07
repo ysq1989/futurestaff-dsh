@@ -13,6 +13,7 @@ Optional task tags are `[spark]`, `[codex]`, `[sol]`, `[work]`, and `[any]`. The
 
 ## Medium value
 
+- [ ] [spark] Repair the pinned DSH `profile:dump` launcher dependency resolution; `pnpm dlx @deepseek-ai/dsh@0.1.1-rc.2` currently cannot resolve its declared `@deepseek-ai/dsh-app-boot` dependency on this Windows host.
 - [ ] [spark] Identify integration-test gaps for current milestone code.
 - [ ] [codex] Audit API consistency and error contracts.
 - [ ] [codex] Audit dependency and upgrade risks.

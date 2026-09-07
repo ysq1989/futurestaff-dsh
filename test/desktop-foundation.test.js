@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
 import {
@@ -58,4 +59,30 @@ test('desktop foundation retains the required local shell capabilities', () => {
     'windows-installer',
   ])
   assert.deepEqual(validateDesktopFoundation(foundation), [])
+})
+
+test('B01a pins the published local-only platform contract bundle', () => {
+  const { platformContract } = loadDesktopFoundation()
+
+  assert.deepEqual(platformContract, {
+    mode: 'local-mock',
+    version: '0.1.0',
+    platformCommit: '93ca162566225894a8cd317b7bc51b096d16a0ec',
+    bundleSha256: '5ae4e07157b5c7c1b8007f514d47cc0bb05734841341f59c44c37a978b7f9fe9',
+    baseUrl: 'http://127.0.0.1:43821',
+    clientId: 'futurestaff-agent-pc-dev',
+    productionEnabled: false,
+  })
+})
+
+test('FutureStaff Profile mounts the B01a Host and Web client plugin', async () => {
+  const [profilePackage, profilePatch, installer] = await Promise.all([
+    readFile(new URL('../profile/futurestaff-alpha/package.json', import.meta.url), 'utf8'),
+    readFile(new URL('../profile/futurestaff-alpha/cordis.patch.yml', import.meta.url), 'utf8'),
+    readFile(new URL('../scripts/install-profile.mjs', import.meta.url), 'utf8'),
+  ])
+
+  assert.match(profilePackage, /"@futurestaff\/fs-platform-access"/)
+  assert.match(profilePatch, /id: futurestaff-platform-access[\s\S]*name: '@futurestaff\/fs-platform-access'/)
+  assert.match(installer, /manifest\.dependencies\['@futurestaff\/fs-platform-access'\]/)
 })

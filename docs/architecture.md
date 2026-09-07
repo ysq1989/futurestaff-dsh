@@ -16,6 +16,16 @@ Browser -> official DSH Web bundle -> FutureStaff Profile overlay
 2. `ToolMetadata` decides where a Tool executes and whether approval/tenant isolation is required. Local Tools require a device; cloud Tools cannot name one.
 3. A `tools/pre-execute` policy asks for DSH's one-time user approval before every Product Hub operation except an explicit read allowlist. Unknown future Product Hub tools fail closed into approval instead of executing silently.
 
+The B01a platform-access plugin is a local Mock-only composition seam. Its Host
+half exposes six exact loopback routes and forwards only JSON plus the inert Mock
+Authorization label to the pinned `127.0.0.1:43821` service. Its Web half mounts a
+FutureStaff Settings section for login state, tenant selection, and authorized
+applications. Responses must prove both Mock origin and contract `0.1.0`; tenant
+switch and logout invalidate the current request generation and clear request
+cache, workspace state, and application credentials before another subject can
+become active. This seam is not a production identity gateway and stores no real
+credential.
+
 The Profile installer stages source into `$DSH_HOME/profiles/futurestaff-alpha`, because DSH discovers profiles there. This keeps repository layout readable while respecting the upstream runtime contract.
 
 M2 mounts the Selection Center over the official DSH MCP client using stdio. The row remains disabled without upstream configuration. Its environment identity is suitable only for the single-tenant Alpha bootstrap; a multi-tenant deployment must construct a request-scoped MCP/HTTP boundary instead of sharing one process-wide identity.

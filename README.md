@@ -38,6 +38,8 @@ If Windows Application Control blocks DSH's native `sharp` module, run the Docke
 |---|---|
 | `npm run check` | Type-check, test, and build all implemented workspaces |
 | `npm run desktop:verify` | Verify the pinned desktop source, product identity, and fail-closed distribution defaults |
+| `npm run platform:mock:demo` | Open the loopback B01a login, tenant, and authorized-app panel against A's local Mock |
+| `npm run platform:mock:smoke` | Exercise the pinned platform Mock without starting the graphical shell |
 | `npm run profile:install` | Stage the custom Profile and install `fs-core` |
 | `npm run profile:dump` | Print the final composed DSH plugin tree |
 | `npm run dev -- --port 3080 --no-open` | Start the FutureStaff Alpha Web Profile |
@@ -51,6 +53,7 @@ If Windows Application Control blocks DSH's native `sharp` module, run the Docke
 ```text
 profile/futurestaff-alpha/  Custom Profile source
 plugins/fs-core/            Identity context and Tool metadata contract
+plugins/fs-platform-access/ B01a Host bridge and Web client for the pinned local platform Mock
 mcp/selection-center/       M2 MCP server, schemas, and HTTP adapter
 mcp/vietnam-visa/           Future boundary placeholder
 mcp/local-runner/            Fixed read-only DSH-to-Gateway MCP adapter

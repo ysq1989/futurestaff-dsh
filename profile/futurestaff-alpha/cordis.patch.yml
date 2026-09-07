@@ -9,6 +9,9 @@
         deviceId: !!js process.env.FUTURESTAFF_DEVICE_ID || undefined
         visaAccessRole: !!js process.env.VISA_ACCESS_ROLE || 'collector'
 
+    - id: futurestaff-platform-access
+      name: '@futurestaff/fs-platform-access'
+
     - id: mcp-selection-center
       name: '@deepseek-ai/dsh-mcp-client'
       disabled: !!js >-

@@ -48,8 +48,12 @@
     "windows-installer"
   ],
   "platformContract": {
-    "mode": "fixtures",
-    "version": null,
-    "sha": null
+    "mode": "local-mock",
+    "version": "0.1.0",
+    "platformCommit": "93ca162566225894a8cd317b7bc51b096d16a0ec",
+    "bundleSha256": "5ae4e07157b5c7c1b8007f514d47cc0bb05734841341f59c44c37a978b7f9fe9",
+    "baseUrl": "http://127.0.0.1:43821",
+    "clientId": "futurestaff-agent-pc-dev",
+    "productionEnabled": false
   }
 }
