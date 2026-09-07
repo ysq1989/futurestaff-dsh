@@ -14,11 +14,11 @@ inputs.
 - Official `deepseek-harness` gitlink: `a66e4702047846cdaa10c66c9d3df3951f5ea70d`
 
 The reviewed desktop release commit is pinned at
-`2a0a98fac0b95152cd101c850e6ce8ac1675fce2` on the controlled fork's `main`
+`2887e6d5c36f423f3773b8344365542586dbed54` on the controlled fork's `main`
 branch. It preserves the original productization boundary and verified
 first-launch Profile installation, adds the Host-only OS-protected secret
-service, safely repairs the exact hash-matched incomplete Alpha Profile, and
-provides a fixed non-authoritative desktop bootstrap identity before sign-in.
+service, safely repairs or explicitly upgrades an exact hash-matched bundled
+Alpha Profile, and provides a fixed non-authoritative desktop bootstrap identity before sign-in.
 Do not replace it with an uncommitted tree or a moving branch name.
 
 ## Distribution boundary
@@ -82,6 +82,12 @@ DSH runtime must compose `futurestaff-core`, `futurestaff-platform-access`, and
 `futurestaff-product-hub-ui`; transient `pnpm dlx` resolution is not a release
 input. Product Hub contributes only additive sidebar/overlay slots and serves
 its built UI from a fixed loopback Host route.
+
+Every packaged Web client has a classic-script DSH factory bundle at
+`lib/client.js`; release staging executes each bundle far enough to verify its
+exact `__ModuleLoader__` registration. The release manifest may list exact
+superseded manifest digests so a replacement installer upgrades only an
+untouched prior bundled Profile and preserves user-modified Profiles.
 
 The built-only release Profile also carries deterministic pnpm 11 hoisted-layout
 metadata. Those files are included in `release-manifest.json` and prevent the

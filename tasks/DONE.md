@@ -161,3 +161,11 @@
 - Result: the desktop Host now injects the explicit `single-subject` mode plus fixed bootstrap-only tenant/user labels whenever the reserved `futurestaff-alpha` Profile is selected. It overwrites caller-controlled environment values for that Profile and leaves every unrelated Profile untouched.
 - Security: the bootstrap labels are not application authorization and are never accepted as a Platform tenant choice. A02 remains the authority for authenticated user, active tenant, application grants, and short-lived Product Hub credentials.
 - Verification: the regression failed before implementation; identity, Profile repair, migration, and preparation tests passed 52/52 with desktop build/typecheck; product checks and replacement packaging remain the final release gate.
+
+## B02n: Emit DSH-compatible client plugin bundles
+
+- Status: Completed locally; replacement installer pending.
+- Incident: both FutureStaff Web plugins exposed raw TypeScript-emitted ESM as their DSH `./client` entry. The Host concatenated those files into a classic script, whose unsupported top-level imports prevented every factory registration and surfaced as a misleading failure on the first official plugin.
+- Result: each package now keeps its importable ESM under `lib/client/index.js` and emits a separate `lib/client.js` factory bundle that registers its exact package ID through `__ModuleLoader__`. Release staging parses and executes both bundle shells as a regression gate.
+- Upgrade safety: the packaged manifest explicitly supersedes the exact prior candidate manifest digest. Controlled desktop commit `2887e6d5c3` atomically upgrades only that fully hash-matched bundled Profile; managed-file changes or unexpected files remain preserved.
+- Boundaries: no user Profile was modified, no installer was executed, no real Platform request was made, and no push or public distribution occurred.

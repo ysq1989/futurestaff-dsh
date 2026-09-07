@@ -12,7 +12,7 @@
     },
     "./client": {
       "types": "./lib/client/index.d.ts",
-      "default": "./lib/client/index.js"
+      "default": "./lib/client.js"
     },
     "./package.json": "./package.json"
   },
@@ -28,7 +28,7 @@
   },
   "files": ["lib", "ui"],
   "scripts": {
-    "build": "tsc -p tsconfig.plugin.json && vite build",
+    "build": "tsc -p tsconfig.plugin.json && node ../../scripts/build-dsh-client.mjs . @futurestaff/fs-product-hub-ui && vite build",
     "dev": "vite --host 127.0.0.1",
     "test": "npm run build && vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"

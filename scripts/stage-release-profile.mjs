@@ -2,11 +2,15 @@ import { createHash } from 'node:crypto'
 import { cp, lstat, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import vm from 'node:vm'
 
 const scriptRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const defaultOutput = path.join(scriptRoot, 'dist', 'desktop-profile')
 const profileName = 'futurestaff-alpha'
 const packages = ['fs-core', 'fs-platform-access', 'fs-product-hub-ui']
+const supersededReleaseManifests = [
+  '24c260169b8cbafaec0de5fc209702d8c882243cf32bbcdb37b8e78c6afe11c9',
+]
 const pnpmVersion = '11.8.0'
 const pnpmWorkspace = `packages:
   - .
@@ -48,6 +52,21 @@ async function sha256(file) {
   return createHash('sha256').update(await readFile(file)).digest('hex')
 }
 
+async function verifyClientBundle(target, packageName) {
+  const relative = `node_modules/@futurestaff/${packageName}/lib/client.js`
+  const source = await readFile(path.join(target, relative), 'utf8')
+  const registrations = []
+  new vm.Script(source, { filename: relative }).runInNewContext({
+    window: { __ModuleLoader__: { load: registration => registrations.push(registration) } },
+  })
+  const expectedId = `@futurestaff/${packageName}`
+  if (registrations.length !== 1
+    || registrations[0]?.id !== expectedId
+    || typeof registrations[0]?.factory !== 'function') {
+    throw new Error(`${expectedId} client bundle does not register its DSH module factory`)
+  }
+}
+
 export async function verifyReleaseProfile(outputRoot, sourceRoot = scriptRoot) {
   const target = path.join(outputRoot, 'profiles', profileName)
   const files = await walkFiles(target)
@@ -76,6 +95,10 @@ export async function verifyReleaseProfile(outputRoot, sourceRoot = scriptRoot) 
   if (files.some(file => /\/(?:src|test)\//u.test(`/${file}/`) || file.endsWith('/tsconfig.json'))) {
     throw new Error('release Profile contains development source, tests, or TypeScript configuration')
   }
+  await Promise.all([
+    verifyClientBundle(target, 'fs-platform-access'),
+    verifyClientBundle(target, 'fs-product-hub-ui'),
+  ])
   const sourceMarkers = [path.resolve(sourceRoot), path.resolve(sourceRoot).replaceAll('\\', '/')]
   for (const relative of files.filter(file => /\.(?:json|ya?ml|js|d\.ts)$/u.test(file))) {
     const contents = await readFile(path.join(target, relative), 'utf8')
@@ -131,6 +154,7 @@ export async function stageReleaseProfile(options = {}) {
     profile: profileName,
     productVersion: profileManifest.version,
     dshVersion: '0.1.2-rc.1',
+    supersedes: supersededReleaseManifests,
     platformContract: foundation.platformContract,
     files: fileHashes,
   }

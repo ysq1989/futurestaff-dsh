@@ -12,7 +12,7 @@
     },
     "./client": {
       "types": "./lib/client/index.d.ts",
-      "default": "./lib/client/index.js"
+      "default": "./lib/client.js"
     },
     "./package.json": "./package.json"
   },
@@ -27,7 +27,7 @@
   },
   "files": ["lib"],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && node ../../scripts/build-dsh-client.mjs . @futurestaff/fs-platform-access",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test"
   },
