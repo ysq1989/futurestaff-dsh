@@ -80,3 +80,30 @@ test('client registers the access panel in the DSH Settings section ledger', () 
   })
   assert.equal(typeof component, 'function')
 })
+
+test('embedded Mock completes login and tenant-scoped discovery without an external process', async t => {
+  const registrations = []
+  applyHost({
+    effect: register => { register() },
+    webServer: { register: route => { registrations.push(route); return () => {} } },
+  }, { embeddedMock: true })
+  const server = createServer((request, response) => {
+    const route = registrations.find(item => item.path === new URL(request.url, 'http://localhost').pathname)
+    void route.handler(request, response)
+  })
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve))
+  t.after(() => server.close())
+  const address = server.address()
+  const origin = `http://127.0.0.1:${address.port}/_futurestaff/platform-mock`
+  const login = await fetch(`${origin}/desktop/v1/auth/callback`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ clientId: 'futurestaff-agent-pc-dev', code: 'mock-code-success', codeVerifier: 'v'.repeat(43), redirectUri: 'http://127.0.0.1:43821/callback', state: 'mock-state-1234567890' }),
+  })
+  const loginBody = await login.json()
+  assert.equal(login.status, 200)
+  assert.equal(login.headers.get('x-futurestaff-contract-version'), '0.1.0')
+  const apps = await fetch(`${origin}/desktop/v1/apps`, { headers: { authorization: `Bearer ${loginBody.session.accessToken}` } })
+  const appsBody = await apps.json()
+  assert.deepEqual(appsBody.items.map(item => item.appId), ['agent', 'product_hub'])
+  assert.equal(appsBody.meta.simulated, true)
+})

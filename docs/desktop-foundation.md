@@ -14,7 +14,7 @@ inputs.
 - Official `deepseek-harness` gitlink: `a66e4702047846cdaa10c66c9d3df3951f5ea70d`
 
 The reviewed Profile-installation release commit is pinned at
-`3e3b3fd822d1510f82d7831f10ea4618701f07f5` on the controlled fork's `main`
+`8f7dbd6ce960daa1e80a96010488b982932381bd` on the controlled fork's `main`
 branch. It preserves the original productization boundary and adds verified,
 first-launch installation of the staged FutureStaff Profile. Do not replace it
 with an uncommitted tree or a moving branch name.
@@ -66,3 +66,8 @@ input.
 state, untouched official Harness gitlink, FutureStaff package identity, and
 `extraResources` destination before writing only the ignored
 `build/futurestaff-profile` packaging input in that checkout.
+
+`npm run installer:windows` runs that staging gate, invokes the controlled
+fork's unsigned NSIS release path, verifies the packaged runtime, and copies the
+single x64 Setup executable plus a SHA-256 sidecar into ignored `outputs/`.
+Signing and public distribution remain disabled for this Mock-only Alpha.

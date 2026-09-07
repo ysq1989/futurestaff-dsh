@@ -11,6 +11,8 @@
 
     - id: futurestaff-platform-access
       name: '@futurestaff/fs-platform-access'
+      config:
+        embeddedMock: true
 
     - id: mcp-selection-center
       name: '@deepseek-ai/dsh-mcp-client'

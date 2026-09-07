@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import { PLATFORM_CONTRACT_VERSION, PLATFORM_MOCK_BASE_URL } from './contracts.js'
+import { dispatchEmbeddedMock } from './embedded-mock.js'
 
 const ROUTE_PREFIX = '/_futurestaff/platform-mock'
 const MAX_REQUEST_BYTES = 64 * 1024
@@ -44,7 +45,9 @@ async function readBody(request: IncomingMessage): Promise<Buffer> {
   return Buffer.concat(chunks)
 }
 
-async function proxy(request: IncomingMessage, response: ServerResponse, path: string): Promise<void> {
+export interface PlatformAccessConfig { readonly embeddedMock?: boolean }
+
+async function proxy(request: IncomingMessage, response: ServerResponse, path: string, embeddedMock: boolean): Promise<void> {
   const methods = routes.get(path)
   if (methods === undefined || request.method === undefined || !methods.has(request.method)) {
     json(response, 405, {
@@ -62,6 +65,13 @@ async function proxy(request: IncomingMessage, response: ServerResponse, path: s
   }
   try {
     const body = await readBody(request)
+    if (embeddedMock) {
+      let parsed: unknown = null
+      try { parsed = body.length === 0 ? null : JSON.parse(body.toString('utf8')) } catch { /* dispatched as invalid input */ }
+      const result = dispatchEmbeddedMock(request.method, path, request.headers, parsed)
+      json(response, result.status, result.body)
+      return
+    }
     const upstream = await fetch(`${PLATFORM_MOCK_BASE_URL}${path}`, {
       method: request.method,
       headers: {
@@ -88,12 +98,12 @@ async function proxy(request: IncomingMessage, response: ServerResponse, path: s
 }
 
 /** Register six exact, loopback-only bridge routes for the pinned local Mock. */
-export function apply(ctx: Context): void {
+export function apply(ctx: Context, config: PlatformAccessConfig = {}): void {
   for (const path of routes.keys()) {
     ctx.effect(() => ctx.webServer.register({
       kind: 'exact',
       path: `${ROUTE_PREFIX}${path}`,
-      handler: (request, response) => proxy(request, response, path),
+      handler: (request, response) => proxy(request, response, path, config.embeddedMock === true),
     }), `futurestaff-platform-access: local Mock bridge ${path}`)
   }
 }

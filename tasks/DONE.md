@@ -13,3 +13,16 @@
 - Status: Completed and pushed as `570fa30af6723005b8d9a8498d9a9056094dd00a`.
 - Result: repository-pinned DSH `0.1.2-rc.1`, successful development/release Profile composition, and a relocatable built-only Profile tree without absolute paths or links.
 - Verification: release Profile tests, full product checks, exact file inspection, and `profile:dump:release` passed.
+
+## B01c: Integrate the release Profile with the controlled desktop shell
+
+- Status: Completed and pushed as `ab7f5f11a6b8eac2bed6bb2b52040760ebf6c763`; controlled-shell support was pushed as `3e3b3fd822d1510f82d7831f10ea4618701f07f5`.
+- Result: verified first-launch Profile installation, preservation of existing user data, packaged-resource gates, and exact cross-repository staging.
+- Verification: desktop focused and Windows package gates plus the product full check passed; known unrelated Windows environment failures remain recorded in the completed task history.
+
+## B01d: Export a self-contained private Windows Mock installer
+
+- Status: Completed in the B01d close commit. Desktop artifact-name verification was pushed as `8f7dbd6ce960daa1e80a96010488b982932381bd`.
+- Result: the packaged Host runs the pinned B01a contract through an in-process Mock, while retaining the loopback bridge, explicit simulated metadata, all session states, and tenant-change cleanup. No Python service, real account, credential, signing, publishing, or cloud deployment is required.
+- Artifact: ignored private Alpha `FutureStaff-Agent-2.0.5-x64-Setup.exe`, 134,257,457 bytes, SHA-256 `22fdb50439094ae3ae434c587a90b009cb3db9e353a1a7dd9c69d084b21e83c1`.
+- Verification: product full check, embedded Mock integration tests, release Profile checks, 188 Windows package tests, 228-node runtime closure, NSIS build, installer/application PE verification, independent SHA-256 comparison, and unsigned Authenticode status check passed.

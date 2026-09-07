@@ -17,6 +17,7 @@
     "release:profile": "npm run build -w @futurestaff/fs-core && npm run build -w @futurestaff/fs-platform-access && node scripts/stage-release-profile.mjs",
     "profile:dump:release": "npm run release:profile && cross-env DSH_HOME=dist/desktop-profile NODE_OPTIONS=--import=./scripts/load-env.mjs dsh --profile futurestaff-alpha --dump-config",
     "desktop:stage": "node scripts/stage-desktop-release.mjs",
+    "installer:windows": "node scripts/build-desktop-installer.mjs",
     "ai:usage": "node scripts/codex-usage.mjs",
     "ai:route": "node scripts/quota-router.mjs",
     "ai:recommend": "node scripts/task-recommender.mjs",
