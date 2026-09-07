@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/anywhere-labs/deepseek-harness-desktop.git",
+    "url": "git+https://github.com/ysq1989/futurestaff-dsh-desktop.git",
     "directory": "dsh-plugin-desktop"
   },
   "type": "module",
@@ -312,8 +312,8 @@
     "vitest": "4.1.8"
   },
   "build": {
-    "appId": "ai.deepseek.dsh.desktop",
-    "productName": "DSH Desktop",
+    "appId": "net.fsstory.agent.desktop",
+    "productName": "FutureStaff Agent",
     "asar": true,
     "asarUnpack": [
       "package.json",
@@ -374,7 +374,7 @@
           ]
         }
       ],
-      "artifactName": "DSH-Desktop-${version}-${arch}-Portable.${ext}",
+      "artifactName": "FutureStaff-Agent-${version}-${arch}-Portable.${ext}",
       "icon": "build/app-icon.png"
     },
     "nsis": {
@@ -387,9 +387,9 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "differentialPackage": false,
-      "shortcutName": "DSH Desktop",
+      "shortcutName": "FutureStaff Agent",
       "useZip": false,
-      "artifactName": "DSH-Desktop-${version}-${arch}-Setup.${ext}"
+      "artifactName": "FutureStaff-Agent-${version}-${arch}-Setup.${ext}"
     },
     "linux": {
       "target": [
