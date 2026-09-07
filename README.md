@@ -11,6 +11,7 @@ FutureStaff's upgrade-friendly extension layer for [DeepSeek Harness](https://gi
 - **M3 baseline:** fail-closed single-subject deployment boundary pending a trusted identity gateway.
 - **Local Runner foundation:** versioned protocol plus an in-memory cloud Router for trusted binding, presence, dispatch, timeout, and result collection.
 - **Authenticated Runner transport:** opt-in loopback WebSocket gateway and a read-only reconnecting Node client.
+- **Desktop foundation:** a pinned, security-defaulted FutureStaff distribution over the controlled DSH Desktop fork.
 - **Deployment:** server-first Docker image with separate test and production Compose topology.
 - **Not in scope:** Vietnam visa business calls, public Runner transport or desktop client, final auth, and billing.
 
@@ -36,6 +37,7 @@ If Windows Application Control blocks DSH's native `sharp` module, run the Docke
 | Command | Purpose |
 |---|---|
 | `npm run check` | Type-check, test, and build all implemented workspaces |
+| `npm run desktop:verify` | Verify the pinned desktop source, product identity, and fail-closed distribution defaults |
 | `npm run profile:install` | Stage the custom Profile and install `fs-core` |
 | `npm run profile:dump` | Print the final composed DSH plugin tree |
 | `npm run dev -- --port 3080 --no-open` | Start the FutureStaff Alpha Web Profile |
@@ -59,6 +61,7 @@ runner/client/               Minimal read-only Local Runner client
 skills/jade-sourcing/       Future skill placeholder
 skills/vietnam-visa/        Collector-safe Vietnam visa operating instructions
 docs/                       Architecture, acceptance criteria, conventions, ADRs
+desktop/                    Pinned desktop-shell and FutureStaff distribution contract
 docker/                     Server image, dev/prod Compose, and Nginx example
 scripts/                    Profile staging utility
 ```

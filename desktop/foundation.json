@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "product": {
+    "name": "FutureStaff Agent",
+    "appId": "net.fsstory.agent.desktop",
+    "executableName": "FutureStaff-Agent",
+    "dataDirectory": "FutureStaff Agent",
+    "logNamespace": "FutureStaff Agent/logs"
+  },
+  "desktopShell": {
+    "repository": "https://github.com/ysq1989/futurestaff-dsh-desktop.git",
+    "upstream": "https://github.com/anywhere-labs/dsh-desktop.git",
+    "tag": "v2.0.5",
+    "baseCommit": "423406fe225442995902015cb6f10eed670ff115",
+    "releaseCommit": "3665790fede332762e716074afb319dc997f121c",
+    "license": "MIT",
+    "deepseekHarness": {
+      "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
+      "commit": "a66e4702047846cdaa10c66c9d3df3951f5ea70d",
+      "modified": false
+    }
+  },
+  "securityDefaults": {
+    "thirdPartyUpdates": {
+      "enabled": false,
+      "endpoint": null
+    },
+    "communityMarket": false,
+    "dshMarket": false,
+    "sponsorAndAggregationLinks": false,
+    "remoteControl": {
+      "enabled": false,
+      "exposure": "loopback"
+    }
+  },
+  "futureUpdateContract": {
+    "manifestUrl": null,
+    "requireSha256": true,
+    "requireWindowsSignature": true,
+    "requireRollbackArtifact": true
+  },
+  "retainedCapabilities": [
+    "window",
+    "tray",
+    "terminal",
+    "profile",
+    "recovery",
+    "windows-installer"
+  ],
+  "platformContract": {
+    "mode": "fixtures",
+    "version": null,
+    "sha": null
+  }
+}
