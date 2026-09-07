@@ -43,8 +43,10 @@ The foundation manifest preserves two independent inputs:
 The DEV pin does not enable PROD or authorize real login by itself. B02b adds a
 Host-only `desktopProtectedSecrets` contract backed by Electron `safeStorage`
 in the pinned controlled desktop release, plus a product `PlatformSessionVault`
-that validates the A02 shape. The Web Settings panel still stays on Mock pending
-PKCE callback and controller wiring.
+that validates the A02 shape. The product Host now owns PKCE, DEV API access,
+protected session restoration, and tenant operations; the Web Settings panel
+receives only a strictly validated credential-free snapshot. Non-desktop local
+development continues to use the independent Mock path.
 
 ## Verification
 

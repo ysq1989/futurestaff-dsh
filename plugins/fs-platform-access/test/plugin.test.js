@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
-import { createServer } from 'node:http'
+import { createServer, request as httpRequest } from 'node:http'
 import test from 'node:test'
 
-import { apply as applyClient } from '../lib/client/index.js'
+import { apply as applyClient, beginPlatformDevLogin } from '../lib/client/index.js'
 import { apply as applyHost } from '../lib/index.js'
 
 test('host registers only the six exact platform Mock bridge routes', () => {
@@ -25,6 +25,33 @@ test('host registers only the six exact platform Mock bridge routes', () => {
     '/_futurestaff/platform-mock/desktop/v1/tenants',
     '/_futurestaff/platform-mock/desktop/v1/tenants/switch',
   ])
+})
+
+test('client opens only a strictly validated Host authorization URL', async () => {
+  const authorizationUrl = `https://dev.fsstory.net/login?client_id=futurestaff-agent-pc-dev&redirect_uri=${encodeURIComponent('http://127.0.0.1:43821/callback')}&state=${'s'.repeat(43)}&code_challenge=${'c'.repeat(43)}&code_challenge_method=S256`
+  let opened
+  await beginPlatformDevLogin(
+    async (input, init) => {
+      assert.equal(input, '/_futurestaff/platform-dev/login')
+      assert.equal(init.method, 'POST')
+      assert.equal(init.headers['x-futurestaff-login'], '1')
+      return new Response(JSON.stringify({ authorizationUrl }), { status: 200 })
+    },
+    (...args) => { opened = args },
+  )
+  assert.deepEqual(opened, [authorizationUrl, '_blank', 'noopener,noreferrer'])
+  await assert.rejects(() => beginPlatformDevLogin(
+    async () => new Response(JSON.stringify({ authorizationUrl: 'https://evil.invalid/login' }), { status: 200 }),
+    () => { throw new Error('must not open') },
+  ), /unavailable/)
+  await assert.rejects(() => beginPlatformDevLogin(
+    async () => new Response(JSON.stringify({ authorizationUrl: 'not a URL with private data' }), { status: 200 }),
+    () => { throw new Error('must not open') },
+  ), error => {
+    assert.equal(error.message, 'FutureStaff login is unavailable.')
+    assert.doesNotMatch(error.message, /private data/)
+    return true
+  })
 })
 
 test('host bridge forwards only allowlisted request data and preserves Mock proof headers', async t => {
@@ -114,4 +141,85 @@ test('embedded Mock completes login and tenant-scoped discovery without an exter
   const appsBody = await apps.json()
   assert.deepEqual(appsBody.items.map(item => item.appId), ['agent', 'product_hub'])
   assert.equal(appsBody.meta.simulated, true)
+})
+
+test('desktop Host mounts one exact loopback callback and persists a fake DEV exchange', async t => {
+  const registrations = []
+  let loginService
+  const values = new Map()
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async input => {
+    const url = new URL(input)
+    const meta = { contractVersion: '0.1.1', simulated: false }
+    const tenantId = '10000000-0000-4000-8000-000000000001'
+    if (url.pathname === '/desktop/v1/auth/callback') return new Response(JSON.stringify({
+      session: { accessToken: 'private-access-token-with-entropy', refreshToken: 'private-refresh-token-with-entropy', tokenType: 'Bearer', expiresIn: 900, audience: 'futurestaff-agent-pc-dev', activeTenantId: tenantId },
+      user: { userId: '20000000-0000-4000-8000-000000000001', displayName: '测试用户' }, meta,
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+    if (url.pathname === '/desktop/v1/tenants') return new Response(JSON.stringify({
+      activeTenantId: tenantId,
+      items: [{ tenantId, displayName: '测试公司', slug: 'test-company', logoUrl: null, role: 'member' }], meta,
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+    if (url.pathname === '/desktop/v1/apps') return new Response(JSON.stringify({
+      activeTenantId: tenantId,
+      items: [{ appId: 'agent', tenantId, displayName: 'FutureStaff Agent', baseUrl: 'https://dev.fsstory.net', deepLinks: { home: '/' }, capabilities: ['agent.read'], contractRange: '>=0.1.1 <0.2.0' }], meta,
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+    throw new Error('unexpected fake DEV route')
+  }
+  t.after(() => { globalThis.fetch = originalFetch })
+
+  applyHost({
+    effect: register => { register() },
+    get: name => name === 'desktopProtectedSecrets' ? {
+      available: async () => true, has: async key => values.has(key), read: async key => values.get(key),
+      write: async (key, value) => { values.set(key, value) }, delete: async key => { values.delete(key) },
+    } : undefined,
+    provide: (name, value) => { if (name === 'platformDevLogin') loginService = value; return () => {} },
+    webServer: { host: '127.0.0.1', port: 43821, register: route => { registrations.push(route); return () => {} } },
+  })
+  assert.equal(registrations.length, 11)
+  const startRoute = registrations.find(item => item.path === '/_futurestaff/platform-dev/login')
+  const startServer = createServer((request, response) => {
+    const path = new URL(request.url, 'http://127.0.0.1').pathname
+    const route = registrations.find(item => item.path === path)
+    if (route === undefined) { response.statusCode = 404; return response.end() }
+    void route.handler(request, response)
+  })
+  await new Promise(resolve => startServer.listen(0, '127.0.0.1', resolve))
+  t.after(() => startServer.close())
+  const startAddress = startServer.address()
+  const startResponse = await originalFetch(`http://127.0.0.1:${startAddress.port}/_futurestaff/platform-dev/login`, {
+    method: 'POST', headers: { 'x-futurestaff-login': '1' },
+  })
+  assert.equal(startResponse.status, 200)
+  const authorization = new URL((await startResponse.json()).authorizationUrl)
+  t.after(() => loginService.cancel())
+  const callbackResult = await new Promise((resolve, reject) => {
+    const request = httpRequest({
+      hostname: '127.0.0.1', port: 43821,
+      path: `/callback?code=opaque-code&state=${authorization.searchParams.get('state')}`,
+      headers: { host: '127.0.0.1:43821' },
+    }, response => {
+      const chunks = []
+      response.on('data', chunk => chunks.push(chunk))
+      response.on('end', () => resolve({ status: response.statusCode, body: Buffer.concat(chunks).toString('utf8') }))
+    })
+    request.on('error', reject)
+    request.end()
+  })
+  assert.equal(callbackResult.status, 200)
+  assert.match(callbackResult.body, /Authorization complete/)
+  assert.equal(values.size, 1)
+  assert.doesNotMatch(JSON.stringify(await loginService.diagnostics()), /private-access|private-refresh/)
+  const sessionResponse = await originalFetch(`http://127.0.0.1:${startAddress.port}/_futurestaff/platform-dev/session`, {
+    headers: { 'x-futurestaff-session': '1' },
+  })
+  assert.equal(sessionResponse.status, 200)
+  const safeSnapshot = await sessionResponse.json()
+  assert.equal(safeSnapshot.phase, 'ready')
+  assert.equal(safeSnapshot.user.displayName, '测试用户')
+  assert.doesNotMatch(JSON.stringify(safeSnapshot), /private-access|private-refresh/)
+  const rejectedSession = await originalFetch(`http://127.0.0.1:${startAddress.port}/_futurestaff/platform-dev/session`)
+  assert.equal(rejectedSession.status, 403)
+  assert.deepEqual(await rejectedSession.json(), { error: 'SESSION_UNAVAILABLE' })
 })

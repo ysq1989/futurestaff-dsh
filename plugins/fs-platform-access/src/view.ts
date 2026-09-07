@@ -1,11 +1,23 @@
-import type { PlatformAccessController, PlatformAccessSnapshot } from './controller.js'
+import type { PlatformAccessSnapshot } from './controller.js'
+
+export interface PlatformAccessViewController {
+  getSnapshot(): PlatformAccessSnapshot
+  subscribe(listener: () => void): () => void
+  startLogin(): Promise<void>
+  refresh(): Promise<void>
+  switchTenant(tenantId: string): Promise<void>
+  logout(): Promise<void>
+}
 
 function escape(value: string): string {
   return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
 }
 
-function mockBadge(): string {
-  return '<span class="fs-mock-badge" role="note" data-mock="true"><span aria-hidden="true"></span>本地 Mock · 契约 0.1.0</span>'
+function environmentBadge(state: PlatformAccessSnapshot): string {
+  if (state.simulated) {
+    return '<span class="fs-environment-badge fs-mock-badge" role="note" data-mock="true"><span aria-hidden="true"></span>本地 Mock · 契约 0.1.0</span>'
+  }
+  return '<span class="fs-environment-badge fs-dev-badge" role="note" data-dev="true"><span aria-hidden="true"></span>Platform DEV · 契约 0.1.1</span>'
 }
 
 function actionButton(action: string, label: string, kind: 'primary' | 'quiet' = 'quiet'): string {
@@ -23,16 +35,19 @@ function stateShell(phase: string, title: string, body: string, options: { alert
 
 export function renderPlatformAccessView(state: PlatformAccessSnapshot): string {
   if (state.phase === 'signed_out') {
-    return stateShell('signed_out', '连接你的工作空间', `<p class="fs-lead">登录后可查看已授权租户和应用。当前流程仅连接本机模拟服务，不会发送真实凭据。</p>${mockBadge()}<div class="fs-actions">${actionButton('login', '模拟登录', 'primary')}</div>`)
+    const body = state.simulated
+      ? '登录后可查看已授权租户和应用。当前流程仅连接本机模拟服务，不会发送真实凭据。'
+      : '使用系统浏览器登录 Platform DEV。凭据只保存在操作系统保护的本机存储中。'
+    return stateShell('signed_out', '连接你的工作空间', `<p class="fs-lead">${body}</p>${environmentBadge(state)}<div class="fs-actions">${actionButton('login', state.simulated ? '模拟登录' : '登录 Platform DEV', 'primary')}</div>`)
   }
   if (state.phase === 'loading') {
-    return stateShell('loading', '正在准备访问中心', `<p class="fs-lead">正在读取登录、租户和应用授权…</p>${mockBadge()}<div class="fs-skeletons" data-skeleton="true" aria-hidden="true"><span></span><span></span><span></span></div>`, { busy: true })
+    return stateShell('loading', '正在准备访问中心', `<p class="fs-lead">正在读取登录、租户和应用授权…</p>${environmentBadge(state)}<div class="fs-skeletons" data-skeleton="true" aria-hidden="true"><span></span><span></span><span></span></div>`, { busy: true })
   }
   if (state.phase === 'expired') {
-    return stateShell('expired', '登录已过期', `<p class="fs-lead">${escape(state.error?.message ?? '请重新登录。')}</p>${mockBadge()}<div class="fs-actions">${actionButton('login', '重新登录', 'primary')}</div>`, { alert: true })
+    return stateShell('expired', '登录已过期', `<p class="fs-lead">${escape(state.error?.message ?? '请重新登录。')}</p>${environmentBadge(state)}<div class="fs-actions">${actionButton('login', '重新登录', 'primary')}</div>`, { alert: true })
   }
   if (state.phase === 'error') {
-    return stateShell('error', '加载失败', `<p class="fs-lead">${escape(state.error?.message ?? '请稍后重试。')}</p>${mockBadge()}<div class="fs-actions">${actionButton('retry', '重试', 'primary')}${actionButton('logout', '退出登录')}</div>`, { alert: true })
+    return stateShell('error', '加载失败', `<p class="fs-lead">${escape(state.error?.message ?? '请稍后重试。')}</p>${environmentBadge(state)}<div class="fs-actions">${actionButton('retry', '重试', 'primary')}${actionButton('logout', '退出登录')}</div>`, { alert: true })
   }
 
   const tenantOptions = state.tenants.map(item => `<option value="${escape(item.tenantId)}"${item.tenantId === state.activeTenantId ? ' selected' : ''}>${escape(item.displayName)}</option>`).join('')
@@ -45,21 +60,21 @@ export function renderPlatformAccessView(state: PlatformAccessSnapshot): string 
   const userEmail = state.user?.email == null ? '' : `<span class="fs-user-email">${escape(state.user.email)}</span>`
   const initial = escape((state.user?.displayName ?? 'F').slice(0, 1).toUpperCase())
   const role = activeTenant?.role === undefined ? '' : `<span class="fs-role">${escape(activeTenant.role)}</span>`
-  return `<section class="fs-panel" data-state="${state.phase}" aria-labelledby="futurestaff-access-title"><header class="fs-header"><div class="fs-identity"><div class="fs-avatar" aria-hidden="true">${initial}</div><div><div class="fs-kicker">FutureStaff 访问中心</div><h2 id="futurestaff-access-title">${userName}</h2>${userEmail}</div></div><div class="fs-header-actions">${actionButton('refresh', '刷新')}${actionButton('logout', '退出')}</div></header><div class="fs-summary">${mockBadge()}<span class="fs-count">${applicationCount} 个应用</span></div><div class="fs-tenant"><div><label for="futurestaff-tenant-select">当前租户</label><p>切换后会清除上一租户的本地缓存。</p></div><div class="fs-select-wrap"><select id="futurestaff-tenant-select" data-action="switch-tenant">${tenantOptions}</select>${role}</div></div><div class="fs-apps-heading"><div><h3>已授权应用</h3><p>仅展示当前租户允许访问的能力。</p></div><span aria-hidden="true">${applicationCount}</span></div>${applications}</section>`
+  return `<section class="fs-panel" data-state="${state.phase}" aria-labelledby="futurestaff-access-title"><header class="fs-header"><div class="fs-identity"><div class="fs-avatar" aria-hidden="true">${initial}</div><div><div class="fs-kicker">FutureStaff 访问中心</div><h2 id="futurestaff-access-title">${userName}</h2>${userEmail}</div></div><div class="fs-header-actions">${actionButton('refresh', '刷新')}${actionButton('logout', '退出')}</div></header><div class="fs-summary">${environmentBadge(state)}<span class="fs-count">${applicationCount} 个应用</span></div><div class="fs-tenant"><div><label for="futurestaff-tenant-select">当前租户</label><p>切换后会清除上一租户的本地缓存。</p></div><div class="fs-select-wrap"><select id="futurestaff-tenant-select" data-action="switch-tenant">${tenantOptions}</select>${role}</div></div><div class="fs-apps-heading"><div><h3>已授权应用</h3><p>仅展示当前租户允许访问的能力。</p></div><span aria-hidden="true">${applicationCount}</span></div>${applications}</section>`
 }
 
 /** Mount the framework-neutral B01a panel into a desktop-owned DOM slot. */
-export function mountPlatformAccessPanel(root: HTMLElement, controller: PlatformAccessController): () => void {
+export function mountPlatformAccessPanel(root: HTMLElement, controller: PlatformAccessViewController): () => void {
   const render = (): void => { root.innerHTML = renderPlatformAccessView(controller.getSnapshot()) }
   const activate = (event: Event): void => {
     const target = event.target
     if (!(target instanceof HTMLElement)) return
     const action = target.dataset.action
-    if (action === 'login') void controller.loginWithMock()
+    if (action === 'login') void controller.startLogin()
     if (action === 'refresh') void controller.refresh()
     if (action === 'logout') void controller.logout()
     if (action === 'retry') {
-      void (controller.getSnapshot().user === undefined ? controller.loginWithMock() : controller.refresh())
+      void (controller.getSnapshot().user === undefined ? controller.startLogin() : controller.refresh())
     }
   }
   const switchTenant = (event: Event): void => {

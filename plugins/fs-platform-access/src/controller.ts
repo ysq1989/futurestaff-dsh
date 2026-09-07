@@ -1,6 +1,7 @@
 import { PlatformApiError, PlatformMockApi } from './api.js'
 import {
   PLATFORM_CONTRACT_VERSION,
+  PLATFORM_DEV_CONTRACT_VERSION,
   type AuthCallbackInput,
   type AuthorizedApplication,
   type DesktopSession,
@@ -14,8 +15,8 @@ export type AccessPhase = 'signed_out' | 'loading' | 'ready' | 'no_apps' | 'expi
 
 export interface PlatformAccessSnapshot {
   readonly phase: AccessPhase
-  readonly simulated: true
-  readonly contractVersion: typeof PLATFORM_CONTRACT_VERSION
+  readonly simulated: boolean
+  readonly contractVersion: typeof PLATFORM_CONTRACT_VERSION | typeof PLATFORM_DEV_CONTRACT_VERSION
   readonly user?: User
   readonly activeTenantId?: string
   readonly tenants: readonly Tenant[]
@@ -74,6 +75,8 @@ export class PlatformAccessController {
       redirectUri: 'http://127.0.0.1:43821/callback', state: 'mock-state-000000',
     })
   }
+
+  async startLogin(): Promise<void> { await this.loginWithMock() }
 
   async refresh(): Promise<void> {
     const previous = this.session

@@ -1,9 +1,9 @@
 # FutureStaff platform access
 
 This product-layer workspace preserves the pinned Agent PC contract `0.1.0` and
-its loopback Mock while preparing a separate A02 `0.1.1` Platform DEV boundary.
-The current Settings panel still uses the Mock; no real login is enabled by the
-adapter or Vault alone.
+its loopback Mock while integrating the separate A02 `0.1.1` Platform DEV
+boundary. A desktop Host with OS-protected secrets now selects the DEV access
+center; ordinary local development without that Host service retains the Mock.
 
 The adapter rejects non-loopback base URLs, responses without
 `X-FutureStaff-Mock: true`, responses from another contract version, and any
@@ -53,6 +53,42 @@ presence-only diagnostics. It never falls back to browser storage or plaintext
 files, and local-first clear does not require the operating-system protector to
 be available.
 
-The Vault and DEV adapter are not enabled in the Settings panel yet. Real login
-still requires PKCE callback orchestration and controller wiring; this package
-does not launch a browser, call DEV, or persist a real credential by itself.
+The Vault and DEV adapter remain Host-only. The Settings Web client receives
+only validated, credential-free user, tenant, application, phase, and error
+fields; it never receives the protected session or calls Platform DEV directly.
+
+`PlatformPkceTransaction` provides the Host-side cryptographic transaction
+boundary for that next integration: one in-memory 32-byte verifier and state,
+an S256 challenge, the pinned authorization and callback URLs, five-minute
+expiry, exact callback query validation, and one-time consumption. Its public
+request and diagnostics never expose the verifier. It does not open a browser,
+listen on a port, or exchange the authorization code by itself.
+
+`PlatformDevLoginCoordinator` composes that transaction with `PlatformDevApi`
+and `PlatformSessionVault`. It permits one exchange at a time, persists only a
+strictly decoded A02 session, returns no credentials, and makes a best-effort
+logout when protected persistence fails. The browser/UI trigger remains
+separate Host integration work.
+
+When the Desktop Host supplies `desktopProtectedSecrets`, the plugin also
+provides `platformDevLogin`. Calling `begin()` temporarily binds only
+`127.0.0.1:43821`, then returns the authorization URL; it never opens the
+browser itself. The listener accepts only an exact GET callback with the pinned
+Host, returns fixed no-store/CSP HTML, and closes after success, failure,
+explicit cancellation, or the five-minute transaction timeout. Browser/UI
+trigger wiring remains separate integration work.
+
+The Host exposes one loopback-only POST start route guarded by a non-simple
+`X-FutureStaff-Login` request header. `beginPlatformDevLogin()` validates the
+entire returned URL contract before calling `window.open(..., '_blank',
+'noopener,noreferrer')`; the controlled desktop shell routes that HTTPS window
+request to the operating-system browser.
+
+The B02g Host controller restores the protected session, refreshes it, validates
+tenant membership before switching, clears local state before remote logout,
+and returns only strict credential-free snapshots through four loopback routes.
+Each route requires a non-simple `X-FutureStaff-Session` header. The Settings
+client selects this DEV controller when the Host service exists, validates every
+nested response field, launches login through the B02f helper, and refreshes the
+snapshot when the desktop window regains focus. A definite missing Host route
+falls back to the unchanged local Mock workflow.

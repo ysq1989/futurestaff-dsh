@@ -65,3 +65,47 @@
 - Verification: product full `npm run check` passed, including every workspace typecheck/test/build and 52 top-level tests; desktop build and typecheck passed; the focused protected-secret suite passed 5/5. Desktop full check reached 1019 passed and 12 skipped tests, with two reproducible unrelated environment failures in diagnostic-export linked-directory setup and recovery pnpm PATH selection. The edited service documents have matching bilingual blob records; the repository-wide bilingual gate remains red only because the unchanged Desktop README pair already has stale recorded hashes.
 - Documentation: updated the bilingual public Desktop Host service contract and product/foundation integration boundaries.
 - Boundaries: no renderer/IPC/browser storage, real account, DEV request, PKCE launch, deployment, or upstream Harness edit was performed.
+
+## B02c: Add the desktop PKCE transaction boundary
+
+- Status: Completed locally; not committed or pushed.
+- Result: added `PlatformPkceTransaction`, which generates a 32-byte verifier and state, derives the S256 challenge, builds only the pinned A02 authorization request, and consumes only the exact loopback callback once.
+- Safety: verifier remains in Host memory and is absent from the authorization URL and diagnostics; concurrent start, callback origin/path/query changes, duplicate parameters, invalid code/state, state mismatch, expiry, and replay fail with bounded messages; callback attempts destroy the pending transaction.
+- TDD: the missing exports failed first, then three focused PKCE scenarios passed, including pinned URL fields, verifier secrecy, one-time success, pending collision, state mismatch, expiry, and callback rejection.
+- Verification: platform-access tests passed 34/34; full `npm run check` passed including all workspace typechecks/tests/builds and 52 top-level tests; `git diff --check` passed with only line-ending conversion warnings.
+- Boundaries: no listener, browser launch, DEV request, real account, code exchange, credential persistence, renderer secret, deployment, commit, or push was performed.
+
+## B02d: Orchestrate PKCE exchange into the protected Vault
+
+- Status: Completed locally; not committed or pushed.
+- Result: added `PlatformDevLoginCoordinator` to compose one PKCE callback, the pinned `PlatformDevApi` exchange, and `PlatformSessionVault` persistence without returning the decoded session.
+- Safety: only one exchange may run; API output is strictly decoded before save; protected-save failure triggers best-effort refresh-token revocation; transaction, exchange, storage, and diagnostics failures are bounded and do not reflect native errors or credentials.
+- TDD: missing coordinator exports failed first, then success and protected-storage failure/revocation scenarios passed.
+- Verification: platform-access tests passed 36/36 with build and TypeScript compilation; `git diff --check` passed with only line-ending conversion warnings.
+- Boundaries: no listener, browser launch, real DEV request/account, renderer credential, deployment, commit, or push was performed.
+
+## B02e: Mount the exact loopback DEV callback service
+
+- Status: Completed locally; not committed or pushed.
+- Result: Desktop Host now conditionally provides `platformDevLogin` when `desktopProtectedSecrets` exists; `begin()` owns a temporary dedicated `127.0.0.1:43821` listener because the ordinary DSH WebServer remains on its separate configured port.
+- Safety: only GET, loopback socket, exact `Host: 127.0.0.1:43821`, bounded URL length, and the strict PKCE callback are accepted; fixed CSP/no-store HTML never reflects query data or credentials; the listener closes after success, failure, cancellation, runtime error, or five-minute expiry.
+- Verification: integration coverage completed a fake DEV exchange through a real loopback socket and found only OS-protected persisted state; platform-access tests passed 37/37; full `npm run check` passed with every workspace typecheck/test/build and 52 top-level tests; `git diff --check` passed with line-ending warnings only.
+- Boundaries: no browser launch, real DEV request/account, renderer credential, deployment, commit, or push was performed.
+
+## B02f: Add the safe Host-to-client login trigger
+
+- Status: Completed locally; not committed or pushed.
+- Result: added a loopback-only Host POST start route and `beginPlatformDevLogin()`, which validates the exact A02 authorization URL before asking the controlled desktop window to open it externally.
+- Safety: the start route requires a non-simple `X-FutureStaff-Login` header to force browser CORS preflight for cross-origin attempts; the client rejects extra response fields, alternate origins/paths, URL credentials/fragments, missing or duplicate parameters, wrong client/callback/method, and malformed state/challenge before invoking the opener.
+- Verification: a real loopback start route plus dedicated callback completed the fake DEV/Vault flow; safe and malicious client URL cases passed; platform-access tests passed 38/38; full `npm run check` passed including every workspace typecheck/test/build and 52 top-level tests.
+- Boundaries: the existing Mock panel remains unchanged; no real account/DEV request, session restore, deployment, commit, or push was performed.
+
+## B02g: Restore the protected DEV session into the Settings access center
+
+- Status: Completed locally; not committed or pushed.
+- Result: added a Host-owned `PlatformDevAccessController` that restores the A02 session from the OS-protected Vault, loads the validated user/tenant/application context, persists refresh and tenant-switch sessions, and clears the protected local session before best-effort remote logout.
+- Web boundary: added four loopback Host session routes guarded by `X-FutureStaff-Session`; every response is a credential-free snapshot. The Web client strictly decodes every nested field, rejects extra or credential-shaped output, ignores stale responses, opens B02f login in the system browser, and restores on desktop focus. A definite missing desktop route retains the A01 Mock workflow.
+- Tenant and concurrency safety: the Host accepts a switch only for a tenant in the server-fetched membership set, serializes protected session mutations, validates active-tenant consistency, clears expired credentials and tenant resources, and maps application denial to the safe empty state.
+- UI: the Settings access center distinguishes Platform DEV `0.1.1` from local Mock `0.1.0`, keeps loading/error/expired/empty states and keyboard semantics, and introduces no new UI dependency or theme system.
+- Verification: RED coverage first failed on the missing DEV controller; platform-access tests passed 46/46 with TypeScript build; a fake protected-session flow completed browser start, loopback callback, Vault restore, safe Web snapshot, refresh/switch/logout boundaries, malformed response rejection, concurrent mutation serialization, and stale response rejection; full `npm run check` passed including every workspace typecheck/test/build and 52 top-level tests; `git diff --check` passed with line-ending conversion warnings only.
+- Boundaries: no real account, real Platform DEV request, credential read outside fake tests, schema, deployment, controlled-desktop edit, commit, or push was performed.

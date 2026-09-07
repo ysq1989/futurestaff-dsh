@@ -156,6 +156,13 @@ test('access views expose accessible structure and safe responsive content hooks
     phase: 'error', tenants: [], applications: [], error: { code: 'MOCK_UNAVAILABLE', message: 'offline', retryable: true },
   })
   assert.match(error, /role="alert"/)
+
+  const devSignedOut = renderPlatformAccessView({
+    phase: 'signed_out', simulated: false, contractVersion: '0.1.1', tenants: [], applications: [],
+  })
+  assert.match(devSignedOut, /data-dev="true"/)
+  assert.match(devSignedOut, /登录 Platform DEV/)
+  assert.doesNotMatch(devSignedOut, /模拟登录|data-mock="true"/)
 })
 
 test('rendered account and application content remains escaped', () => {
