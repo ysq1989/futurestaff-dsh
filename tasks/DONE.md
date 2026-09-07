@@ -148,7 +148,7 @@
 
 ## B02l: Make the bundled Profile first-launch safe
 
-- Status: Completed by product commit `644322f` and controlled desktop commit `ab7a889b9e`; replacement installer pending.
+- Status: Completed by product commit `644322f` and controlled desktop commit `ab7a889b9e`; included in the verified replacement installer recorded under B02n.
 - Incident: the private Windows candidate copied the three built first-party packages into `node_modules` but omitted pnpm layout metadata. On a fresh installation the desktop migration detector treated that verified package tree as legacy, invoked packaged pnpm, and entered recovery mode when the private package versions could not be materialized from a registry.
 - Result: release staging now emits deterministic pnpm 11 hoisted-layout workspace, modules, and lock metadata before hashing the Profile. Release verification requires the exact metadata contract, so a future installer cannot silently ship the same incomplete dependency state. On upgrade, the desktop atomically repairs only the exact hash-matched defective Profile; any changed managed file or unexpected extra file preserves the user's Profile untouched.
 - Verification: the focused regression failed before the fix and then passed 2/2; the staged Profile returned `requiresDependencyMigration=false` through the real desktop preparation function on Windows; release Profile composition included all three FutureStaff plugins; full `npm run check` passed, including every workspace and 52/52 top-level tests.
@@ -156,16 +156,18 @@
 
 ## B02m: Bootstrap the desktop Alpha identity policy
 
-- Status: Completed in controlled desktop commit `2a0a98fac0`; product release pin and replacement installer pending.
+- Status: Completed in controlled desktop commit `2a0a98fac0`; included in the verified replacement installer recorded under B02n.
 - Incident: after the dependency-layout repair, the packaged Profile reached Host composition but `fs-core` correctly rejected the missing `FUTURESTAFF_IDENTITY_MODE` before any plugin could start.
 - Result: the desktop Host now injects the explicit `single-subject` mode plus fixed bootstrap-only tenant/user labels whenever the reserved `futurestaff-alpha` Profile is selected. It overwrites caller-controlled environment values for that Profile and leaves every unrelated Profile untouched.
 - Security: the bootstrap labels are not application authorization and are never accepted as a Platform tenant choice. A02 remains the authority for authenticated user, active tenant, application grants, and short-lived Product Hub credentials.
-- Verification: the regression failed before implementation; identity, Profile repair, migration, and preparation tests passed 52/52 with desktop build/typecheck; product checks and replacement packaging remain the final release gate.
+- Verification: the regression failed before implementation; identity, Profile repair, migration, and preparation tests passed 52/52 with desktop build/typecheck; final product checks and replacement packaging passed under B02n.
 
 ## B02n: Emit DSH-compatible client plugin bundles
 
-- Status: Completed locally; replacement installer pending.
+- Status: Completed by product commit `646ad93` and controlled desktop commit `2887e6d5c3`; replacement installer built and verified.
 - Incident: both FutureStaff Web plugins exposed raw TypeScript-emitted ESM as their DSH `./client` entry. The Host concatenated those files into a classic script, whose unsupported top-level imports prevented every factory registration and surfaced as a misleading failure on the first official plugin.
 - Result: each package now keeps its importable ESM under `lib/client/index.js` and emits a separate `lib/client.js` factory bundle that registers its exact package ID through `__ModuleLoader__`. Release staging parses and executes both bundle shells as a regression gate.
 - Upgrade safety: the packaged manifest explicitly supersedes the exact prior candidate manifest digest. Controlled desktop commit `2887e6d5c3` atomically upgrades only that fully hash-matched bundled Profile; managed-file changes or unexpected files remain preserved.
+- Artifact: `outputs/FutureStaff-Agent-2.0.5-x64-Setup.exe`, 134,344,753 bytes, SHA-256 `49dbe0733e3f4d22d31b2f725a4551629533f24748d73607fe9d6d117e668ccc`; the adjacent sidecar matches. Authenticode remains intentionally absent for this private Alpha build.
+- Verification: product full `npm run check` passed, including 49 platform-access tests, 18 Product Hub tests, and 52 top-level tests; release Profile composition passed; desktop upgrade tests passed 9/9 with build/typecheck; the Windows packaging gate passed 188/188 tests and a 228-node closed runtime graph before verifying the final installer.
 - Boundaries: no user Profile was modified, no installer was executed, no real Platform request was made, and no push or public distribution occurred.
