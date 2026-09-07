@@ -1,34 +1,35 @@
-# B01b: Make the FutureStaff Profile release-loadable
+# B01c: Integrate the release Profile with the controlled desktop shell
 
-- Status: Completed locally; awaiting reviewed commit before desktop-shell integration
+- Status: Completed and ready for checkpoint commit
 - Owner: Computer B / `futurestaff-dsh`
 - Risk: Standard (desktop runtime and installer prerequisite; no production identity)
-- Baseline: `71174081fbbcd377f61c0abf4fb1874de84199ce`
+- Product baseline: `570fa30af6723005b8d9a8498d9a9056094dd00a`
+- Desktop baseline: `3e3b3fd822d1510f82d7831f10ea4618701f07f5`
 
 ## Goal
 
-Replace the failing transient DSH launcher with a repository-pinned runtime that
-matches the controlled desktop shell, then produce a Profile tree that can be
-loaded without development-machine absolute paths. This is the prerequisite for
-embedding `futurestaff-alpha` in the Windows installer.
+Pin the reviewed desktop Profile-installation commit and provide one fail-closed
+staging command that copies the relocatable release Profile only into the
+controlled shell's ignored packaging input.
 
 ## Acceptance
 
-- [x] The DSH CLI/runtime version is exact and aligned with the controlled desktop shell.
-- [x] `profile:dump` loads `futurestaff-alpha` and includes `fs-core` plus `fs-platform-access`.
-- [x] A release staging command emits a relocatable Profile with no source-tree junctions or absolute dependency paths.
-- [x] Release staging contains only built package files and no credentials, sessions, caches, or development sources/tests.
-- [x] Focused tests, full product checks, and repository hygiene checks pass.
+- [x] The desktop shell verifies every staged file digest before first installation.
+- [x] A fresh packaged installation selects `futurestaff-alpha`; existing Profile and selection data are preserved.
+- [x] The packaged-runtime gate requires the FutureStaff Profile resource.
+- [x] The product lock pins the reviewed desktop commit and the staging command verifies both repositories.
+- [x] Product and desktop focused checks pass; broader environmental failures are recorded without weakening gates.
 
 ## Verification
 
-- `npm run profile:install`: passed with the repository-pinned DSH runtime.
-- `npm run profile:dump`: passed and included both FutureStaff rows.
-- `npm run profile:dump:release`: passed against the relocatable release tree.
-- `node --test test/release-profile.test.js`: 2 passed.
-- `FUTURESTAFF_DESKTOP_SHELL_DIR=D:\项目\futurestaff-dsh-desktop npm run check`: passed all workspace checks and 47 root tests.
-- Release inspection found no reparse points, source-tree absolute paths, source files, tests, credentials, sessions, or caches.
-- `git diff --check`: passed.
+- Controlled desktop commit `3e3b3fd822d1510f82d7831f10ea4618701f07f5` is pushed on `main`; official Harness gitlink remains `a66e4702047846cdaa10c66c9d3df3951f5ea70d` and unmodified.
+- Desktop focused Profile/package tests: 43 passed, followed by 51 passed after packaged-resource verification was added.
+- `corepack yarn workspace dsh-plugin-desktop check:win-package`: passed 188 Windows packaging tests and the 228-node runtime closure gate.
+- `npm run desktop:stage`: passed against the exact clean controlled checkout and wrote only the ignored packaging resource.
+- `FUTURESTAFF_DESKTOP_SHELL_DIR=D:\项目\futurestaff-dsh-desktop npm run check`: passed all workspaces and 49 root tests.
+- The broader desktop `corepack yarn check` reached 1014 passed / 12 skipped / 2 failed in unrelated existing Windows environment tests (`diagnostic-export` linked temp path and recovery pnpm PATH). Both failures reproduce outside the changed files; no gate was weakened.
+- `corepack yarn package:dir` reached Electron native dependency preparation but could not rebuild `node-pty` because Visual Studio C++ tools are absent. The supported Windows installer path disables rebuilding and uses the separately verified prebuilt x64 closure.
+- `git diff --check`: passed in both repositories.
 
 ## External boundaries
 

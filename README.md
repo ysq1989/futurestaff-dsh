@@ -42,6 +42,7 @@ If Windows Application Control blocks DSH's native `sharp` module, run the Docke
 | `npm run platform:mock:smoke` | Exercise the pinned platform Mock without starting the graphical shell |
 | `npm run release:profile` | Stage a relocatable, built-only `futurestaff-alpha` Profile for desktop packaging |
 | `npm run profile:dump:release` | Compose and inspect the staged release Profile with the pinned local DSH runtime |
+| `npm run desktop:stage` | Verify the controlled desktop checkout and stage the release Profile into its ignored packaging input |
 | `npm run profile:install` | Stage the custom Profile and install `fs-core` |
 | `npm run profile:dump` | Print the final composed DSH plugin tree |
 | `npm run dev -- --port 3080 --no-open` | Start the FutureStaff Alpha Web Profile |

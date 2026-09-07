@@ -15,7 +15,7 @@ test('desktop foundation pins the controlled DSH Desktop source', () => {
   assert.equal(foundation.desktopShell.tag, 'v2.0.5')
   assert.match(foundation.desktopShell.baseCommit, /^[0-9a-f]{40}$/)
   assert.equal(foundation.desktopShell.baseCommit, '423406fe225442995902015cb6f10eed670ff115')
-  assert.equal(foundation.desktopShell.releaseCommit, '3665790fede332762e716074afb319dc997f121c')
+  assert.equal(foundation.desktopShell.releaseCommit, '3e3b3fd822d1510f82d7831f10ea4618701f07f5')
   assert.equal(foundation.desktopShell.license, 'MIT')
   assert.equal(foundation.desktopShell.deepseekHarness.commit, 'a66e4702047846cdaa10c66c9d3df3951f5ea70d')
 })

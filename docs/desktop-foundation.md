@@ -13,9 +13,11 @@ inputs.
 - License: MIT
 - Official `deepseek-harness` gitlink: `a66e4702047846cdaa10c66c9d3df3951f5ea70d`
 
-The first reviewed productization commit is pinned at
-`3665790fede332762e716074afb319dc997f121c` on the controlled fork's `main`
-branch. Do not replace it with an uncommitted tree or a moving branch name.
+The reviewed Profile-installation release commit is pinned at
+`3e3b3fd822d1510f82d7831f10ea4618701f07f5` on the controlled fork's `main`
+branch. It preserves the original productization boundary and adds verified,
+first-launch installation of the staged FutureStaff Profile. Do not replace it
+with an uncommitted tree or a moving branch name.
 
 ## Distribution boundary
 
@@ -59,3 +61,8 @@ Run `npm run profile:dump:release` before desktop packaging. The repository-pinn
 DSH runtime must compose both `futurestaff-core` and
 `futurestaff-platform-access`; transient `pnpm dlx` resolution is not a release
 input.
+
+`npm run desktop:stage` verifies the exact controlled-fork commit, clean tracked
+state, untouched official Harness gitlink, FutureStaff package identity, and
+`extraResources` destination before writing only the ignored
+`build/futurestaff-profile` packaging input in that checkout.

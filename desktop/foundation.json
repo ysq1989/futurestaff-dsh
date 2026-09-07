@@ -12,7 +12,7 @@
     "upstream": "https://github.com/anywhere-labs/dsh-desktop.git",
     "tag": "v2.0.5",
     "baseCommit": "423406fe225442995902015cb6f10eed670ff115",
-    "releaseCommit": "3665790fede332762e716074afb319dc997f121c",
+    "releaseCommit": "3e3b3fd822d1510f82d7831f10ea4618701f07f5",
     "license": "MIT",
     "deepseekHarness": {
       "repository": "https://github.com/deepseek-ai/deepseek-harness.git",

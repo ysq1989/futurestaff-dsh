@@ -7,3 +7,9 @@
 - Result: login, refresh, logout, tenant discovery/switching, authorized applications, explicit state rendering, and tenant-change isolation run against the loopback-only Mock.
 - Verification: 11 focused plugin tests, full product check, local Mock smoke, visible browser flow, Profile installation, and exact diff review passed.
 - Known follow-up: the pinned DSH `0.1.1-rc.2` `pnpm dlx` launcher could not resolve its declared `dsh-app-boot` dependency on this Windows host.
+
+## B01b: Make the FutureStaff Profile release-loadable
+
+- Status: Completed and pushed as `570fa30af6723005b8d9a8498d9a9056094dd00a`.
+- Result: repository-pinned DSH `0.1.2-rc.1`, successful development/release Profile composition, and a relocatable built-only Profile tree without absolute paths or links.
+- Verification: release Profile tests, full product checks, exact file inspection, and `profile:dump:release` passed.
