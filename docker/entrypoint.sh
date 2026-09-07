@@ -7,4 +7,4 @@ if [ -n "${DSH_TRUSTED_HOST:-}" ]; then
   set -- "$@" --trusted-host "$DSH_TRUSTED_HOST"
 fi
 
-exec dsh "$@"
+exec node /app/scripts/container-loopback-forwarder.mjs "$@"

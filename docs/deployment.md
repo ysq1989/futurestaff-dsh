@@ -43,6 +43,8 @@ Production Compose fails before creating the container when a required value is 
 
 Keep `127.0.0.1:3080:3080`; do not publish `3080` on `0.0.0.0`. Put the supplied Nginx example behind HTTPS and an authenticated access layer. Until FutureStaff authentication is implemented, prefer an SSH tunnel or a strict VPN/IP allowlist rather than a public hostname.
 
+Inside the image, DSH remains bound to `127.0.0.1:3081`. The container entrypoint supervises a fixed TCP forwarder from container port 3080 to that loopback listener. Do not change DSH back to `0.0.0.0`; current runtimes intentionally reject that unsafe binding. See [ADR-013](decisions/013-container-loopback-forwarder.md).
+
 ## Upgrade and rollback
 
 ```bash

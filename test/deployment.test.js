@@ -34,12 +34,17 @@ test('development topology keeps the Mock internal and waits for its health chec
   assert.match(compose, /http:\/\/selection-center-mock:3301\//)
 })
 
-test('image pins DSH, runs unprivileged, and installs the Profile into persistent storage at startup', async () => {
-  const [dockerfile, entrypoint] = await Promise.all([read('docker/Dockerfile'), read('docker/entrypoint.sh')])
+test('image pins DSH, runs unprivileged, and installs the Profile before its supervisor starts', async () => {
+  const [dockerfile, entrypoint, forwarder] = await Promise.all([
+    read('docker/Dockerfile'),
+    read('docker/entrypoint.sh'),
+    read('scripts/container-loopback-forwarder.mjs'),
+  ])
   assert.match(dockerfile, /@deepseek-ai\/dsh@0\.1\.1-rc\.2/)
   assert.match(dockerfile, /ENV DSH_HOME=\/data\/dsh/)
   assert.match(dockerfile, /USER node/)
-  assert.match(entrypoint, /npm run profile:install[\s\S]*exec dsh/)
+  assert.match(entrypoint, /npm run profile:install[\s\S]*exec node \/app\/scripts\/container-loopback-forwarder\.mjs/)
+  assert.match(forwarder, /spawn\('dsh'/)
 })
 
 test('container forwards the configured public domain to the DSH trusted-host fence', async () => {
