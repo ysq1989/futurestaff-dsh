@@ -28,6 +28,7 @@ interface ReleaseManifest {
   readonly profile: string
   readonly productVersion: string
   readonly dshVersion: string
+  readonly supersedes?: readonly string[]
   readonly files: Record<string, string>
 }
 
@@ -37,7 +38,7 @@ export interface BundledFutureStaffProfileOptions {
   readonly selectionStatePath: string
 }
 
-export type BundledFutureStaffProfileResult = 'absent' | 'installed' | 'repaired' | 'preserved'
+export type BundledFutureStaffProfileResult = 'absent' | 'installed' | 'repaired' | 'upgraded' | 'preserved'
 
 const DEPENDENCY_METADATA = new Set([
   'node_modules/.modules.yaml',
@@ -85,12 +86,37 @@ function readManifest(source: string): ReleaseManifest {
     || value.files === null || typeof value.files !== 'object' || Array.isArray(value.files)) {
     throw new Error('FutureStaff release Profile manifest is incompatible')
   }
+  if (value.supersedes !== undefined
+    && (!Array.isArray(value.supersedes)
+      || value.supersedes.some(digest => typeof digest !== 'string' || !/^[0-9a-f]{64}$/u.test(digest)))) {
+    throw new Error('FutureStaff release Profile supersedence list is invalid')
+  }
   const entries = Object.entries(value.files)
   if (entries.length === 0 || entries.length > MAX_PROFILE_FILES
     || entries.some(([name, digest]) => !safeRelativePath(name) || !/^[0-9a-f]{64}$/u.test(digest))) {
     throw new Error('FutureStaff release Profile file inventory is invalid')
   }
   return value as ReleaseManifest
+}
+
+function manifestDigest(target: string): string {
+  return createHash('sha256').update(readFileSync(join(target, RELEASE_MANIFEST))).digest('hex')
+}
+
+function isUpgradeableBundledProfile(target: string, current: ReleaseManifest): boolean {
+  try {
+    if (!(current.supersedes ?? []).includes(manifestDigest(target))) return false
+    const installed = readManifest(target)
+    const actual = inventory(target).filter(file => file !== RELEASE_MANIFEST)
+    if (actual.some(file => !Object.hasOwn(installed.files, file) && !LEGACY_GENERATED_FILES.has(file))) return false
+    for (const [relativePath, expected] of Object.entries(installed.files)) {
+      const digest = createHash('sha256').update(readFileSync(join(target, relativePath))).digest('hex')
+      if (digest !== expected) return false
+    }
+    return true
+  } catch {
+    return false
+  }
 }
 
 function inventory(root: string, current = root): string[] {
@@ -159,7 +185,8 @@ function copyVerifiedTree(source: string, target: string): void {
 
 /**
  * Install and select the bundled Profile for a fresh desktop selection.
- * One exact, hash-matched legacy product Profile may be atomically repaired;
+ * One exact, hash-matched legacy product Profile may be atomically repaired,
+ * and a packaged release may explicitly supersede a verified prior manifest;
  * user-modified Profiles and existing selection state are always preserved.
  */
 export function installBundledFutureStaffProfile(
@@ -171,17 +198,21 @@ export function installBundledFutureStaffProfile(
 
   const target = resolve(options.homeDir, 'profiles', PROFILE_NAME)
   const repairLegacy = existsSync(target) && isRepairableLegacyProfile(target, sourceManifest)
-  if (existsSync(target) && !repairLegacy) return 'preserved'
+  const upgradeBundled = existsSync(target) && !repairLegacy && isUpgradeableBundledProfile(target, sourceManifest)
+  if (existsSync(target) && !repairLegacy && !upgradeBundled) return 'preserved'
   const profilesDir = dirname(target)
   mkdirSync(profilesDir, { recursive: true, mode: 0o700 })
   const staging = join(profilesDir, `.${basename(target)}.creating-${process.pid}-${randomUUID()}`)
-  const backup = join(profilesDir, `.${basename(target)}.legacy-${process.pid}-${randomUUID()}`)
+  const backup = join(profilesDir, `.${basename(target)}.previous-${process.pid}-${randomUUID()}`)
   try {
     copyVerifiedTree(source, staging)
     verifySource(staging)
-    if (repairLegacy) {
+    if (repairLegacy || upgradeBundled) {
       renameSync(target, backup)
-      if (!isRepairableLegacyProfile(backup, sourceManifest)) {
+      const stillReplaceable = repairLegacy
+        ? isRepairableLegacyProfile(backup, sourceManifest)
+        : isUpgradeableBundledProfile(backup, sourceManifest)
+      if (!stillReplaceable) {
         renameSync(backup, target)
         rmSync(staging, { recursive: true, force: true })
         return 'preserved'
@@ -190,11 +221,11 @@ export function installBundledFutureStaffProfile(
       throw new Error('FutureStaff release Profile appeared during installation')
     }
     renameSync(staging, target)
-    if (repairLegacy) rmSync(backup, { recursive: true, force: true })
+    if (repairLegacy || upgradeBundled) rmSync(backup, { recursive: true, force: true })
     if (!existsSync(options.selectionStatePath)) {
       selectDesktopProfile(options.selectionStatePath, options.homeDir, PROFILE_NAME)
     }
-    return repairLegacy ? 'repaired' : 'installed'
+    return repairLegacy ? 'repaired' : upgradeBundled ? 'upgraded' : 'installed'
   } catch (cause) {
     rmSync(staging, { recursive: true, force: true })
     if (!existsSync(target) && existsSync(backup)) renameSync(backup, target)

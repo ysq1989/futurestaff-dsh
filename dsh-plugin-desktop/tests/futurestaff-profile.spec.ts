@@ -110,6 +110,46 @@ describe('bundled FutureStaff Profile', () => {
     expect(readFileSync(join(target, 'cordis.patch.yml'), 'utf8')).toBe('- user-change: true\n')
   })
 
+  it('upgrades only an explicitly superseded, hash-matched bundled Profile', () => {
+    const value = fixture()
+    expect(installBundledFutureStaffProfile(value)).toBe('installed')
+    const target = join(value.homeDir, 'profiles', 'futurestaff-alpha')
+    const oldManifest = readFileSync(join(target, 'release-manifest.json'))
+    const oldDigest = createHash('sha256').update(oldManifest).digest('hex')
+    const sourceManifestPath = join(value.source, 'release-manifest.json')
+    const sourceManifest = JSON.parse(readFileSync(sourceManifestPath, 'utf8')) as {
+      supersedes?: string[]
+      files: Record<string, string>
+    }
+    const replacement = '- insert: [client-bundle-fix]\n'
+    writeFileSync(join(value.source, 'cordis.patch.yml'), replacement)
+    sourceManifest.files['cordis.patch.yml'] = createHash('sha256').update(replacement).digest('hex')
+    sourceManifest.supersedes = [oldDigest]
+    writeFileSync(sourceManifestPath, JSON.stringify(sourceManifest) + '\n')
+    writeFileSync(join(target, 'cordis.yml'), '[]\n')
+
+    expect(installBundledFutureStaffProfile(value)).toBe('upgraded')
+    expect(readFileSync(join(target, 'cordis.patch.yml'), 'utf8')).toBe(replacement)
+  })
+
+  it('preserves a superseded bundled Profile when a managed file was changed', () => {
+    const value = fixture()
+    expect(installBundledFutureStaffProfile(value)).toBe('installed')
+    const target = join(value.homeDir, 'profiles', 'futurestaff-alpha')
+    const oldDigest = createHash('sha256')
+      .update(readFileSync(join(target, 'release-manifest.json'))).digest('hex')
+    const sourceManifestPath = join(value.source, 'release-manifest.json')
+    const sourceManifest = JSON.parse(readFileSync(sourceManifestPath, 'utf8')) as {
+      supersedes?: string[]
+    }
+    sourceManifest.supersedes = [oldDigest]
+    writeFileSync(sourceManifestPath, JSON.stringify(sourceManifest) + '\n')
+    writeFileSync(join(target, 'cordis.patch.yml'), '- user-change: true\n')
+
+    expect(installBundledFutureStaffProfile(value)).toBe('preserved')
+    expect(readFileSync(join(target, 'cordis.patch.yml'), 'utf8')).toBe('- user-change: true\n')
+  })
+
   it('rejects a modified bundled file before writing user data', () => {
     const value = fixture()
     writeFileSync(join(value.source, 'cordis.patch.yml'), '- changed: true\n')
