@@ -2,7 +2,7 @@
 
 [English](plugin-services.md) | 中文
 
-本文档是面向插件作者、受支持的集成 contract，覆盖 DSH Desktop 2.x 在兼容、扩展窗口与增强三种呈现模式下导出的 Host 公开 service `desktopProfiles`、`desktopPnpm`，以及 Client 公开 service `desktopWindow`。它不会授予第三方访问原始 Electron API 或 launcher bootstrap 状态的能力。
+本文档是面向插件作者、受支持的集成 contract，覆盖 DSH Desktop 2.x 在兼容、扩展窗口与增强三种呈现模式下导出的 Host 公开 service `desktopProfiles`、`desktopPnpm`、`desktopProtectedSecrets`，以及 Client 公开 service `desktopWindow`。它不会授予第三方访问原始 Electron API 或 launcher bootstrap 状态的能力。
 
 ## 分层与数据流
 
@@ -110,9 +110,26 @@ import type {
   DesktopPnpmHandle,
   DesktopPnpmOutcome,
 } from 'dsh-plugin-desktop/pnpm'
+import type { DesktopProtectedSecrets } from 'dsh-plugin-desktop/protected-secrets'
 ```
 
 `dsh-plugin-desktop/profiles` 是 Desktop 自有托盘 consumer，不是 profile service contract。不要从该路径导入 service 类型。
+
+### `desktopProtectedSecrets`
+
+```ts
+interface DesktopProtectedSecrets {
+  available(): Promise<boolean>
+  has(key: string): Promise<boolean>
+  read(key: string): Promise<string | undefined>
+  write(key: string, secret: string): Promise<void>
+  delete(key: string): Promise<void>
+}
+```
+
+这个 generation-scoped service 仅供 Host 插件使用。它通过 Electron `safeStorage` 提供操作系统保护，并且只在 Desktop 私有 user-data 目录下持久化密封后的字节。Key 必须是合法 namespace，并在成为文件名之前做哈希。Renderer 无法直接访问它；Desktop 不提供 preload bridge、IPC 方法或 browser-storage fallback。
+
+持久化或打开凭据前应调用 `available()`。`has()` 用于只检查存在性的诊断，不会解密值。`delete()` 是幂等操作，即使操作系统保护不可用，也可用于 local-first logout。调用方负责序列化值的 schema、生命周期与 key namespace；绝不能记录明文，也不能从诊断 endpoint 返回明文。失败只暴露受限 code：`invalid-key`、`invalid-secret`、`invalid-state`、`protection-unavailable`。磁盘格式和哈希文件名是实现细节，不是数据交换 contract。
 
 ### `desktopProfiles`
 
@@ -185,6 +202,7 @@ Service 在每个 generation 同时最多启动一个 package operation；已有
 | --- | --- | --- |
 | `desktopProfiles` | 作用于 generation 的 Host service。 | 公开；通过 `dsh-plugin-desktop/profile-service` 获得受支持 contract。 |
 | `desktopPnpm` | 作用于 generation 的 Host service。 | 公开；通过 `dsh-plugin-desktop/pnpm` 获得受支持 contract。 |
+| `desktopProtectedSecrets` | 作用于 generation、仅 Host 可用的操作系统保护 secret service。 | 公开；通过 `dsh-plugin-desktop/protected-secrets` 获得受支持 contract，明文不得进入 renderer 或诊断结果。 |
 | `desktopWindow` | 作用于 generation 的 Client service。 | 公开；通过 `dsh-plugin-desktop/client` 获得受支持 contract，只包含不可变几何信息。 |
 | `desktopRuntime` | Launcher 提供的 native adapter，供 Desktop 自有 shell、tray、terminal、profile 与 update row 使用。 | Desktop 内部。第三方插件不得 inject，也不得依赖其 window/tray 方法。 |
 | `desktopPnpmBootstrap` | 提供给 `desktop-pnpm` provider 的已打包绝对路径、被选 profile fact、Electron ABI 值与私有 Node helper。 | Launcher 私有。不得读取、provide、intercept 或声明为 dependency。 |
@@ -326,4 +344,4 @@ yarn workspace dsh-plugin-desktop verify:profile
 
 ## 稳定性边界
 
-受支持的插件作者 surface，是本文描述且由 `dsh-plugin-desktop/profile-service`、`dsh-plugin-desktop/pnpm` 与 `dsh-plugin-desktop/client` 导出的 `desktopProfiles`、`desktopPnpm` 和 `desktopWindow` service contract。Launcher bootstrap 值、native adapter、生成 shim、状态文件格式、Loader row 顺序与 Electron 实现细节都可能变化，但不会因此成为第三方 API。Fallback 必须保持显式、限定在生命周期内，并且 headless-safe。
+受支持的插件作者 surface，是本文描述且由 `dsh-plugin-desktop/profile-service`、`dsh-plugin-desktop/pnpm`、`dsh-plugin-desktop/protected-secrets` 与 `dsh-plugin-desktop/client` 导出的 `desktopProfiles`、`desktopPnpm`、`desktopProtectedSecrets` 和 `desktopWindow` service contract。Launcher bootstrap 值、native adapter、生成 shim、状态文件格式、Loader row 顺序与 Electron 实现细节都可能变化，但不会因此成为第三方 API。Fallback 必须保持显式、限定在生命周期内，并且 headless-safe。

@@ -12,6 +12,7 @@ export default defineConfig([
       profile: 'src/profile.ts',
       'profile-manager': 'src/profile-manager.ts',
       'profile-service': 'src/profile-service.ts',
+      'protected-secrets': 'src/protected-secrets.ts',
       'desktop-plugins': 'src/desktop-plugins.ts',
       pnpm: 'src/pnpm.ts',
       profiles: 'src/profiles.ts',

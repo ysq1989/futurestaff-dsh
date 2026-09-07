@@ -2,7 +2,7 @@
 
 English | [中文](plugin-services.zh.md)
 
-This document is the supported integration contract for plugin authors. It covers the public Host services `desktopProfiles` and `desktopPnpm`, plus the Client service `desktopWindow`, exported by DSH Desktop 2.x in compatibility, extended, and advanced presentation modes. It does not grant third-party access to raw Electron APIs or launcher bootstrap state.
+This document is the supported integration contract for plugin authors. It covers the public Host services `desktopProfiles`, `desktopPnpm`, and `desktopProtectedSecrets`, plus the Client service `desktopWindow`, exported by DSH Desktop 2.x in compatibility, extended, and advanced presentation modes. It does not grant third-party access to raw Electron APIs or launcher bootstrap state.
 
 ## Layers and data flow
 
@@ -110,9 +110,26 @@ import type {
   DesktopPnpmHandle,
   DesktopPnpmOutcome,
 } from 'dsh-plugin-desktop/pnpm'
+import type { DesktopProtectedSecrets } from 'dsh-plugin-desktop/protected-secrets'
 ```
 
 `dsh-plugin-desktop/profiles` is the Desktop-owned tray consumer, not the profile service contract. Do not import it for service types.
+
+### `desktopProtectedSecrets`
+
+```ts
+interface DesktopProtectedSecrets {
+  available(): Promise<boolean>
+  has(key: string): Promise<boolean>
+  read(key: string): Promise<string | undefined>
+  write(key: string, secret: string): Promise<void>
+  delete(key: string): Promise<void>
+}
+```
+
+This generation-scoped service is available only to Host plugins. It uses Electron `safeStorage` for operating-system protection and persists only sealed bytes below Desktop's private user-data directory. Keys are validated namespaces and are hashed before becoming filenames. The renderer has no direct access, preload bridge, IPC method, or browser-storage fallback.
+
+Call `available()` before persisting or opening credentials. `has()` supports presence-only diagnostics without decrypting a value. `delete()` is idempotent and remains available for local-first logout even when operating-system protection is unavailable. Callers own the serialized value's schema, lifetime, and key namespace; they must never log plaintext or return it from diagnostic endpoints. Failures expose only the bounded codes `invalid-key`, `invalid-secret`, `invalid-state`, and `protection-unavailable`. The on-disk format and hashed filename are implementation details, not a data interchange contract.
 
 ### `desktopProfiles`
 
@@ -185,6 +202,7 @@ Invalid argv, a closed or busy generation, and a signal that was already aborted
 | --- | --- | --- |
 | `desktopProfiles` | Generation-scoped Host service. | Public and supported through `dsh-plugin-desktop/profile-service`. |
 | `desktopPnpm` | Generation-scoped Host service. | Public and supported through `dsh-plugin-desktop/pnpm`. |
+| `desktopProtectedSecrets` | Generation-scoped, Host-only OS-protected secret service. | Public and supported through `dsh-plugin-desktop/protected-secrets`; plaintext must not cross into renderer or diagnostics. |
 | `desktopWindow` | Generation-scoped Client service. | Public and supported through `dsh-plugin-desktop/client`; immutable geometry only. |
 | `desktopRuntime` | Launcher-provided native adapter used by Desktop-owned shell, tray, terminal, profile, and update rows. | Desktop-internal. Third-party plugins must not inject it or rely on its window/tray methods. |
 | `desktopPnpmBootstrap` | Absolute packaged paths, selected profile facts, Electron ABI values, and private Node helpers supplied to the `desktop-pnpm` provider. | Launcher-private. Never read, provide, intercept, or declare it as a dependency. |
@@ -327,4 +345,4 @@ The bundled `dshmarket` runtime consumes `runPlugin()` for ordinary plugin comma
 
 ## Stability boundary
 
-The supported plugin-author surface is the `desktopProfiles`, `desktopPnpm`, and `desktopWindow` service contract described here and exported by `dsh-plugin-desktop/profile-service`, `dsh-plugin-desktop/pnpm`, and `dsh-plugin-desktop/client`. Launcher bootstrap values, native adapters, generated shims, state-file formats, Loader row ordering, and Electron implementation details may change without becoming third-party APIs. Keep fallbacks explicit, lifecycle-scoped, and headless-safe.
+The supported plugin-author surface is the `desktopProfiles`, `desktopPnpm`, `desktopProtectedSecrets`, and `desktopWindow` service contract described here and exported by `dsh-plugin-desktop/profile-service`, `dsh-plugin-desktop/pnpm`, `dsh-plugin-desktop/protected-secrets`, and `dsh-plugin-desktop/client`. Launcher bootstrap values, native adapters, generated shims, state-file formats, Loader row ordering, and Electron implementation details may change without becoming third-party APIs. Keep fallbacks explicit, lifecycle-scoped, and headless-safe.

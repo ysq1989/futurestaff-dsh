@@ -77,6 +77,10 @@ import {
 import { DesktopProfileService } from './profile-service.ts'
 import { installBundledFutureStaffProfile } from './futurestaff-profile.ts'
 import { DesktopActionsService } from './desktop-actions.ts'
+import {
+  FileDesktopProtectedSecrets,
+  type DesktopSecretProtector,
+} from './protected-secrets.ts'
 import { clearDesktopProfilePluginState, DesktopPluginsService } from './desktop-plugins.ts'
 import {
   desktopMarketSnapshotWithEffective,
@@ -197,7 +201,7 @@ const BIN_NAME = DESKTOP_PACKAGE_NAME
 const PRODUCT_NAME = DESKTOP_PRODUCT_NAME
 
 /** Require OS-backed secret storage; Linux's plaintext fallback is not sufficient for a CA key. */
-function desktopLanHttpsPrivateKeyProtector(): DesktopLanHttpsPrivateKeyProtector {
+function desktopSecretProtector(): DesktopSecretProtector {
   return {
     available: () => {
       if (!safeStorage.isEncryptionAvailable()) return false
@@ -208,6 +212,10 @@ function desktopLanHttpsPrivateKeyProtector(): DesktopLanHttpsPrivateKeyProtecto
     seal: plaintext => safeStorage.encryptString(Buffer.from(plaintext).toString('utf8')),
     open: sealed => Buffer.from(safeStorage.decryptString(Buffer.from(sealed)), 'utf8'),
   }
+}
+
+function desktopLanHttpsPrivateKeyProtector(): DesktopLanHttpsPrivateKeyProtector {
+  return desktopSecretProtector()
 }
 
 class RendererStartupFailure extends Error {
@@ -400,6 +408,7 @@ async function start(): Promise<void> {
   let recoveryTerminalAvailable = false
   let startupStage: DesktopStartupFailureStage = 'electron-ready'
   const desktopUserDataDir = app.getPath('userData')
+  const desktopProtectedSecrets = new FileDesktopProtectedSecrets(desktopUserDataDir, desktopSecretProtector())
   const appVersion = desktopProductVersion()
   const currentDshVersion = dshProductVersion()
   const setupWizardVersions = Object.freeze({
@@ -1318,6 +1327,7 @@ async function start(): Promise<void> {
         hostCtx.provide('desktopBrowserAccess', browserAccess)
         hostCtx.provide('desktopLanHttps', lanHttps)
         hostCtx.provide('desktopRuntime', runtime)
+        hostCtx.provide('desktopProtectedSecrets', desktopProtectedSecrets)
         hostCtx.provide('desktopPnpmBootstrap', desktopPnpmBootstrap)
         await hostCtx.plugin(DesktopActionsService, {
           openTerminal: () => { runtime.openTerminal() },
