@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import test from 'node:test'
 
@@ -79,6 +80,13 @@ test('client registers the access panel in the DSH Settings section ledger', () 
     name: 'settings.section', id: 'futurestaff-access', order: -10, label: 'FutureStaff',
   })
   assert.equal(typeof component, 'function')
+})
+
+test('client panel styles cover narrow screens, keyboard focus and reduced motion', async () => {
+  const source = await readFile(new URL('../src/client/index.tsx', import.meta.url), 'utf8')
+  assert.match(source, /@media \(max-width: 640px\)/)
+  assert.match(source, /:focus-visible/)
+  assert.match(source, /prefers-reduced-motion/)
 })
 
 test('embedded Mock completes login and tenant-scoped discovery without an external process', async t => {

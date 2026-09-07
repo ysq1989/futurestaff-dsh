@@ -35,3 +35,13 @@
 - TDD: five new negative cases first failed against the permissive decoder, then passed after strict boundary validation.
 - Verification: platform-access tests 18 passed; focused TypeScript check passed; original A01 Python Mock smoke completed login, refresh, tenant list/switch, application discovery, and logout; full `npm run check` passed, including every workspace typecheck/test/build and 50 top-level tests; `git diff --check` passed with only line-ending conversion warnings.
 - Boundaries: no A02 endpoints or fields were guessed; no platform or controlled-desktop repository files changed; no real identity, credential, service, signing, publishing, deployment, or external write was used.
+
+## B01f: Polish the local Mock access center
+
+- Status: Completed locally; not committed or pushed.
+- Result: the Settings access panel now presents polished signed-out, loading, expired, error, empty, and ready states; tenant selection, active role, application count, and capability labels remain explicit.
+- Accessibility: labelled regions and tenant control, live loading and alert semantics, button types, visible keyboard focus, responsive single-column layouts, and reduced-motion handling were added.
+- Safety: all account, tenant, application, and capability strings remain HTML-escaped; no credentials are rendered or logged.
+- Demo: the local browser demo now shares the production panel styles and uses the existing embedded A01 Mock, so it does not depend on A02 or a separate process.
+- Verification: TDD regression coverage first failed against the old markup; platform-access tests passed 21/21; full `npm run check` passed; desktop and 390px browser checks passed with no horizontal overflow and a visible 3px keyboard focus outline; `git diff --check` passed with only Git line-ending conversion warnings; exact diff review passed.
+- Boundaries: no A02 endpoint or field was added; no Computer A or controlled-desktop file changed; no real account, persistence, external write, deployment, commit, or push was used.

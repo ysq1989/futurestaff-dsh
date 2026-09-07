@@ -2,6 +2,7 @@ import { createServer } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { extname, join, normalize } from 'node:path'
 import { apply as applyPlatformAccessPlugin } from '../plugins/fs-platform-access/lib/index.js'
+import { platformAccessPanelCss } from '../plugins/fs-platform-access/lib/client/index.js'
 
 const host = '127.0.0.1'
 const port = 43822
@@ -15,13 +16,13 @@ applyPlatformAccessPlugin({
       return () => { bridgeRoutes.delete(route.path) }
     },
   },
-})
+}, { embeddedMock: true })
 
 const html = `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>FutureStaff Agent · Mock</title><style>
-:root{font:16px/1.5 system-ui;color:#172033;background:#f5f7fb}body{margin:0;display:grid;min-height:100vh;place-items:center}main{width:min(680px,calc(100% - 32px))}section{background:white;border:1px solid #dbe2ef;border-radius:16px;padding:24px;box-shadow:0 18px 50px #26355418}header{display:flex;align-items:flex-start;gap:8px}header div{flex:1}h2,h3{margin:0 0 12px}p{color:#596579}button,select{font:inherit;border:1px solid #bcc7d8;border-radius:9px;background:white;padding:8px 12px}button{cursor:pointer}label{display:grid;gap:6px;margin:20px 0}ul{display:grid;gap:10px;padding:0;list-style:none}li{display:flex;justify-content:space-between;gap:12px;border:1px solid #e3e8f1;border-radius:10px;padding:12px}li span{color:#687489;font-size:.875rem}[data-mock=true]{color:#9a5b00;font-size:.875rem}[data-state=error],[data-state=expired]{border-color:#e6a7a7}
-</style></head><body><main id="platform-access"></main><script type="module">
+:root{font:16px/1.5 system-ui;color:#172033;background:#f5f7fb}body{margin:0;min-height:100vh;padding:48px 24px}main{width:min(880px,100%);margin:auto}${platformAccessPanelCss}
+</style></head><body><main id="platform-access" class="futurestaff-access"></main><script type="module">
 import { InMemoryTenantResources, PlatformAccessController, PlatformMockApi, mountPlatformAccessPanel } from '/lib/index.js'
 const sameOriginMockFetch = (input, init) => fetch('/mock' + new URL(input).pathname, init)
 const controller = new PlatformAccessController(new PlatformMockApi(sameOriginMockFetch), new InMemoryTenantResources())

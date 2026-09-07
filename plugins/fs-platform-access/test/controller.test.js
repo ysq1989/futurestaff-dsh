@@ -121,6 +121,56 @@ test('no authorization, token expiry, loading, failure and signed-out states are
   assert.match(renderPlatformAccessView(failedController.getSnapshot()), /加载失败/)
 })
 
+test('access views expose accessible structure and safe responsive content hooks', () => {
+  const controller = new PlatformAccessController(new FakeApi(), new InMemoryTenantResources())
+  const signedOut = renderPlatformAccessView(controller.getSnapshot())
+  assert.match(signedOut, /aria-labelledby="futurestaff-access-title"/)
+  assert.match(signedOut, /data-action="login" type="button"/)
+
+  const loading = renderPlatformAccessView({ phase: 'loading', tenants: [], applications: [] })
+  assert.match(loading, /role="status"/)
+  assert.match(loading, /aria-live="polite"/)
+  assert.match(loading, /data-skeleton="true"/)
+
+  const ready = renderPlatformAccessView({
+    phase: 'ready', user, tenants: [tenantA, tenantB], activeTenantId: 'tenant-a', applications: [app('tenant-a')],
+  })
+  assert.match(ready, /for="futurestaff-tenant-select"/)
+  assert.match(ready, /id="futurestaff-tenant-select"/)
+  assert.match(ready, /1 个应用/)
+  assert.match(ready, /data-capability="true"/)
+  assert.match(ready, /type="button"/)
+
+  const noApps = renderPlatformAccessView({
+    phase: 'no_apps', user, tenants: [tenantA], activeTenantId: 'tenant-a', applications: [],
+  })
+  assert.match(noApps, /0 个应用/)
+  assert.match(noApps, /data-empty="applications"/)
+
+  const expired = renderPlatformAccessView({
+    phase: 'expired', tenants: [], applications: [], error: { code: 'TOKEN_EXPIRED', message: 'expired', retryable: false },
+  })
+  assert.match(expired, /role="alert"/)
+
+  const error = renderPlatformAccessView({
+    phase: 'error', tenants: [], applications: [], error: { code: 'MOCK_UNAVAILABLE', message: 'offline', retryable: true },
+  })
+  assert.match(error, /role="alert"/)
+})
+
+test('rendered account and application content remains escaped', () => {
+  const markup = renderPlatformAccessView({
+    phase: 'ready',
+    user: { ...user, displayName: '<img src=x onerror=alert(1)>' },
+    tenants: [{ ...tenantA, displayName: '<script>tenant</script>' }],
+    activeTenantId: 'tenant-a',
+    applications: [{ ...app('tenant-a'), displayName: '<b>unsafe</b>', capabilities: ['<svg/onload=alert(1)>'] }],
+  })
+  assert.doesNotMatch(markup, /<script>|<img|<b>|<svg/)
+  assert.match(markup, /&lt;img src=x onerror=alert\(1\)&gt;/)
+  assert.match(markup, /&lt;svg\/onload=alert\(1\)&gt;/)
+})
+
 test('logout is local-first and clears every tenant resource even if revocation fails', async () => {
   const api = new FakeApi()
   api.logout = async () => { throw new Error('offline') }
