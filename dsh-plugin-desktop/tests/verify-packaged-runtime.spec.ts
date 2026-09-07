@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest'
 import AdmZip from 'adm-zip'
 import {
   afterPack,
+  REQUIRED_FUTURESTAFF_PROFILE_RESOURCE_ENTRIES,
   REQUIRED_DSH_CLI_RUNTIME_ENTRIES,
   REQUIRED_PACKAGED_RUNTIME_ENTRIES,
   REQUIRED_MACOS_UNIVERSAL_ENTRIES,
@@ -143,7 +144,8 @@ describe('packaged desktop runtime verification', () => {
     expect(list).toHaveBeenCalledWith(expectedPath, { isPack: false })
     expect(resolvePackagedUnpackedRoot(context('/build', platform))).toBe(unpackedRoot)
     expect(exists).toHaveBeenCalledTimes(
-      REQUIRED_UNPACKED_RUNTIME_ENTRIES.length
+      REQUIRED_FUTURESTAFF_PROFILE_RESOURCE_ENTRIES.length
+        + REQUIRED_UNPACKED_RUNTIME_ENTRIES.length
         + (platform === 'win32' ? REQUIRED_WINDOWS_X64_NODE_PTY_ENTRIES.length : 0)
         + completeArchiveEntries().length,
     )
@@ -177,7 +179,8 @@ describe('packaged desktop runtime verification', () => {
       completePackageResolver(unpackedRoot),
     )
     expect(exists).toHaveBeenCalledTimes(
-      REQUIRED_UNPACKED_RUNTIME_ENTRIES.length
+      REQUIRED_FUTURESTAFF_PROFILE_RESOURCE_ENTRIES.length
+        + REQUIRED_UNPACKED_RUNTIME_ENTRIES.length
         + REQUIRED_MACOS_UNIVERSAL_ENTRIES.length
         + FORBIDDEN_MACOS_UNIVERSAL_ENTRIES.length
         + completeArchiveEntries().length,
@@ -193,6 +196,19 @@ describe('packaged desktop runtime verification', () => {
       unpackedRoot,
       filename => filename !== join(unpackedRoot, missing),
     )).toThrow(`missing ASAR-declared physical entries: ${missing}`)
+  })
+
+  it('fails loud when the packaged FutureStaff Profile resource is absent', () => {
+    const runtimeContext = context('/build', 'win32')
+    const resourcesRoot = join('/build', 'resources')
+    const missing = REQUIRED_FUTURESTAFF_PROFILE_RESOURCE_ENTRIES[0]
+
+    expect(() => verifyPackagedRuntime(
+      runtimeContext,
+      () => completeArchiveEntries(),
+      filename => filename !== join(resourcesRoot, missing),
+      completePackageResolver(resolvePackagedUnpackedRoot(runtimeContext)),
+    )).toThrow(`packaged FutureStaff Profile is missing required resources: ${missing}`)
   })
 
   it('rejects a host-architecture node-pty build from a universal app', () => {

@@ -75,6 +75,7 @@ import {
   selectDesktopProfile,
 } from './profile-manager.ts'
 import { DesktopProfileService } from './profile-service.ts'
+import { installBundledFutureStaffProfile } from './futurestaff-profile.ts'
 import { DesktopActionsService } from './desktop-actions.ts'
 import { clearDesktopProfilePluginState, DesktopPluginsService } from './desktop-plugins.ts'
 import {
@@ -692,6 +693,13 @@ async function start(): Promise<void> {
     }
     startupStage = 'profile-selection'
     lifecycleRecorder.transitionStartupStage(startupStage)
+    if (safeModePaths === undefined && app.isPackaged) {
+      installBundledFutureStaffProfile({
+        resourcesPath: process.resourcesPath,
+        homeDir,
+        selectionStatePath,
+      })
+    }
     const profileDirectoriesBeforeStartup = new Set(
       listDesktopProfiles(homeDir).map(profile => profile.dir),
     )

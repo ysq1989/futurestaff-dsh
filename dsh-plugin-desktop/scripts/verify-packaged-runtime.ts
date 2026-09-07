@@ -115,6 +115,15 @@ export const REQUIRED_WINDOWS_X64_NODE_PTY_ENTRIES = [
   'node_modules/node-pty/prebuilds/win32-x64/conpty/conpty.dll',
 ] as const
 
+/** Product Profile files copied beside app.asar by the FutureStaff release pipeline. */
+export const REQUIRED_FUTURESTAFF_PROFILE_RESOURCE_ENTRIES = [
+  'futurestaff-profile/profiles/futurestaff-alpha/release-manifest.json',
+  'futurestaff-profile/profiles/futurestaff-alpha/package.json',
+  'futurestaff-profile/profiles/futurestaff-alpha/cordis.patch.yml',
+  'futurestaff-profile/profiles/futurestaff-alpha/node_modules/@futurestaff/fs-core/lib/index.js',
+  'futurestaff-profile/profiles/futurestaff-alpha/node_modules/@futurestaff/fs-platform-access/lib/index.js',
+] as const
+
 /** CPU-specific runtime assets that must coexist in a universal macOS application. */
 export const REQUIRED_MACOS_UNIVERSAL_ENTRIES = [
   ...MACOS_UNIVERSAL_NATIVE_ENTRIES.map(entry => entry.path),
@@ -384,6 +393,14 @@ export function verifyPackagedRuntime(
   resolvePackage?: PackageResolver,
 ): void {
   const archiveEntries = verifyPackagedAsar(resolvePackagedAsarPath(context), list)
+  const resourcesRoot = dirname(resolvePackagedAsarPath(context))
+  const missingProfileResources = REQUIRED_FUTURESTAFF_PROFILE_RESOURCE_ENTRIES
+    .filter(entry => !exists(join(resourcesRoot, entry)))
+  if (missingProfileResources.length > 0) {
+    throw new Error(
+      `dsh-plugin-desktop: packaged FutureStaff Profile is missing required resources: ${missingProfileResources.join(', ')}`,
+    )
+  }
   const unpackedRoot = resolvePackagedUnpackedRoot(context)
   const requiredPhysicalEntries = context.electronPlatformName === 'win32'
     ? [...REQUIRED_UNPACKED_RUNTIME_ENTRIES, ...REQUIRED_WINDOWS_X64_NODE_PTY_ENTRIES]

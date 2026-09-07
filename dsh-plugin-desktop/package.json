@@ -343,6 +343,12 @@
       "package.json",
       "!node_modules/node-pty/build/**"
     ],
+    "extraResources": [
+      {
+        "from": "build/futurestaff-profile",
+        "to": "futurestaff-profile"
+      }
+    ],
     "mac": {
       "target": [
         "dir"
