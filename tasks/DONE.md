@@ -174,8 +174,9 @@
 
 ## B02p: Merge the product and desktop repositories
 
-- Status: desktop history imported by merge commit `f6b685b888`; monorepo integration is ready for its local implementation commit.
+- Status: completed locally by desktop-history merge commit `f6b685b888` and monorepo integration commit `358f194f93`.
 - Result: `futurestaff-dsh` now owns the complete desktop shell under `desktop-shell/`; root commands install, build, check, stage, and package both product and desktop code without consulting the adjacent legacy checkout.
 - Provenance: the imported desktop tip is `89f84fcb7856746cdbdb664989547fc835ea8179`; `deepseek-harness` remains a root-managed submodule pinned to `a66e4702047846cdaa10c66c9d3df3951f5ea70d`.
-- Verification: embedded-foundation and release-path tests passed 9/9; stable desktop passed 109 files and 1028 tests with 13 skips; Beta passed 108 files and 1029 tests with 13 skips; both runtime closures contain 228 reachable first-party nodes; bilingual documents, package variants, licenses, and operation reliability passed.
+- Artifact: `outputs/FutureStaff-Agent-2.0.6-x64-Setup.exe`, 134,448,311 bytes, SHA-256 `3d1647f3c9bba99c382abbf3704b9c1a71f4bec49173792957a4cb71fdb63dc7`; the sidecar matches and Authenticode is intentionally `NotSigned`.
+- Verification: embedded-foundation and release-path tests passed 9/9; product workspace checks and builds passed; stable desktop passed 109 files and 1028 tests with 13 skips; Beta passed 108 files and 1029 tests with 13 skips; the Windows packaging gate passed 190/190 with a 228-node runtime closure; bilingual documents, package variants, licenses, operation reliability, NSIS packaging, and final installer verification passed.
 - Boundaries: the adjacent `futurestaff-dsh-desktop` checkout remains untouched as recoverable history. No push, deployment, signing, distribution, installer execution, legacy-repository deletion, or production mutation was performed.

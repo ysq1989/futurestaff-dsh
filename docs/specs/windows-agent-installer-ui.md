@@ -119,9 +119,9 @@ incomplete diagnostic artifact and must not be installed, distributed, or
 treated as the B02o release candidate.
 
 The corrected unsigned private candidate is
-`outputs/FutureStaff-Agent-2.0.6-x64-Setup.exe`, 134,448,316 bytes, SHA-256
-`77d3f55e09dae05cd7e708899e9867489c1fd8f409c9da1cc0a6d507d5c1e051`.
-It was built from controlled desktop commit
-`89f84fcb7856746cdbdb664989547fc835ea8179` and passed the Windows installer
-verification gate. Signing, distribution, and installation remain separate
-explicitly authorized operations.
+`outputs/FutureStaff-Agent-2.0.6-x64-Setup.exe`, 134,448,311 bytes, SHA-256
+`3d1647f3c9bba99c382abbf3704b9c1a71f4bec49173792957a4cb71fdb63dc7`.
+It was rebuilt from merged product commit `358f194f93`, whose imported desktop
+history is rooted at `89f84fcb7856746cdbdb664989547fc835ea8179`, and passed the Windows
+installer verification gate. Signing, distribution, and installation remain
+separate explicitly authorized operations.
