@@ -1,7 +1,8 @@
 # Current Atomic Task
 
-B02o product implementation and the corrected Windows private candidate are
-complete locally. `outputs/FutureStaff-Agent-2.0.6-x64-Setup.exe` includes the
-mandatory installer UI, exact prior-Profile upgrade, disabled upstream model
-settings, and blocking FutureStaff login gate. Platform rollout, signing,
-distribution, and installer execution remain pending explicit authorization.
+## B02p: Merge the product and desktop repositories
+
+- Status: implementation and pre-commit checks complete; final installer build pending.
+- Goal: make `futurestaff-dsh` the single authoritative repository while preserving the desktop package boundary and the exact upstream Harness gitlink.
+- Acceptance: one-root foundation verification, product and desktop checks, and a Windows installer built from `desktop-shell/` without an adjacent repository dependency.
+- Boundaries: no push, deployment, signing, distribution, installer execution, legacy-repository deletion, or production mutation.

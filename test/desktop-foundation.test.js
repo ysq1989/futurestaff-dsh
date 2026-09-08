@@ -7,15 +7,19 @@ import {
   validateDesktopFoundation,
 } from '../scripts/desktop-foundation.mjs'
 
-test('desktop foundation pins the controlled DSH Desktop source', () => {
+test('desktop foundation records the embedded DSH Desktop source', () => {
   const foundation = loadDesktopFoundation()
 
-  assert.equal(foundation.desktopShell.repository, 'https://github.com/ysq1989/futurestaff-dsh-desktop.git')
+  assert.deepEqual(foundation.desktopShell.source, {
+    mode: 'embedded',
+    path: 'desktop-shell',
+    importedFrom: 'https://github.com/ysq1989/futurestaff-dsh-desktop.git',
+    importedCommit: '89f84fcb7856746cdbdb664989547fc835ea8179',
+  })
   assert.equal(foundation.desktopShell.upstream, 'https://github.com/anywhere-labs/dsh-desktop.git')
   assert.equal(foundation.desktopShell.tag, 'v2.0.5')
   assert.match(foundation.desktopShell.baseCommit, /^[0-9a-f]{40}$/)
   assert.equal(foundation.desktopShell.baseCommit, '423406fe225442995902015cb6f10eed670ff115')
-  assert.equal(foundation.desktopShell.releaseCommit, '89f84fcb7856746cdbdb664989547fc835ea8179')
   assert.equal(foundation.desktopShell.license, 'MIT')
   assert.equal(foundation.desktopShell.deepseekHarness.commit, 'a66e4702047846cdaa10c66c9d3df3951f5ea70d')
 })

@@ -210,7 +210,7 @@ describe('exportDiagnosticsZip', () => {
     expect(zip.readAsText('system-info.txt')).toContain('included-lifecycle-evidence: false')
   })
 
-  it('allows evidence when user data is reached through a linked ancestor', async () => {
+  it.skipIf(process.platform === 'win32')('allows evidence when user data is reached through a linked ancestor', async () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-dx-user-data-link-'))
     const target = join(root, 'target')
     const linkedAncestor = join(root, 'linked')

@@ -26,19 +26,14 @@ export function validateDesktopPackagingContract(foundation, desktopManifest) {
 
 export async function stageDesktopRelease(options = {}) {
   const foundation = JSON.parse(await readFile(path.join(root, 'desktop', 'foundation.json'), 'utf8'))
-  const checkout = path.resolve(options.checkout
-    ?? process.env.FUTURESTAFF_DESKTOP_SHELL_DIR
-    ?? path.join(root, '..', 'futurestaff-dsh-desktop'))
-  const branch = git(checkout, 'branch', '--show-current')
-  const head = git(checkout, 'rev-parse', 'HEAD')
-  const status = git(checkout, 'status', '--porcelain')
-  if (branch !== 'main') throw new Error(`controlled desktop checkout must be on main, found ${branch}`)
-  if (head !== foundation.desktopShell.releaseCommit) {
-    throw new Error(`controlled desktop checkout ${head} does not match ${foundation.desktopShell.releaseCommit}`)
-  }
-  if (status !== '') throw new Error('controlled desktop checkout has tracked or untracked changes')
+  const repositoryRoot = path.resolve(options.repositoryRoot ?? root)
+  const checkout = path.join(repositoryRoot, foundation.desktopShell.source.path)
+  const branch = git(repositoryRoot, 'branch', '--show-current')
+  const status = git(repositoryRoot, 'status', '--porcelain')
+  if (branch !== 'main') throw new Error(`product repository must be on main, found ${branch}`)
+  if (status !== '') throw new Error('product repository has tracked or untracked changes')
 
-  const gitlink = git(checkout, 'ls-tree', 'HEAD', 'deepseek-harness').split(/\s+/u)[2]
+  const gitlink = git(repositoryRoot, 'ls-tree', 'HEAD', 'desktop-shell/deepseek-harness').split(/\s+/u)[2]
   if (gitlink !== foundation.desktopShell.deepseekHarness.commit) {
     throw new Error('official deepseek-harness gitlink does not match the product lock')
   }

@@ -11,16 +11,17 @@ FutureStaff's upgrade-friendly extension layer for [DeepSeek Harness](https://gi
 - **M3 baseline:** fail-closed single-subject deployment boundary pending a trusted identity gateway.
 - **Local Runner foundation:** versioned protocol plus an in-memory cloud Router for trusted binding, presence, dispatch, timeout, and result collection.
 - **Authenticated Runner transport:** opt-in loopback WebSocket gateway and a read-only reconnecting Node client.
-- **Desktop foundation:** a pinned, security-defaulted FutureStaff distribution over the controlled DSH Desktop fork.
+- **Desktop foundation:** an embedded, security-defaulted FutureStaff desktop shell with an unmodified upstream Harness submodule.
 - **Deployment:** server-first Docker image with separate test and production Compose topology.
 - **Not in scope:** Vietnam visa business calls, public Runner transport or desktop client, final auth, and billing.
 
 ## Quick start
 
-Requirements: Node.js 22+, npm, and pnpm (DSH uses pnpm for plugin management; `pnpm dlx` also avoids npm's slow prerelease dependency resolution).
+Requirements: Node.js 22+, npm, Corepack/Yarn, and pnpm (DSH uses pnpm for plugin management; `pnpm dlx` also avoids npm's slow prerelease dependency resolution).
 
 ```bash
 npm install
+npm run desktop:install
 cp .env.example .env
 npm run check
 npm run profile:install
@@ -36,13 +37,15 @@ If Windows Application Control blocks DSH's native `sharp` module, run the Docke
 
 | Command | Purpose |
 |---|---|
-| `npm run check` | Type-check, test, and build all implemented workspaces |
-| `npm run desktop:verify` | Verify the pinned desktop source, product identity, and fail-closed distribution defaults |
+| `npm run build` | Build the product workspaces and embedded desktop shell |
+| `npm run check` | Type-check, test, and build the product and embedded desktop shell |
+| `npm run desktop:install` | Install the embedded desktop Yarn workspace immutably |
+| `npm run desktop:verify` | Verify the embedded desktop source, product identity, upstream gitlink, and fail-closed defaults |
 | `npm run platform:mock:demo` | Open the loopback B01a login, tenant, and authorized-app panel against A's local Mock |
 | `npm run platform:mock:smoke` | Exercise the pinned platform Mock without starting the graphical shell |
 | `npm run release:profile` | Stage a relocatable, built-only `futurestaff-alpha` Profile for desktop packaging |
 | `npm run profile:dump:release` | Compose and inspect the staged release Profile with the pinned local DSH runtime |
-| `npm run desktop:stage` | Verify the controlled desktop checkout and stage the release Profile into its ignored packaging input |
+| `npm run desktop:stage` | Verify the monorepo and stage the release Profile into the embedded shell's ignored packaging input |
 | `npm run installer:windows` | Build and export the unsigned private Windows x64 setup plus SHA-256 sidecar |
 | `npm run profile:install` | Stage the custom Profile and install the local FutureStaff plugins |
 | `npm run profile:dump` | Print the final composed DSH plugin tree |
@@ -70,6 +73,7 @@ skills/jade-sourcing/       Future skill placeholder
 skills/vietnam-visa/        Collector-safe Vietnam visa operating instructions
 docs/                       Architecture, acceptance criteria, conventions, ADRs
 desktop/                    Pinned desktop-shell and FutureStaff distribution contract
+desktop-shell/              Electron host, installer UI, packaging, and read-only Harness submodule
 docker/                     Server image, dev/prod Compose, and Nginx example
 scripts/                    Profile staging utility
 ```

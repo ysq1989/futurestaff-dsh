@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "product": {
     "name": "FutureStaff Agent",
     "appId": "net.fsstory.agent.desktop",
@@ -8,11 +8,15 @@
     "logNamespace": "FutureStaff Agent/logs"
   },
   "desktopShell": {
-    "repository": "https://github.com/ysq1989/futurestaff-dsh-desktop.git",
+    "source": {
+      "mode": "embedded",
+      "path": "desktop-shell",
+      "importedFrom": "https://github.com/ysq1989/futurestaff-dsh-desktop.git",
+      "importedCommit": "89f84fcb7856746cdbdb664989547fc835ea8179"
+    },
     "upstream": "https://github.com/anywhere-labs/dsh-desktop.git",
     "tag": "v2.0.5",
     "baseCommit": "423406fe225442995902015cb6f10eed670ff115",
-    "releaseCommit": "89f84fcb7856746cdbdb664989547fc835ea8179",
     "license": "MIT",
     "deepseekHarness": {
       "repository": "https://github.com/deepseek-ai/deepseek-harness.git",

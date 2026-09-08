@@ -10,6 +10,11 @@ const run = (command, args, cwd = root) => execFileSync(command, args, {
   stdio: ['ignore', 'pipe', 'pipe'],
 }).trim()
 const fail = message => { throw new Error(`verify-layout: ${message}`) }
+const repositoryRoot = run('git', ['rev-parse', '--show-toplevel'])
+const repositoryPrefix = run('git', ['rev-parse', '--show-prefix'])
+const submodulePath = `${repositoryPrefix}deepseek-harness`
+const submoduleKey = `submodule.${submodulePath}.`
+const rootGitModules = resolve(repositoryRoot, '.gitmodules')
 
 const workspace = readJson('package.json')
 const upstream = readJson('upstream.json')
@@ -70,10 +75,10 @@ for (const legacyFile of [
 ]) {
   if (existsSync(resolve(root, legacyFile))) fail(`${legacyFile} must not exist`)
 }
-if (run('git', ['config', '-f', '.gitmodules', '--get', 'submodule.deepseek-harness.path']) !== 'deepseek-harness') {
-  fail('the upstream submodule path must be deepseek-harness')
+if (run('git', ['config', '-f', rootGitModules, '--get', `${submoduleKey}path`]) !== submodulePath) {
+  fail(`the upstream submodule path must be ${submodulePath}`)
 }
-if (run('git', ['config', '-f', '.gitmodules', '--get', 'submodule.deepseek-harness.url']) !== upstream.repository) {
+if (run('git', ['config', '-f', rootGitModules, '--get', `${submoduleKey}url`]) !== upstream.repository) {
   fail('the upstream submodule URL differs from upstream.json')
 }
 if (typeof upstreamPackage.packageManager !== 'string' || !upstreamPackage.packageManager.startsWith('pnpm@')) {

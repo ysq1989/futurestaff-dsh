@@ -154,6 +154,7 @@ describe('pre-Host recovery plugin uninstall command', () => {
       ...base,
       dshBootstrapPath,
       environment: {
+        ...process.env,
         PATH: systemBin,
         PNPM_SELECTION_MARKER: selectedMarker,
       },

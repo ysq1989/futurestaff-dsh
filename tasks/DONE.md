@@ -171,3 +171,11 @@
 - Artifact: `outputs/FutureStaff-Agent-2.0.5-x64-Setup.exe`, 134,344,753 bytes, SHA-256 `49dbe0733e3f4d22d31b2f725a4551629533f24748d73607fe9d6d117e668ccc`; the adjacent sidecar matches. Authenticode remains intentionally absent for this private Alpha build.
 - Verification: product full `npm run check` passed, including 49 platform-access tests, 18 Product Hub tests, and 52 top-level tests; release Profile composition passed; desktop upgrade tests passed 9/9 with build/typecheck; the Windows packaging gate passed 188/188 tests and a 228-node closed runtime graph before verifying the final installer.
 - Boundaries: no user Profile was modified, no installer was executed, no real Platform request was made, and no push or public distribution occurred.
+
+## B02p: Merge the product and desktop repositories
+
+- Status: desktop history imported by merge commit `f6b685b888`; monorepo integration is ready for its local implementation commit.
+- Result: `futurestaff-dsh` now owns the complete desktop shell under `desktop-shell/`; root commands install, build, check, stage, and package both product and desktop code without consulting the adjacent legacy checkout.
+- Provenance: the imported desktop tip is `89f84fcb7856746cdbdb664989547fc835ea8179`; `deepseek-harness` remains a root-managed submodule pinned to `a66e4702047846cdaa10c66c9d3df3951f5ea70d`.
+- Verification: embedded-foundation and release-path tests passed 9/9; stable desktop passed 109 files and 1028 tests with 13 skips; Beta passed 108 files and 1029 tests with 13 skips; both runtime closures contain 228 reachable first-party nodes; bilingual documents, package variants, licenses, and operation reliability passed.
+- Boundaries: the adjacent `futurestaff-dsh-desktop` checkout remains untouched as recoverable history. No push, deployment, signing, distribution, installer execution, legacy-repository deletion, or production mutation was performed.

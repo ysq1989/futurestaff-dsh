@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const foundationUrl = new URL('../desktop/foundation.json', import.meta.url)
+const productRoot = fileURLToPath(new URL('../', import.meta.url))
 
 function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -24,18 +25,23 @@ export function validateDesktopFoundation(value) {
   const mockContract = isRecord(platformContract.mock) ? platformContract.mock : {}
   const devContract = isRecord(platformContract.dev) ? platformContract.dev : {}
 
-  if (value?.schemaVersion !== 1) errors.push('schemaVersion must be 1')
+  if (value?.schemaVersion !== 2) errors.push('schemaVersion must be 2')
   if (product.name !== 'FutureStaff Agent') errors.push('product.name must be FutureStaff Agent')
   if (product.appId !== 'net.fsstory.agent.desktop') errors.push('product.appId is not the FutureStaff namespace')
   if (product.dataDirectory !== 'FutureStaff Agent') errors.push('product data directory is not isolated')
   if (product.logNamespace !== 'FutureStaff Agent/logs') errors.push('product log namespace is not isolated')
-  if (shell.repository !== 'https://github.com/ysq1989/futurestaff-dsh-desktop.git') errors.push('controlled fork URL is incorrect')
+  if (shell.source?.mode !== 'embedded' || shell.source?.path !== 'desktop-shell') {
+    errors.push('desktop shell must be embedded at desktop-shell')
+  }
+  if (shell.source?.importedFrom !== 'https://github.com/ysq1989/futurestaff-dsh-desktop.git') {
+    errors.push('desktop shell import provenance is incorrect')
+  }
+  if (!/^[0-9a-f]{40}$/u.test(shell.source?.importedCommit ?? '')) {
+    errors.push('desktop shell imported commit must be an exact SHA')
+  }
   if (shell.upstream !== 'https://github.com/anywhere-labs/dsh-desktop.git') errors.push('upstream URL is incorrect')
   if (shell.tag !== 'v2.0.5') errors.push('desktop shell tag must remain v2.0.5')
   if (!/^[0-9a-f]{40}$/u.test(shell.baseCommit ?? '')) errors.push('desktop shell base commit must be an exact SHA')
-  if (shell.releaseCommit !== null && !/^[0-9a-f]{40}$/u.test(shell.releaseCommit ?? '')) {
-    errors.push('desktop shell release commit must be null or an exact SHA')
-  }
   if (shell.license !== 'MIT') errors.push('desktop shell license must be MIT')
   if (shell.deepseekHarness?.modified !== false) errors.push('official deepseek-harness must remain unmodified')
   if (updates.enabled !== false || updates.endpoint !== null) errors.push('third-party updates must be disabled')
@@ -82,31 +88,21 @@ function git(checkout, ...args) {
   return execFileSync('git', ['-C', checkout, ...args], { encoding: 'utf8' }).trim()
 }
 
-export function verifyDesktopCheckout(checkout, foundation = loadDesktopFoundation()) {
-  if (!existsSync(checkout)) return [`desktop checkout does not exist: ${checkout}`]
+export function verifyEmbeddedDesktop(repositoryRoot, foundation = loadDesktopFoundation()) {
+  const checkout = join(repositoryRoot, foundation.desktopShell.source.path)
+  if (!existsSync(checkout)) return [`embedded desktop shell does not exist: ${checkout}`]
 
   const errors = []
-  const head = git(checkout, 'rev-parse', 'HEAD')
-  const branch = git(checkout, 'branch', '--show-current')
-  const origin = git(checkout, 'remote', 'get-url', 'origin')
-  const upstream = git(checkout, 'remote', 'get-url', 'upstream')
-  const gitlink = git(checkout, 'ls-tree', 'HEAD', 'deepseek-harness').split(/\s+/u)[2]
-  const submoduleDiff = git(checkout, 'diff', '--name-only', '--', 'deepseek-harness')
+  const branch = git(repositoryRoot, 'branch', '--show-current')
+  const gitlink = git(repositoryRoot, 'ls-tree', 'HEAD', 'desktop-shell/deepseek-harness').split(/\s+/u)[2]
+  const submoduleDiff = git(repositoryRoot, 'diff', '--name-only', '--', 'desktop-shell/deepseek-harness')
   const desktopPackage = JSON.parse(readFileSync(join(checkout, 'dsh-plugin-desktop', 'package.json'), 'utf8'))
   const desktopPatch = readFileSync(join(checkout, 'dsh-plugin-desktop', 'cordis.patch.yml'), 'utf8')
   const identitySource = readFileSync(join(checkout, 'dsh-plugin-desktop', 'src', 'product-identity.ts'), 'utf8')
   const setupDefaults = readFileSync(join(checkout, 'dsh-plugin-desktop', 'src', 'setup-wizard-settings.ts'), 'utf8')
   const marketSource = readFileSync(join(checkout, 'dsh-plugin-desktop', 'src', 'desktop-market.ts'), 'utf8')
 
-  if (head !== foundation.desktopShell.baseCommit && foundation.desktopShell.releaseCommit === null) {
-    errors.push(`desktop HEAD ${head} is neither the pinned base nor a recorded release commit`)
-  }
-  if (foundation.desktopShell.releaseCommit !== null && head !== foundation.desktopShell.releaseCommit) {
-    errors.push(`desktop HEAD ${head} does not match releaseCommit`)
-  }
-  if (branch !== 'main') errors.push(`desktop checkout must use main, found ${branch || 'detached HEAD'}`)
-  if (origin !== foundation.desktopShell.repository) errors.push(`desktop origin mismatch: ${origin}`)
-  if (upstream !== foundation.desktopShell.upstream) errors.push(`desktop upstream mismatch: ${upstream}`)
+  if (branch !== 'main') errors.push(`product repository must use main, found ${branch || 'detached HEAD'}`)
   if (gitlink !== foundation.desktopShell.deepseekHarness.commit) errors.push(`deepseek-harness gitlink mismatch: ${gitlink}`)
   if (submoduleDiff !== '') errors.push('deepseek-harness gitlink has local changes')
   if (desktopPackage.build?.appId !== foundation.product.appId) errors.push('desktop package appId does not match the product lock')
@@ -128,8 +124,7 @@ export function verifyDesktopCheckout(checkout, foundation = loadDesktopFoundati
 function main() {
   const foundation = loadDesktopFoundation()
   const errors = validateDesktopFoundation(foundation)
-  const checkout = process.env.FUTURESTAFF_DESKTOP_SHELL_DIR
-  if (checkout) errors.push(...verifyDesktopCheckout(checkout, foundation))
+  errors.push(...verifyEmbeddedDesktop(productRoot, foundation))
 
   if (errors.length > 0) {
     for (const error of errors) console.error(`desktop foundation: ${error}`)
@@ -137,8 +132,8 @@ function main() {
     return
   }
   console.log(`FutureStaff desktop foundation valid: ${foundation.desktopShell.tag}@${foundation.desktopShell.baseCommit}`)
-  console.log(`Controlled fork: ${foundation.desktopShell.repository}`)
-  console.log(`Release commit: ${foundation.desktopShell.releaseCommit ?? 'pending local productization'}`)
+  console.log(`Embedded desktop shell: ${foundation.desktopShell.source.path}`)
+  console.log(`Imported from: ${foundation.desktopShell.source.importedFrom}@${foundation.desktopShell.source.importedCommit}`)
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main()
