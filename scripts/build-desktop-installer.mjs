@@ -7,8 +7,9 @@ import { stageDesktopRelease } from './stage-desktop-release.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
-export function installerArtifactNames(files) {
-  return files.filter(name => /^FutureStaff-Agent-[0-9].*-x64-Setup\.exe$/u.test(name)).sort()
+export function installerArtifactNames(files, version) {
+  const expected = `FutureStaff-Agent-${version}-x64-Setup.exe`
+  return files.filter(name => name === expected)
 }
 
 async function sha256(file) {
@@ -28,7 +29,8 @@ export async function buildDesktopInstaller() {
     env: process.env,
   })
   const desktopOutput = path.join(desktopRoot, 'dist')
-  const names = installerArtifactNames(await readdir(desktopOutput))
+  const desktopManifest = JSON.parse(await readFile(path.join(desktopRoot, 'package.json'), 'utf8'))
+  const names = installerArtifactNames(await readdir(desktopOutput), desktopManifest.version)
   if (names.length !== 1) throw new Error(`expected one FutureStaff installer, found ${names.length}`)
   const source = path.join(desktopOutput, names[0])
   const info = await stat(source)

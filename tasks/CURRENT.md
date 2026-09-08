@@ -1,9 +1,7 @@
 # Current Atomic Task
 
-B02o product implementation is complete locally, but its Windows candidate is
-rejected because the build omitted the mandatory installer UI contract recorded
-in `docs/specs/windows-agent-installer-ui.md`. Incorporate those existing desktop
-changes into the pinned release input and rebuild before installation or
-distribution. The replacement must also supersede the exact previous bundled
-Profile and display the blocking FutureStaff login gate instead of the upstream
-API Key onboarding. Platform rollout remains pending explicit authorization.
+B02o product implementation and the corrected Windows private candidate are
+complete locally. `outputs/FutureStaff-Agent-2.0.6-x64-Setup.exe` includes the
+mandatory installer UI, exact prior-Profile upgrade, disabled upstream model
+settings, and blocking FutureStaff login gate. Platform rollout, signing,
+distribution, and installer execution remain pending explicit authorization.
