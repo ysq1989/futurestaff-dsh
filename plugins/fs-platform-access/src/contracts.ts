@@ -111,6 +111,28 @@ export interface AuthCallbackInput {
   readonly state: string
 }
 
+export interface PasswordLoginInput {
+  readonly loginIdentifier: string
+  readonly password: string
+  readonly tenantId?: string
+}
+
+export interface PlatformModel {
+  readonly modelId: string
+  readonly displayName: string
+  readonly provider: string
+  readonly model: string
+  readonly supportsVision: boolean
+  readonly isDefault: boolean
+}
+
+export interface ModelList {
+  readonly activeTenantId: string
+  readonly activeModelId: string | null
+  readonly items: readonly PlatformModel[]
+  readonly meta: ContractMeta
+}
+
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export function assertKeys(

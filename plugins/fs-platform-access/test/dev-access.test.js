@@ -24,6 +24,10 @@ const application = activeTenantId => ({
   baseUrl: 'https://dev.fsstory.net', deepLinks: { home: '/' }, capabilities: ['agent.read'],
   contractRange: '>=0.1.1 <0.2.0',
 })
+const model = {
+  modelId: '30000000-0000-4000-8000-000000000001', displayName: '平台默认模型',
+  provider: 'openai', model: 'gpt-platform', supportsVision: true, isDefault: true,
+}
 
 class FakeVault {
   value = { session: session(), user }
@@ -38,11 +42,15 @@ class FakeDevApi {
   order = []
   activeTenantId = tenantId
   tokenRequests = []
+  async loginWithPassword() { return { session: session(), user, meta: { contractVersion: '0.1.1', simulated: false } } }
   async refresh() { return { session: session(this.activeTenantId, 'refreshed'), meta: { contractVersion: '0.1.1', simulated: false } } }
   async logout(token) { this.order.push(`remote:${token}`) }
   async listTenants() { return { activeTenantId: this.activeTenantId, items: tenants, meta: { contractVersion: '0.1.1', simulated: false } } }
   async listApplications(_token, activeTenantId) {
     return { activeTenantId, items: [application(activeTenantId)], meta: { contractVersion: '0.1.1', simulated: false } }
+  }
+  async listModels(_token, activeTenantId) {
+    return { activeTenantId, activeModelId: model.modelId, items: [model], meta: { contractVersion: '0.1.1', simulated: false } }
   }
   async switchTenant(_token, activeTenantId) {
     this.activeTenantId = activeTenantId
@@ -68,6 +76,7 @@ test('DEV access restores a credential-free tenant snapshot from the protected V
   assert.equal(snapshot.user.displayName, 'DEV 用户')
   assert.equal(snapshot.tenants.length, 2)
   assert.equal(snapshot.applications[0].tenantId, tenantId)
+  assert.equal(snapshot.models[0].displayName, '平台默认模型')
   assert.doesNotMatch(JSON.stringify(snapshot), /private-access|private-refresh/)
 })
 

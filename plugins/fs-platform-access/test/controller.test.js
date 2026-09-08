@@ -158,11 +158,12 @@ test('access views expose accessible structure and safe responsive content hooks
   assert.match(error, /role="alert"/)
 
   const devSignedOut = renderPlatformAccessView({
-    phase: 'signed_out', simulated: false, contractVersion: '0.1.1', tenants: [], applications: [],
+    phase: 'signed_out', simulated: false, contractVersion: '0.1.1', tenants: [], applications: [], models: [],
   })
-  assert.match(devSignedOut, /data-dev="true"/)
-  assert.match(devSignedOut, /登录 Platform DEV/)
-  assert.doesNotMatch(devSignedOut, /模拟登录|data-mock="true"/)
+  assert.match(devSignedOut, /data-action="password-login"/)
+  assert.match(devSignedOut, /autocomplete="username"/)
+  assert.match(devSignedOut, /autocomplete="current-password"/)
+  assert.doesNotMatch(devSignedOut, /模拟登录|data-mock="true"|Platform DEV|契约 0\.1\.1|内测/)
 })
 
 test('rendered account and application content remains escaped', () => {

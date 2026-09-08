@@ -5,6 +5,7 @@ import {
   getPlatformDevAccessSnapshot,
   getProductHubApplicationToken,
   PlatformDevClientController,
+  shouldShowPlatformLoginGate,
 } from '../lib/client/index.js'
 
 const tenantId = '10000000-0000-4000-8000-000000000001'
@@ -17,7 +18,22 @@ const snapshot = {
     appId: 'agent', tenantId, displayName: 'FutureStaff Agent', baseUrl: 'https://dev.fsstory.net',
     deepLinks: { home: '/' }, capabilities: ['agent.read'], contractRange: '>=0.1.1 <0.2.0',
   }],
+  models: [{
+    modelId: '30000000-0000-4000-8000-000000000001', displayName: '平台默认模型',
+    provider: 'openai', model: 'gpt-platform', supportsVision: true, isDefault: true,
+  }],
+  activeModelId: '30000000-0000-4000-8000-000000000001',
 }
+
+test('login gate blocks every unauthenticated phase and clears only after platform context loads', () => {
+  for (const phase of ['signed_out', 'loading', 'expired', 'error']) {
+    assert.equal(shouldShowPlatformLoginGate({
+      phase, simulated: false, contractVersion: '0.1.1', tenants: [], applications: [], models: [],
+    }), true)
+  }
+  assert.equal(shouldShowPlatformLoginGate(snapshot), false)
+  assert.equal(shouldShowPlatformLoginGate({ ...snapshot, phase: 'no_apps', applications: [] }), false)
+})
 
 test('DEV client uses only guarded Host session routes and keeps responses credential-free', async () => {
   const calls = []
@@ -40,6 +56,22 @@ test('DEV client uses only guarded Host session routes and keeps responses crede
   assert.ok(calls.every(call => call.init.headers['x-futurestaff-session'] === '1'))
   assert.equal(calls[2].init.body, JSON.stringify({ tenantId }))
   assert.doesNotMatch(JSON.stringify(controller.getSnapshot()), /accessToken|refreshToken/)
+})
+
+test('DEV client submits account credentials only to the guarded local Host login route', async () => {
+  const calls = []
+  const controller = new PlatformDevClientController(async (input, init) => {
+    calls.push({ input, init })
+    return new Response(JSON.stringify(snapshot), { status: 200 })
+  }, () => {})
+
+  await controller.loginWithPassword({ loginIdentifier: 'user@example.invalid', password: 'private-password' })
+
+  assert.equal(controller.getSnapshot().phase, 'ready')
+  assert.equal(calls[0].input, '/_futurestaff/platform-dev/auth/password')
+  assert.equal(calls[0].init.headers['x-futurestaff-login'], '1')
+  assert.equal(JSON.parse(calls[0].init.body).password, 'private-password')
+  assert.doesNotMatch(JSON.stringify(controller.getSnapshot()), /private-password/)
 })
 
 test('DEV snapshot helper returns only the strict credential-free Host contract', async () => {
@@ -75,7 +107,7 @@ test('DEV client ignores an older session response after a newer restore complet
       return new Response(JSON.stringify(snapshot), { status: 200 })
     }
     return new Response(JSON.stringify({
-      phase: 'signed_out', simulated: false, contractVersion: '0.1.1', tenants: [], applications: [],
+      phase: 'signed_out', simulated: false, contractVersion: '0.1.1', tenants: [], applications: [], models: [], activeModelId: null,
     }), { status: 200 })
   }, () => {})
 

@@ -1,8 +1,10 @@
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
-import { createElement, useEffect, useRef } from 'react'
+import { createElement, useEffect, useRef, useSyncExternalStore } from 'react'
 import { PlatformMockApi } from '../api.js'
+import type { PasswordLoginInput } from '../contracts.js'
 import { PlatformAccessController, type PlatformAccessSnapshot } from '../controller.js'
 import { decodePlatformDevAccessSnapshot } from '../dev-access.js'
 import { InMemoryTenantResources } from '../isolation.js'
@@ -24,6 +26,9 @@ export const platformAccessPanelCss = `
 .futurestaff-access .fs-tenant{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,310px);align-items:end;gap:18px;padding:17px;border:1px solid var(--fs-border);border-radius:14px;background:color-mix(in srgb,currentColor 2%,transparent)}.futurestaff-access .fs-tenant label{font-weight:680}.futurestaff-access .fs-tenant p,.futurestaff-access .fs-apps-heading p,.futurestaff-access .fs-empty p,.futurestaff-access .fs-lead{color:var(--fs-muted)}.futurestaff-access .fs-tenant p,.futurestaff-access .fs-apps-heading p{margin-top:2px;font-size:.8rem}.futurestaff-access .fs-select-wrap{display:flex;align-items:center;gap:8px;min-width:0}.futurestaff-access select{width:100%;min-width:0;min-height:40px;padding:8px 34px 8px 11px;border:1px solid var(--fs-border);border-radius:10px;background:color-mix(in srgb,currentColor 2.5%,transparent)}.futurestaff-access .fs-role{flex:0 0 auto;padding:4px 7px;border-radius:7px;background:var(--fs-accent-soft);color:var(--fs-accent);font-size:.7rem;font-weight:700}
 .futurestaff-access .fs-apps-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.futurestaff-access .fs-apps-heading>span{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:var(--fs-accent-soft);color:var(--fs-accent);font-size:.78rem;font-weight:760}.futurestaff-access .fs-app-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0;padding:0;list-style:none}.futurestaff-access .fs-app-grid li{display:flex;align-items:flex-start;gap:11px;min-width:0;padding:15px;border:1px solid var(--fs-border);border-radius:14px;background:color-mix(in srgb,currentColor 1.5%,transparent)}.futurestaff-access .fs-app-icon{display:grid;flex:0 0 auto;place-items:center;width:38px;height:38px;border-radius:11px;background:var(--fs-accent-soft);color:var(--fs-accent);font-weight:780}.futurestaff-access .fs-app-copy{min-width:0}.futurestaff-access .fs-app-copy>strong{display:block;overflow-wrap:anywhere}.futurestaff-access .fs-capabilities{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}.futurestaff-access [data-capability=true]{max-width:100%;padding:3px 7px;border:1px solid var(--fs-border);border-radius:999px;color:var(--fs-muted);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.68rem;overflow-wrap:anywhere}
 .futurestaff-access .fs-empty{display:grid;justify-items:center;gap:5px;padding:30px 18px;border:1px dashed color-mix(in srgb,currentColor 20%,transparent);border-radius:14px;text-align:center}.futurestaff-access .fs-empty-mark{display:grid;place-items:center;width:42px;height:42px;margin-bottom:4px;border-radius:13px;background:var(--fs-accent-soft);color:var(--fs-accent);font-weight:780}
+.futurestaff-access .fs-login-form{display:grid;gap:8px;max-width:420px;margin-top:4px}.futurestaff-access .fs-login-form label{margin-top:4px;font-size:.82rem;font-weight:680}.futurestaff-access .fs-login-form input{width:100%;min-height:42px;padding:9px 12px;border:1px solid var(--fs-border);border-radius:10px;background:color-mix(in srgb,currentColor 2.5%,transparent);color:inherit;font:inherit}.futurestaff-access .fs-login-form input:focus-visible{outline:3px solid color-mix(in srgb,var(--fs-accent) 35%,transparent);outline-offset:2px}.futurestaff-access .fs-login-form button{margin-top:8px}
+.futurestaff-access .fs-model-list{display:grid;gap:8px;margin:0;padding:0;list-style:none}.futurestaff-access .fs-model-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border:1px solid var(--fs-border);border-radius:12px;background:color-mix(in srgb,currentColor 1.5%,transparent)}.futurestaff-access .fs-model-list li[data-active=true]{border-color:color-mix(in srgb,var(--fs-accent) 45%,transparent);background:var(--fs-accent-soft)}.futurestaff-access .fs-model-list strong,.futurestaff-access .fs-model-list span{display:block}.futurestaff-access .fs-model-list span{margin-top:2px;color:var(--fs-muted);font-size:.76rem}.futurestaff-access .fs-model-list em{flex:0 0 auto;padding:4px 8px;border-radius:999px;background:var(--fs-accent);color:#fff;font-size:.7rem;font-style:normal;font-weight:700}
+.futurestaff-login-gate{position:fixed;inset:0;z-index:1400;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% 12%,rgba(34,211,238,.18),transparent 38%),rgba(3,10,24,.82);backdrop-filter:blur(12px);pointer-events:auto}.futurestaff-login-gate .futurestaff-access{width:min(520px,100%);max-width:520px}.futurestaff-login-gate .fs-panel{background:color-mix(in srgb,#fff 96%,#e8f5ff);box-shadow:0 28px 90px rgba(0,0,0,.34)}
 .futurestaff-access .fs-state{grid-template-columns:auto minmax(0,1fr);align-items:start}.futurestaff-access .fs-state-copy{display:grid;gap:11px;min-width:0}.futurestaff-access .fs-state .fs-state-mark{width:50px;height:50px}.futurestaff-access .fs-state .fs-actions{margin-top:4px}.futurestaff-access .fs-skeletons{display:grid;gap:8px;margin-top:4px}.futurestaff-access .fs-skeletons span{height:12px;border-radius:999px;background:linear-gradient(90deg,var(--fs-border),color-mix(in srgb,currentColor 7%,transparent),var(--fs-border));background-size:200% 100%;animation:fs-shimmer 1.25s ease-in-out infinite}.futurestaff-access .fs-skeletons span:nth-child(2){width:78%}.futurestaff-access .fs-skeletons span:nth-child(3){width:52%}
 @keyframes fs-shimmer{to{background-position:-200% 0}}
 @media (max-width: 640px){.futurestaff-access .fs-panel{gap:18px;padding:18px;border-radius:16px}.futurestaff-access .fs-header{display:grid}.futurestaff-access .fs-header-actions{width:100%}.futurestaff-access .fs-header-actions button{flex:1}.futurestaff-access .fs-tenant{grid-template-columns:1fr;gap:12px}.futurestaff-access .fs-app-grid{grid-template-columns:1fr}.futurestaff-access .fs-state{grid-template-columns:1fr}.futurestaff-access .fs-state-mark{display:none}.futurestaff-access .fs-actions button{flex:1}.futurestaff-access .fs-summary{align-items:flex-start;flex-direction:column}.futurestaff-access .fs-count{align-self:flex-end}}
@@ -121,7 +126,7 @@ type Opener = (url: string, target: string, features: string) => unknown
 
 const initialDevSnapshot: PlatformAccessSnapshot = Object.freeze({
   phase: 'signed_out', simulated: false, contractVersion: '0.1.1',
-  tenants: Object.freeze([]), applications: Object.freeze([]),
+  tenants: Object.freeze([]), applications: Object.freeze([]), models: Object.freeze([]),
 })
 
 export class PlatformDevClientController {
@@ -148,7 +153,10 @@ export class PlatformDevClientController {
       const snapshot = await this.#request('/session', { method: 'GET' })
       if (generation === this.#generation) this.#publish(snapshot)
     } catch (error) {
-      if (error instanceof PlatformDevClientUnavailableError) throw error
+      if (error instanceof PlatformDevClientUnavailableError) {
+        if (generation === this.#generation) this.#publishFailure()
+        throw error
+      }
       if (generation === this.#generation) this.#publishFailure()
     }
   }
@@ -158,6 +166,25 @@ export class PlatformDevClientController {
     this.#publish({ ...initialDevSnapshot, phase: 'loading' })
     try { await beginPlatformDevLogin(this.fetcher, this.opener) } catch {
       if (generation === this.#generation) this.#publishFailure()
+    }
+  }
+
+  async loginWithPassword(input: PasswordLoginInput): Promise<void> {
+    const generation = ++this.#generation
+    this.#publish({ ...initialDevSnapshot, phase: 'loading' })
+    try {
+      const snapshot = await this.#request('/auth/password', {
+        method: 'POST',
+        body: JSON.stringify(input),
+        headers: { 'x-futurestaff-login': '1' },
+      })
+      if (generation === this.#generation) this.#publish(snapshot)
+    } catch {
+      if (generation === this.#generation) this.#publish({
+        ...initialDevSnapshot,
+        phase: 'error',
+        error: { code: 'AUTHENTICATION_REQUIRED', message: '账号或密码错误，请重新输入。', retryable: true },
+      })
     }
   }
 
@@ -189,6 +216,7 @@ export class PlatformDevClientController {
         ...init,
         headers: {
           accept: 'application/json', 'x-futurestaff-session': '1',
+          ...init.headers,
           ...(init.body === undefined ? {} : { 'content-type': 'application/json' }),
         },
       })
@@ -245,11 +273,44 @@ export function FutureStaffPlatformAccessSection() {
   )
 }
 
+export function shouldShowPlatformLoginGate(snapshot: PlatformAccessSnapshot): boolean {
+  return snapshot.phase !== 'ready' && snapshot.phase !== 'no_apps'
+}
+
+function FutureStaffPlatformLoginGate() {
+  const controllerRef = useRef<PlatformDevClientController | null>(null)
+  if (controllerRef.current === null) controllerRef.current = new PlatformDevClientController()
+  const controller = controllerRef.current
+  const snapshot = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot)
+  const root = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    void controller.restore().catch(() => {})
+  }, [controller])
+
+  useEffect(() => {
+    if (root.current === null || !shouldShowPlatformLoginGate(snapshot)) return
+    return mountPlatformAccessPanel(root.current, controller)
+  }, [controller, snapshot.phase])
+
+  if (!shouldShowPlatformLoginGate(snapshot)) return null
+  return createElement('section', {
+    className: 'futurestaff-login-gate', role: 'dialog', 'aria-modal': true,
+    'aria-label': '登录 FutureStaff',
+  }, createElement('div', { className: 'futurestaff-access' },
+    createElement('style', null, platformAccessPanelCss),
+    createElement('div', { ref: root }),
+  ))
+}
+
 export const inject = ['slots']
 
-/** Mount the FutureStaff access panel as an actual DSH Settings section. */
+/** Mount account access in Settings and require it before the desktop workspace is usable. */
 export function apply(ctx: ClientContext): void {
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section', id: 'futurestaff-access', order: -10, label: 'FutureStaff',
   }, FutureStaffPlatformAccessSection))
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay', id: 'futurestaff-login-gate', order: -100,
+  }, FutureStaffPlatformLoginGate))
 }

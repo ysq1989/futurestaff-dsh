@@ -10,7 +10,10 @@ import {
   type AuthorizedApplication,
   type ApplicationTokenResult,
   type DesktopSession,
+  type ModelList,
+  type PasswordLoginInput,
   type PlatformFailure,
+  type PlatformModel,
   type RefreshResult,
   type Tenant,
   type TenantList,
@@ -30,10 +33,16 @@ export interface PlatformDevAccessSnapshot {
   readonly activeTenantId?: string
   readonly tenants: readonly Tenant[]
   readonly applications: readonly AuthorizedApplication[]
+  readonly models: readonly PlatformModel[]
+  readonly activeModelId?: string | null
   readonly error?: PlatformFailure
 }
 
 interface PlatformDevAccessApi {
+  loginWithPassword(input: PasswordLoginInput, signal?: AbortSignal): Promise<{
+    readonly session: DesktopSession
+    readonly user: User
+  }>
   refresh(refreshToken: string, signal?: AbortSignal): Promise<RefreshResult>
   logout(refreshToken: string | undefined, signal?: AbortSignal): Promise<void>
   listTenants(accessToken: string, signal?: AbortSignal): Promise<TenantList>
@@ -42,6 +51,7 @@ interface PlatformDevAccessApi {
     readonly activeTenantId: string
     readonly items: readonly AuthorizedApplication[]
   }>
+  listModels(accessToken: string, activeTenantId: string, signal?: AbortSignal): Promise<ModelList>
   issueApplicationToken(
     accessToken: string,
     appId: string,
@@ -58,7 +68,7 @@ interface PlatformDevAccessVault {
 
 const initialSnapshot: PlatformDevAccessSnapshot = Object.freeze({
   phase: 'signed_out', simulated: false, contractVersion: PLATFORM_DEV_CONTRACT_VERSION,
-  tenants: Object.freeze([]), applications: Object.freeze([]),
+  tenants: Object.freeze([]), applications: Object.freeze([]), models: Object.freeze([]),
 })
 
 const phases: readonly PlatformDevAccessPhase[] = ['signed_out', 'loading', 'ready', 'no_apps', 'expired', 'error']
@@ -137,6 +147,22 @@ function safeApplication(value: unknown): AuthorizedApplication {
   })
 }
 
+function safeModel(value: unknown): PlatformModel {
+  if (!isRecord(value)) throw new Error('invalid DEV session snapshot')
+  assertKeys(value, ['modelId', 'displayName', 'provider', 'model', 'supportsVision', 'isDefault'])
+  if (typeof value.supportsVision !== 'boolean' || typeof value.isDefault !== 'boolean') {
+    throw new Error('invalid DEV session snapshot')
+  }
+  return Object.freeze({
+    modelId: requireUuid(value, 'modelId'),
+    displayName: requireBoundedString(value, 'displayName', 1, 200),
+    provider: requireBoundedString(value, 'provider', 1, 50),
+    model: requireBoundedString(value, 'model', 1, 100),
+    supportsVision: value.supportsVision,
+    isDefault: value.isDefault,
+  })
+}
+
 function safeFailure(value: unknown): PlatformFailure {
   if (!isRecord(value)) throw new Error('invalid DEV session snapshot')
   assertKeys(value, ['code', 'message', 'retryable'])
@@ -148,36 +174,44 @@ function safeFailure(value: unknown): PlatformFailure {
 }
 
 export function decodePlatformDevAccessSnapshot(value: unknown): PlatformDevAccessSnapshot {
-  if (!isRecord(value) || !Array.isArray(value.tenants) || !Array.isArray(value.applications)) {
+  if (!isRecord(value) || !Array.isArray(value.tenants)
+    || !Array.isArray(value.applications) || !Array.isArray(value.models)) {
     throw new Error('invalid DEV session snapshot')
   }
-  assertKeys(value, ['phase', 'simulated', 'contractVersion', 'tenants', 'applications'], ['user', 'activeTenantId', 'error'])
+  assertKeys(value, ['phase', 'simulated', 'contractVersion', 'tenants', 'applications', 'models'], ['user', 'activeTenantId', 'activeModelId', 'error'])
   if (typeof value.phase !== 'string' || !phases.includes(value.phase as PlatformDevAccessPhase)
     || value.simulated !== false || value.contractVersion !== PLATFORM_DEV_CONTRACT_VERSION
-    || value.tenants.length > 100 || value.applications.length > 200) {
+    || value.tenants.length > 100 || value.applications.length > 200 || value.models.length > 200) {
     throw new Error('invalid DEV session snapshot')
   }
   const phase = value.phase as PlatformDevAccessPhase
   const tenants = Object.freeze(value.tenants.map(safeTenant))
   const applications = Object.freeze(value.applications.map(safeApplication))
+  const models = Object.freeze(value.models.map(safeModel))
   const parsed: PlatformDevAccessSnapshot = Object.freeze({
     phase,
     simulated: false,
     contractVersion: PLATFORM_DEV_CONTRACT_VERSION,
     tenants,
     applications,
+    models,
     ...(value.user === undefined ? {} : { user: safeUser(value.user) }),
     ...(value.activeTenantId === undefined ? {} : { activeTenantId: requireUuid(value, 'activeTenantId') }),
+    ...(value.activeModelId === undefined || value.activeModelId === null
+      ? { activeModelId: null }
+      : { activeModelId: requireUuid(value, 'activeModelId') }),
     ...(value.error === undefined ? {} : { error: safeFailure(value.error) }),
   })
   if (phase === 'signed_out' && (parsed.user !== undefined || parsed.activeTenantId !== undefined
-    || tenants.length !== 0 || applications.length !== 0 || parsed.error !== undefined)) {
+    || tenants.length !== 0 || applications.length !== 0 || models.length !== 0
+    || parsed.activeModelId !== null || parsed.error !== undefined)) {
     throw new Error('invalid DEV session snapshot')
   }
   if ((phase === 'ready' || phase === 'no_apps')
     && (parsed.user === undefined || parsed.activeTenantId === undefined
       || !tenants.some(tenant => tenant.tenantId === parsed.activeTenantId)
       || applications.some(application => application.tenantId !== parsed.activeTenantId)
+      || (parsed.activeModelId !== null && !models.some(model => model.modelId === parsed.activeModelId))
       || (phase === 'ready' && applications.length === 0)
       || (phase === 'no_apps' && applications.length !== 0))) {
     throw new Error('invalid DEV session snapshot')
@@ -224,6 +258,9 @@ export class PlatformDevAccessController {
 
   getSnapshot(): PlatformDevAccessSnapshot { return this.#snapshot }
 
+  login(input: PasswordLoginInput): Promise<PlatformDevAccessSnapshot> {
+    return this.#enqueue(() => this.#login(input))
+  }
   restore(): Promise<PlatformDevAccessSnapshot> { return this.#enqueue(() => this.#restore()) }
   refresh(): Promise<PlatformDevAccessSnapshot> { return this.#enqueue(() => this.#refresh()) }
   switchTenant(tenantId: string): Promise<PlatformDevAccessSnapshot> {
@@ -232,6 +269,28 @@ export class PlatformDevAccessController {
   logout(): Promise<PlatformDevAccessSnapshot> { return this.#enqueue(() => this.#logout()) }
   issueApplicationToken(appId: string): Promise<ApplicationTokenResult> {
     return this.#enqueue(() => this.#issueApplicationToken(appId))
+  }
+
+  async #login(input: PasswordLoginInput): Promise<PlatformDevAccessSnapshot> {
+    const operation = await this.#beginIsolatedOperation()
+    this.#session = undefined
+    this.#user = undefined
+    this.#publish({ ...initialSnapshot, phase: 'loading' })
+    try {
+      const result = await this.api.loginWithPassword(input, operation.signal)
+      if (!this.#isCurrent(operation.generation)) return this.#snapshot
+      await this.vault.save({ session: result.session, user: result.user })
+      if (!this.#isCurrent(operation.generation)) return this.#snapshot
+      this.#session = result.session
+      this.#user = result.user
+      await this.#loadContext(operation.generation)
+    } catch (error) {
+      if (this.#isCurrent(operation.generation)) {
+        try { await this.vault.clear() } catch { /* failed login stores nothing */ }
+        this.#publish({ ...initialSnapshot, phase: 'error', error: failure(error) })
+      }
+    }
+    return this.#snapshot
   }
 
   async #restore(): Promise<PlatformDevAccessSnapshot> {
@@ -346,6 +405,8 @@ export class PlatformDevAccessController {
       || !tenants.items.some(tenant => tenant.tenantId === session.activeTenantId)) {
       throw new PlatformApiError('CONTRACT_MISMATCH', 'tenant identity mismatch', false)
     }
+    const models = await this.api.listModels(session.accessToken, session.activeTenantId, this.#request.signal)
+    if (!this.#isCurrent(generation)) return
     let applications: { readonly activeTenantId: string; readonly items: readonly AuthorizedApplication[] }
     try {
       applications = await this.api.listApplications(session.accessToken, session.activeTenantId, this.#request.signal)
@@ -354,6 +415,7 @@ export class PlatformDevAccessController {
         if (this.#isCurrent(generation)) this.#publish({
           phase: 'no_apps', simulated: false, contractVersion: PLATFORM_DEV_CONTRACT_VERSION,
           user, activeTenantId: session.activeTenantId, tenants: tenants.items, applications: Object.freeze([]),
+          models: models.items, activeModelId: models.activeModelId,
         })
         return
       }
@@ -368,6 +430,8 @@ export class PlatformDevAccessController {
       activeTenantId: session.activeTenantId,
       tenants: tenants.items,
       applications: applications.items,
+      models: models.items,
+      activeModelId: models.activeModelId,
     })
   }
 

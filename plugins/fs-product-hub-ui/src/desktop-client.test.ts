@@ -11,6 +11,8 @@ function session(activeTenantId = tenantId, authorized = true, capability = 'pro
     user: { userId: '20000000-0000-4000-8000-000000000001', displayName: 'DEV user', email: null },
     activeTenantId,
     tenants: [{ tenantId: activeTenantId, displayName: 'DEV tenant', slug: 'dev-tenant', logoUrl: null, role: 'member' }],
+    models: [],
+    activeModelId: null,
     applications: authorized ? [{
       appId: 'product_hub', tenantId: activeTenantId, displayName: 'Product Hub',
       baseUrl: 'https://dev.fsstory.net', deepLinks: { home: '/product-hub' },

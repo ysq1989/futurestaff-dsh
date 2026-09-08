@@ -26,6 +26,46 @@ test('DEV adapter accepts a strict non-simulated v0.1.1 response without Mock pr
   assert.equal(result.meta.contractVersion, '0.1.1')
 })
 
+test('DEV adapter sends password login only to the fixed desktop endpoint', async () => {
+  const api = new PlatformDevApi(async (input, init) => {
+    assert.equal(input, 'https://dev.fsstory.net/desktop/v1/auth/password')
+    assert.equal(init.method, 'POST')
+    assert.deepEqual(JSON.parse(init.body), { loginIdentifier: 'user@example.invalid', password: 'private-password' })
+    return new Response(JSON.stringify({
+      session: {
+        accessToken: 'private-access-token-with-enough-entropy',
+        refreshToken: 'private-refresh-token-with-enough-entropy', tokenType: 'Bearer', expiresIn: 900,
+        audience: 'futurestaff-agent-pc-dev', activeTenantId: tenantId,
+      },
+      user: { userId: '20000000-0000-4000-8000-000000000001', displayName: '平台用户' },
+      meta,
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  })
+
+  const result = await api.loginWithPassword({ loginIdentifier: ' user@example.invalid ', password: 'private-password' })
+  assert.equal(result.user.displayName, '平台用户')
+})
+
+test('DEV adapter accepts only sanitized models for the active tenant', async () => {
+  const modelId = '30000000-0000-4000-8000-000000000001'
+  const api = new PlatformDevApi(async (input, init) => {
+    assert.equal(input, 'https://dev.fsstory.net/desktop/v1/models')
+    assert.equal(init.headers.Authorization, 'Bearer private-platform-token')
+    return new Response(JSON.stringify({
+      activeTenantId: tenantId, activeModelId: modelId,
+      items: [{
+        modelId, displayName: '平台默认模型', provider: 'openai', model: 'gpt-platform',
+        supportsVision: true, isDefault: true,
+      }], meta,
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
+  })
+
+  const result = await api.listModels('private-platform-token', tenantId)
+  assert.equal(result.activeModelId, modelId)
+  assert.equal(result.items[0].displayName, '平台默认模型')
+  assert.doesNotMatch(JSON.stringify(result), /api.?key|base.?url/i)
+})
+
 test('DEV adapter validates a one-minute token against the requested tenant', async () => {
   const api = new PlatformDevApi(async (input, init) => {
     assert.equal(input, 'https://dev.fsstory.net/desktop/v1/apps/product_hub/token')

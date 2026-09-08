@@ -6,6 +6,7 @@ import {
   type AuthorizedApplication,
   type DesktopSession,
   type PlatformFailure,
+  type PlatformModel,
   type Tenant,
   type User,
 } from './contracts.js'
@@ -21,6 +22,8 @@ export interface PlatformAccessSnapshot {
   readonly activeTenantId?: string
   readonly tenants: readonly Tenant[]
   readonly applications: readonly AuthorizedApplication[]
+  readonly models: readonly PlatformModel[]
+  readonly activeModelId?: string | null
   readonly error?: PlatformFailure
 }
 
@@ -28,7 +31,7 @@ type Listener = () => void
 
 const initialSnapshot: PlatformAccessSnapshot = Object.freeze({
   phase: 'signed_out', simulated: true, contractVersion: PLATFORM_CONTRACT_VERSION,
-  tenants: Object.freeze([]), applications: Object.freeze([]),
+  tenants: Object.freeze([]), applications: Object.freeze([]), models: Object.freeze([]),
 })
 
 function withoutError(snapshot: PlatformAccessSnapshot): PlatformAccessSnapshot {

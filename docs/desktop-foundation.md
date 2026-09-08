@@ -14,7 +14,7 @@ inputs.
 - Official `deepseek-harness` gitlink: `a66e4702047846cdaa10c66c9d3df3951f5ea70d`
 
 The reviewed desktop release commit is pinned at
-`2887e6d5c36f423f3773b8344365542586dbed54` on the controlled fork's `main`
+`89f84fcb7856746cdbdb664989547fc835ea8179` on the controlled fork's `main`
 branch. It preserves the original productization boundary and verified
 first-launch Profile installation, adds the Host-only OS-protected secret
 service, safely repairs or explicitly upgrades an exact hash-matched bundled
@@ -103,3 +103,10 @@ state, untouched official Harness gitlink, FutureStaff package identity, and
 fork's unsigned NSIS release path, verifies the packaged runtime, and copies the
 single x64 Setup executable plus a SHA-256 sidecar into ignored `outputs/`.
 Signing and public distribution remain disabled for this Mock-only Alpha.
+
+The installer UI is also a mandatory release input. Follow
+[`docs/specs/windows-agent-installer-ui.md`](specs/windows-agent-installer-ui.md)
+for the FutureStaff icon, header/sidebar artwork, welcome and review pages,
+three-language copy, and acceptance tests. If the pinned clean desktop commit
+does not contain that UI, stop the build instead of falling back to the older
+unbranded installer.

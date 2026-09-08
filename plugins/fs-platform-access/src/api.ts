@@ -17,7 +17,10 @@ import {
   type AuthCallbackInput,
   type AuthResult,
   type AuthorizedApplication,
+  type ModelList,
+  type PasswordLoginInput,
   type PlatformErrorCode,
+  type PlatformModel,
   type RefreshResult,
   type Tenant,
   type TenantList,
@@ -123,6 +126,22 @@ function user(value: unknown): User {
   })
 }
 
+function platformModel(value: unknown): PlatformModel {
+  if (!isRecord(value)) throw new Error('invalid platform model')
+  assertKeys(value, ['modelId', 'displayName', 'provider', 'model', 'supportsVision', 'isDefault'])
+  if (typeof value.supportsVision !== 'boolean' || typeof value.isDefault !== 'boolean') {
+    throw new Error('invalid platform model capabilities')
+  }
+  return Object.freeze({
+    modelId: requireUuid(value, 'modelId'),
+    displayName: requireBoundedString(value, 'displayName', 1, 200),
+    provider: requireBoundedString(value, 'provider', 1, 50),
+    model: requireBoundedString(value, 'model', 1, 100),
+    supportsVision: value.supportsVision,
+    isDefault: value.isDefault,
+  })
+}
+
 interface ResponseContract {
   readonly version: '0.1.0' | '0.1.1'
   readonly simulated: boolean
@@ -221,6 +240,31 @@ abstract class PlatformApiClient {
     })
   }
 
+  async listModels(accessToken: string, activeTenantId: string, signal?: AbortSignal): Promise<ModelList> {
+    const body = await this.request('/desktop/v1/models', {
+      signal: signal ?? null,
+      headers: this.authorization(accessToken),
+    })
+    return this.decode(() => {
+      if (!isRecord(body) || !Array.isArray(body.items)) throw new Error('invalid model list')
+      assertKeys(body, ['activeTenantId', 'activeModelId', 'items', 'meta'])
+      const responseTenantId = requireUuid(body, 'activeTenantId')
+      const items = body.items.map(platformModel)
+      const activeModelId = body.activeModelId === null ? null : requireUuid(body, 'activeModelId')
+      if (responseTenantId !== activeTenantId
+        || (activeModelId !== null && !items.some(item => item.modelId === activeModelId))
+        || items.filter(item => item.isDefault).length > 1) {
+        throw new Error('model response crossed the active tenant boundary')
+      }
+      return Object.freeze({
+        activeTenantId,
+        activeModelId,
+        items: Object.freeze(items),
+        meta: this.meta(body.meta),
+      })
+    })
+  }
+
   protected authorization(accessToken: string): HeadersInit {
     return { Authorization: `Bearer ${accessToken}` }
   }
@@ -305,6 +349,7 @@ export class PlatformMockApi extends PlatformApiClient {
       unavailableMessage: '本地 FutureStaff Mock 不可用。',
     })
   }
+
 }
 
 export class PlatformDevApi extends PlatformApiClient {
@@ -315,6 +360,32 @@ export class PlatformDevApi extends PlatformApiClient {
       requireMockProof: false,
       unavailableCode: 'PLATFORM_UNAVAILABLE',
       unavailableMessage: 'FutureStaff Platform DEV 暂时不可用。',
+    })
+  }
+
+  async loginWithPassword(input: PasswordLoginInput, signal?: AbortSignal): Promise<AuthResult> {
+    const loginIdentifier = input.loginIdentifier.trim()
+    if (loginIdentifier.length < 1 || loginIdentifier.length > 254
+      || input.password.length < 1 || input.password.length > 128) {
+      throw this.mismatch('password login input is invalid')
+    }
+    if (input.tenantId !== undefined) requireUuid({ tenantId: input.tenantId }, 'tenantId')
+    const body = await this.request('/desktop/v1/auth/password', {
+      method: 'POST', signal: signal ?? null,
+      body: JSON.stringify({
+        loginIdentifier,
+        password: input.password,
+        ...(input.tenantId ? { tenantId: input.tenantId } : {}),
+      }),
+    })
+    return this.decode(() => {
+      if (!isRecord(body)) throw new Error('invalid password login response')
+      assertKeys(body, ['session', 'user', 'meta'])
+      return Object.freeze({
+        session: assertSession(body.session),
+        user: user(body.user),
+        meta: this.meta(body.meta),
+      })
     })
   }
 

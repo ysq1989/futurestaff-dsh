@@ -26,6 +26,12 @@ test('Alpha declares a fail-closed single-subject identity boundary', async () =
   assert.match(envExample, /^FUTURESTAFF_IDENTITY_MODE=single-subject$/m)
 })
 
+test('FutureStaff hides upstream model setup and does not ship the embedded login mock', async () => {
+  const profile = await read('profile/futurestaff-alpha/cordis.patch.yml')
+  assert.match(profile, /- id: ui-settings-models\s+disabled: true/)
+  assert.doesNotMatch(profile, /embeddedMock:\s*true/)
+})
+
 test('development topology keeps the Mock internal and waits for its health check', async () => {
   const compose = await read('docker/compose.dev.yml')
   assert.match(compose, /^\s{2}selection-center-mock:/m)

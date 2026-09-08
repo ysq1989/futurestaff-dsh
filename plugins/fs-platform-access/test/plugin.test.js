@@ -87,26 +87,27 @@ test('host bridge forwards only allowlisted request data and preserves Mock proo
   assert.equal(upstream.init.headers['x-untrusted'], undefined)
 })
 
-test('client registers the access panel in the DSH Settings section ledger', () => {
-  let slotName
-  let registration
-  let component
+test('client registers Settings access and a mandatory login gate', () => {
+  const slotNames = []
+  const registrations = []
+  const components = []
   const slots = {
-    inject: (name, register) => { slotName = name; register() },
+    inject: (name, register) => { slotNames.push(name); register() },
     register: (options, candidate) => {
-      registration = options
-      component = candidate
+      registrations.push(options)
+      components.push(candidate)
       return () => {}
     },
   }
 
   applyClient({ slots })
 
-  assert.equal(slotName, 'settings.section')
-  assert.deepEqual(registration, {
-    name: 'settings.section', id: 'futurestaff-access', order: -10, label: 'FutureStaff',
-  })
-  assert.equal(typeof component, 'function')
+  assert.deepEqual(slotNames, ['settings.section', 'shell.overlay'])
+  assert.deepEqual(registrations, [
+    { name: 'settings.section', id: 'futurestaff-access', order: -10, label: 'FutureStaff' },
+    { name: 'shell.overlay', id: 'futurestaff-login-gate', order: -100 },
+  ])
+  assert.ok(components.every(component => typeof component === 'function'))
 })
 
 test('client panel styles cover narrow screens, keyboard focus and reduced motion', async () => {
@@ -167,6 +168,14 @@ test('desktop Host mounts one exact loopback callback and persists a fake DEV ex
         { appId: 'product_hub', tenantId, displayName: '未来市集', baseUrl: 'https://dev.fsstory.net', deepLinks: { home: '/product-hub' }, capabilities: ['product_hub.read'], contractRange: '>=0.1.1 <0.2.0' },
       ], meta,
     }), { status: 200, headers: { 'content-type': 'application/json' } })
+    if (url.pathname === '/desktop/v1/models') return new Response(JSON.stringify({
+      activeTenantId: tenantId,
+      activeModelId: '30000000-0000-4000-8000-000000000001',
+      items: [{
+        modelId: '30000000-0000-4000-8000-000000000001', displayName: '平台默认模型',
+        provider: 'openai', model: 'gpt-platform', supportsVision: true, isDefault: true,
+      }], meta,
+    }), { status: 200, headers: { 'content-type': 'application/json' } })
     if (url.pathname === '/desktop/v1/apps/product_hub/token') {
       assert.equal(init.headers.Authorization, 'Bearer private-access-token-with-entropy')
       return new Response(JSON.stringify({
@@ -187,7 +196,7 @@ test('desktop Host mounts one exact loopback callback and persists a fake DEV ex
     provide: (name, value) => { if (name === 'platformDevLogin') loginService = value; return () => {} },
     webServer: { host: '127.0.0.1', port: 43821, register: route => { registrations.push(route); return () => {} } },
   })
-  assert.equal(registrations.length, 12)
+  assert.equal(registrations.length, 13)
   const startRoute = registrations.find(item => item.path === '/_futurestaff/platform-dev/login')
   const startServer = createServer((request, response) => {
     const path = new URL(request.url, 'http://127.0.0.1').pathname

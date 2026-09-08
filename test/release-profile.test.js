@@ -63,6 +63,9 @@ test('pins the release runtime and platform contract in the staged manifest', as
       '9921cc5084925ceea4e6e9d224e5434d4af294974a736a300ed34c73d2950687',
     )
     assert.equal(result.releaseManifest.platformContract.dev.productionEnabled, false)
+    assert.ok(result.releaseManifest.supersedes.includes(
+      'f82212e5ba13adc4c4a144792aa9ef67baff3f8f7c7144f4a1f86ec7288059b8',
+    ))
   } finally {
     await rm(temporary, { recursive: true, force: true })
   }

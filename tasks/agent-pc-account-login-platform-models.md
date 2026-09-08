@@ -1,0 +1,11 @@
+# B02o Agent PC account login and platform-managed models
+
+- Status: product implementation complete locally; Windows installer rebuild is required after the installer UI is incorporated into the pinned desktop input. Deployment still requires explicit approval.
+- Goal: remove internal-testing UI, provide account/password sign-in, and make platform model configuration read-only for desktop users.
+- Boundaries: the platform derives identity, tenant membership, application authorization, and model visibility. The client never receives model credentials or editable provider settings.
+- Acceptance: signed-out users see an account/password form; packaged Profile disables upstream model settings and embedded login Mock; authenticated users see the active tenant's enabled platform models; password and model credentials do not enter client snapshots, storage, or logs.
+- Startup acceptance: every unauthenticated desktop phase is covered by a non-dismissible FutureStaff login gate. The upstream API Key onboarding must never appear. A prior untouched B02n Profile is upgraded only when its complete manifest and every managed file match the explicitly superseded digest.
+- Rejected artifact: `outputs/FutureStaff-Agent-2.0.5-x64-Setup.exe`, 134,348,691 bytes, SHA-256 `f3a37d04092c9ef79c0d0651aa02c0658644632a2170941f4762c3114cda2818`, passed technical packaging checks but omitted the previously agreed branded installer UI. It is not an accepted release candidate and must not be installed or distributed.
+- Installer UI acceptance: the mandatory brand assets, welcome/review pages, three-language copy, package settings, tests, and no-fallback rule are recorded in `docs/specs/windows-agent-installer-ui.md`.
+- Validation: full product `npm run check` passes. The rejected diagnostic build's desktop tests passed 188/188 and its 228-node runtime closure passed, but those checks do not supersede the installer UI contract. Platform source compiles; focused backend tests are present but cannot collect in the current host Python environment because `loguru` is unavailable.
+- Operations: the controlled desktop worktree and its pre-existing installer UI changes remain untouched. No production data, deployment, installer execution, commit, or push.

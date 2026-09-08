@@ -57,6 +57,7 @@ export interface PlatformAccessConfig { readonly embeddedMock?: boolean }
 export interface PlatformDevLoginService {
   begin(): Promise<{ readonly authorizationUrl: string }>
   snapshot(): Promise<PlatformDevAccessSnapshot>
+  loginWithPassword(loginIdentifier: string, password: string, tenantId?: string): Promise<PlatformDevAccessSnapshot>
   refresh(): Promise<PlatformDevAccessSnapshot>
   switchTenant(tenantId: string): Promise<PlatformDevAccessSnapshot>
   logout(): Promise<PlatformDevAccessSnapshot>
@@ -150,6 +151,8 @@ function mountDevLogin(ctx: Context): void {
       }
     },
     snapshot: async () => { await initialized; return access.getSnapshot() },
+    loginWithPassword: (loginIdentifier: string, password: string, tenantId?: string) =>
+      access.login({ loginIdentifier, password, ...(tenantId ? { tenantId } : {}) }),
     refresh: () => access.refresh(),
     switchTenant: (tenantId: string) => access.switchTenant(tenantId),
     logout: () => access.logout(),
@@ -171,6 +174,33 @@ function mountDevLogin(ctx: Context): void {
       }
     },
   }), 'futurestaff-platform-access: start Platform DEV login')
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact', path: '/_futurestaff/platform-dev/auth/password',
+    handler: async (request, response) => {
+      if (request.method !== 'POST' || !isLoopback(request.socket.remoteAddress)
+        || request.headers['x-futurestaff-login'] !== '1') {
+        return loginJson(response, request.method === 'POST' ? 403 : 405, { error: 'LOGIN_UNAVAILABLE' })
+      }
+      try {
+        const body = JSON.parse((await readBody(request)).toString('utf8')) as unknown
+        if (body === null || typeof body !== 'object' || Array.isArray(body)) throw new Error('invalid login')
+        const input = body as Record<string, unknown>
+        const allowed = new Set(['loginIdentifier', 'password', 'tenantId'])
+        if (Object.keys(input).some(key => !allowed.has(key))
+          || typeof input.loginIdentifier !== 'string' || typeof input.password !== 'string'
+          || (input.tenantId !== undefined && typeof input.tenantId !== 'string')) {
+          throw new Error('invalid login')
+        }
+        loginJson(response, 200, await service.loginWithPassword(
+          input.loginIdentifier,
+          input.password,
+          input.tenantId as string | undefined,
+        ))
+      } catch {
+        loginJson(response, 401, { error: 'LOGIN_UNAVAILABLE' })
+      }
+    },
+  }), 'futurestaff-platform-access: password login without credential persistence')
   const guarded = (request: IncomingMessage): boolean => request.headers['x-futurestaff-session'] === '1'
     && isLoopback(request.socket.remoteAddress)
   ctx.effect(() => ctx.webServer.register({
