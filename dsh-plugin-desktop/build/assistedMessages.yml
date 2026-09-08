@@ -1,4 +1,36 @@
 installing:
-  en: "Installing DSH Desktop. This may take several minutes; please keep this window open."
-  zh_CN: "DSH Desktop 正在安装，可能需要几分钟；请保持此窗口打开。"
-  zh_TW: "DSH Desktop 正在安裝，可能需要幾分鐘；請保持此視窗開啟。"
+  en: "Installing FutureStaff Agent. This may take several minutes; please keep this window open."
+  zh_CN: "FutureStaff Agent 正在安装，可能需要几分钟；请保持此窗口打开。"
+  zh_TW: "FutureStaff Agent 正在安裝，可能需要幾分鐘；請保持此視窗開啟。"
+futurestaffWelcomeTitle:
+  en: "Meet your AI work partner"
+  zh_CN: "认识你的 AI 工作伙伴"
+  zh_TW: "認識你的 AI 工作夥伴"
+futurestaffWelcomeBody:
+  en: "FutureStaff Agent brings secure, tenant-aware AI workflows to this computer.\r\n\r\nThis guided setup keeps your workspace local, protects sign-in data with Windows, and prepares Product Hub access.\r\n\r\nSelect Next to review the installation."
+  zh_CN: "FutureStaff Agent 将安全、具备租户隔离的 AI 工作流带到这台电脑。\r\n\r\n安装过程会保留本地工作区，使用 Windows 保护登录数据，并准备选品中心访问能力。\r\n\r\n请选择“下一步”检查安装设置。"
+  zh_TW: "FutureStaff Agent 將安全、具備租戶隔離的 AI 工作流程帶到這台電腦。\r\n\r\n安裝過程會保留本機工作區，使用 Windows 保護登入資料，並準備選品中心存取能力。\r\n\r\n請選擇「下一步」檢查安裝設定。"
+futurestaffReviewTitle:
+  en: "Ready for FutureStaff"
+  zh_CN: "准备安装 FutureStaff"
+  zh_TW: "準備安裝 FutureStaff"
+futurestaffReviewSubtitle:
+  en: "Confirm the destination and protected desktop defaults"
+  zh_CN: "确认安装位置和安全桌面默认设置"
+  zh_TW: "確認安裝位置和安全桌面預設設定"
+futurestaffReviewLead:
+  en: "AI capability, grounded in your workspace"
+  zh_CN: "让 AI 能力扎根于你的工作区"
+  zh_TW: "讓 AI 能力扎根於你的工作區"
+futurestaffReviewPath:
+  en: "INSTALL LOCATION"
+  zh_CN: "安装位置"
+  zh_TW: "安裝位置"
+futurestaffReviewSecurity:
+  en: "Windows-protected sign-in  •  Loopback-only desktop service  •  Isolated FutureStaff Profile"
+  zh_CN: "Windows 保护登录  •  仅本机桌面服务  •  独立 FutureStaff Profile"
+  zh_TW: "Windows 保護登入  •  僅本機桌面服務  •  獨立 FutureStaff Profile"
+futurestaffReviewHint:
+  en: "Use Back to change the folder, or Install to continue."
+  zh_CN: "如需修改目录请选择“上一步”，确认后请选择“安装”。"
+  zh_TW: "如需修改目錄請選擇「上一步」，確認後請選擇「安裝」。"

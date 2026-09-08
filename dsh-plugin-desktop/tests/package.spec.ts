@@ -21,6 +21,7 @@ const workspaceRoot = new URL('../', packageRoot)
 const manifest = JSON.parse(readFileSync(new URL('package.json', packageRoot), 'utf8')) as {
   name?: unknown
   version?: unknown
+  description?: unknown
   bin?: Record<string, unknown>
   exports?: Record<string, unknown>
   files?: unknown
@@ -687,8 +688,9 @@ describe('published package surface', () => {
 
   it('fixes the installed application identity', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.0.5')
+    expect(manifest.version).toBe('2.0.6')
     expect(manifest.build?.productName).toBe('FutureStaff Agent')
+    expect(manifest.description).toBe('FutureStaff Agent: a secure desktop client for tenant-aware AI workflows')
     expect(manifest.build?.appId).toBe('net.fsstory.agent.desktop')
     expect(manifest.build?.asarUnpack).toEqual([
       'package.json',
@@ -702,6 +704,9 @@ describe('published package surface', () => {
     expect(manifest.files).toEqual(expect.arrayContaining([
       'build/app-icon.png',
       'build/app-icon-mac.png',
+      'build/futurestaff-ai-icon.png',
+      'build/installerHeader.bmp',
+      'build/installerSidebar.bmp',
       'build/tray-icon.svg',
       'build/tray-icon*.png',
       'docs/**',
@@ -719,7 +724,7 @@ describe('published package surface', () => {
     expect(manifest.build?.mac?.icon).toBe('build/app-icon-mac.png')
     expect(manifest.build?.mac?.mergeASARs).toBe(false)
     expect(manifest.build?.mac?.signIgnore).toEqual(['\\.(?:pak|dat|wasm)$'])
-    expect(manifest.build?.win?.icon).toBe('build/app-icon.png')
+    expect(manifest.build?.win?.icon).toBe('build/futurestaff-ai-icon.png')
     expect(manifest.build?.win?.target).toEqual([{
       target: 'nsis',
       arch: ['x64'],
@@ -728,6 +733,10 @@ describe('published package surface', () => {
     expect(manifest.build?.nsis).toEqual({
       include: 'installer.nsh',
       license: 'THIRD_PARTY_NOTICES.md',
+      installerLanguages: ['en_US', 'zh_CN', 'zh_TW'],
+      installerHeader: 'build/installerHeader.bmp',
+      installerSidebar: 'build/installerSidebar.bmp',
+      uninstallerSidebar: 'build/installerSidebar.bmp',
       oneClick: false,
       perMachine: false,
       allowElevation: true,
@@ -871,6 +880,18 @@ describe('published package surface', () => {
       .digest('hex')
 
     expect(digest).toBe('315fbc6e57ff1f34894f21f66fb7f9f26deccf78333c71fad21a6cec64e7de80')
+  })
+
+  it('ships a square transparent FutureStaff desktop icon', async () => {
+    const metadata = await sharp(readFileSync(new URL('build/futurestaff-ai-icon.png', packageRoot))).metadata()
+
+    expect(metadata).toEqual(expect.objectContaining({
+      format: 'png',
+      width: 512,
+      height: 512,
+      channels: 4,
+      hasAlpha: true,
+    }))
   })
 
   it('generates a centered macOS icon with a 100-pixel visual inset', async () => {

@@ -1,7 +1,7 @@
 {
   "name": "dsh-plugin-desktop",
-  "version": "2.0.5",
-  "description": "DSH Desktop: an Electron shell composed as a DeepSeek Harness Cordis plugin",
+  "version": "2.0.6",
+  "description": "FutureStaff Agent: a secure desktop client for tenant-aware AI workflows",
   "license": "MIT",
   "publishConfig": {
     "registry": "https://registry.npmjs.org"
@@ -80,6 +80,9 @@
   "files": [
     "build/app-icon.png",
     "build/app-icon-mac.png",
+    "build/futurestaff-ai-icon.png",
+    "build/installerHeader.bmp",
+    "build/installerSidebar.bmp",
     "build/tray-icon.svg",
     "build/tray-icon*.png",
     "cordis.patch.yml",
@@ -385,11 +388,19 @@
         }
       ],
       "artifactName": "FutureStaff-Agent-${version}-${arch}-Portable.${ext}",
-      "icon": "build/app-icon.png"
+      "icon": "build/futurestaff-ai-icon.png"
     },
     "nsis": {
       "include": "installer.nsh",
       "license": "THIRD_PARTY_NOTICES.md",
+      "installerLanguages": [
+        "en_US",
+        "zh_CN",
+        "zh_TW"
+      ],
+      "installerHeader": "build/installerHeader.bmp",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/installerSidebar.bmp",
       "oneClick": false,
       "perMachine": false,
       "allowElevation": true,
