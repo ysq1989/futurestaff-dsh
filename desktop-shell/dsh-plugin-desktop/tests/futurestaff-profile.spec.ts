@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   applyBundledFutureStaffBootstrapIdentity,
+  bundledFutureStaffAutomaticSetup,
   installBundledFutureStaffProfile,
 } from '../src/futurestaff-profile.ts'
 import { readDesktopProfileState } from '../src/profile-manager.ts'
@@ -43,6 +44,25 @@ function fixture() {
 }
 
 describe('bundled FutureStaff Profile', () => {
+  it('automatically applies the locked-down product defaults without opening Setup', () => {
+    expect(bundledFutureStaffAutomaticSetup('futurestaff-alpha')).toEqual({
+      mode: 'compatibility',
+      macosMaterial: 'transparent',
+      windowsMaterial: 'off',
+      openBrowser: false,
+      networkExposure: 'loopback',
+      market: 'disabled',
+      notifications: {
+        enabled: true,
+        notifyOnTurnCompletion: true,
+        notifyOnTurnFailure: true,
+        notifyOnJobCompletion: true,
+        notifyOnJobFailure: true,
+      },
+    })
+    expect(bundledFutureStaffAutomaticSetup('desktop')).toBeUndefined()
+  })
+
   it('owns an explicit non-authoritative bootstrap identity for the product Profile', () => {
     const environment: NodeJS.ProcessEnv = {
       FUTURESTAFF_IDENTITY_MODE: 'request-scoped',

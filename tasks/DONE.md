@@ -180,3 +180,11 @@
 - Artifact: `outputs/FutureStaff-Agent-2.0.6-x64-Setup.exe`, 134,448,311 bytes, SHA-256 `3d1647f3c9bba99c382abbf3704b9c1a71f4bec49173792957a4cb71fdb63dc7`; the sidecar matches and Authenticode is intentionally `NotSigned`.
 - Verification: embedded-foundation and release-path tests passed 9/9; product workspace checks and builds passed; stable desktop passed 109 files and 1028 tests with 13 skips; Beta passed 108 files and 1029 tests with 13 skips; the Windows packaging gate passed 190/190 with a 228-node runtime closure; bilingual documents, package variants, licenses, operation reliability, NSIS packaging, and final installer verification passed.
 - Boundaries: the adjacent `futurestaff-dsh-desktop` checkout remains untouched as recoverable history. No push, deployment, signing, distribution, installer execution, legacy-repository deletion, or production mutation was performed.
+
+## B02q: Automatically apply FutureStaff first-launch defaults
+
+- Status: completed locally; source and documentation changes remain uncommitted and no replacement installer has been built.
+- Result: `futurestaff-alpha` no longer opens the generic DSH Setup Wizard. The launcher automatically records compatibility mode, ordinary Windows material, disabled plugin market, no browser access, loopback-only networking, enabled desktop notifications, and the completed Setup marker before continuing to the FutureStaff login gate.
+- Boundary: only the reserved bundled product Profile receives the automatic policy. Generic DSH Profiles retain the complete interactive Wizard, and authentication, tenant authority, platform model ownership, and credentials are unchanged.
+- Verification: focused product Profile/distribution/package tests passed 50/50 with TypeScript typecheck; the complete desktop gate passed with stable 109 files and 1029 tests plus 13 skips, Beta 108 files and 1029 tests plus 13 skips, both 228-node runtime closures, bilingual documents, variants, licenses, and operation reliability.
+- Operations: no commit, push, installer rebuild or execution, signing, distribution, deployment, or production mutation was performed.

@@ -77,6 +77,7 @@ import {
 import { DesktopProfileService } from './profile-service.ts'
 import {
   applyBundledFutureStaffBootstrapIdentity,
+  bundledFutureStaffAutomaticSetup,
   installBundledFutureStaffProfile,
 } from './futurestaff-profile.ts'
 import { DesktopActionsService } from './desktop-actions.ts'
@@ -1088,22 +1089,27 @@ async function start(): Promise<void> {
       ? readDesktopSetupWizardState(marketUserDataDir, prepared.profile.dir)
       : undefined
     if (safeModePaths === undefined && desktopSetupWizardRequired(setupWizardState, setupWizardVersions)) {
-      const setupSettings = readDesktopSetupWizardSettings(prepared.settingsDocument)
-      setupWizardWindow = new DesktopSetupWizardWindow({
-        locale: desktopLocaleFromLanguageTag(app.getLocale()),
-        input: {
-          profileName: activeProfileName,
-          platform: runtime.platform,
-          micaSupported: process.platform === 'win32' && windowsSupportsMica(runtime.windowsBuild),
-          ...setupSettings,
-          market: marketSelection.requested,
-        },
-      })
       let setupResult: DesktopSetupWizardResult
-      try {
-        setupResult = await setupWizardWindow.run()
-      } finally {
-        setupWizardWindow = undefined
+      const automaticSetup = bundledFutureStaffAutomaticSetup(activeProfileName)
+      if (automaticSetup !== undefined) {
+        setupResult = { action: 'complete', selection: automaticSetup }
+      } else {
+        const setupSettings = readDesktopSetupWizardSettings(prepared.settingsDocument)
+        setupWizardWindow = new DesktopSetupWizardWindow({
+          locale: desktopLocaleFromLanguageTag(app.getLocale()),
+          input: {
+            profileName: activeProfileName,
+            platform: runtime.platform,
+            micaSupported: process.platform === 'win32' && windowsSupportsMica(runtime.windowsBuild),
+            ...setupSettings,
+            market: marketSelection.requested,
+          },
+        })
+        try {
+          setupResult = await setupWizardWindow.run()
+        } finally {
+          setupWizardWindow = undefined
+        }
       }
       if (setupResult.action === 'quit') {
         startupRecoveryController?.dispose()

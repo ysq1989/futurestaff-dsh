@@ -222,8 +222,24 @@ export function decodePlatformDevAccessSnapshot(value: unknown): PlatformDevAcce
   return parsed
 }
 
-function failure(error: unknown): PlatformFailure {
+function failure(error: unknown, context: 'login' | 'session' = 'session'): PlatformFailure {
   if (error instanceof PlatformApiError) {
+    if (context === 'login') {
+      if (error.code === 'AUTHENTICATION_REQUIRED') {
+        return Object.freeze({
+          code: error.code,
+          message: '账号或密码错误，请重新输入。',
+          retryable: error.retryable,
+        })
+      }
+      if (error.code === 'CONTRACT_MISMATCH' && error.status === 404) {
+        return Object.freeze({
+          code: error.code,
+          message: 'FutureStaff Platform DEV 登录服务尚未发布，请联系管理员更新平台。',
+          retryable: false,
+        })
+      }
+    }
     const messages: Partial<Record<PlatformFailure['code'], string>> = {
       PLATFORM_UNAVAILABLE: 'FutureStaff Platform DEV 暂时不可用。',
       APPLICATION_ACCESS_DENIED: '当前租户没有已授权应用。',
@@ -287,7 +303,7 @@ export class PlatformDevAccessController {
     } catch (error) {
       if (this.#isCurrent(operation.generation)) {
         try { await this.vault.clear() } catch { /* failed login stores nothing */ }
-        this.#publish({ ...initialSnapshot, phase: 'error', error: failure(error) })
+        this.#publish({ ...initialSnapshot, phase: 'error', error: failure(error, 'login') })
       }
     }
     return this.#snapshot

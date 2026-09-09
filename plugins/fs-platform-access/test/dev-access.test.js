@@ -66,6 +66,36 @@ class FakeDevApi {
   }
 }
 
+test('DEV password login reports invalid credentials without reflecting platform details', async () => {
+  const api = new FakeDevApi()
+  api.loginWithPassword = async () => {
+    throw new PlatformApiError('AUTHENTICATION_REQUIRED', 'private platform detail', false, 401)
+  }
+  const controller = new PlatformDevAccessController(api, new FakeVault(), new InMemoryTenantResources())
+
+  const snapshot = await controller.login({ loginIdentifier: 'dev@example.invalid', password: 'private-password' })
+
+  assert.equal(snapshot.phase, 'error')
+  assert.equal(snapshot.error.code, 'AUTHENTICATION_REQUIRED')
+  assert.equal(snapshot.error.message, '账号或密码错误，请重新输入。')
+  assert.doesNotMatch(JSON.stringify(snapshot), /private platform detail|private-password/)
+})
+
+test('DEV password login distinguishes an unpublished platform route from invalid credentials', async () => {
+  const api = new FakeDevApi()
+  api.loginWithPassword = async () => {
+    throw new PlatformApiError('CONTRACT_MISMATCH', 'platform returned an unknown route', false, 404)
+  }
+  const controller = new PlatformDevAccessController(api, new FakeVault(), new InMemoryTenantResources())
+
+  const snapshot = await controller.login({ loginIdentifier: 'dev@example.invalid', password: 'private-password' })
+
+  assert.equal(snapshot.phase, 'error')
+  assert.equal(snapshot.error.code, 'CONTRACT_MISMATCH')
+  assert.equal(snapshot.error.message, 'FutureStaff Platform DEV 登录服务尚未发布，请联系管理员更新平台。')
+  assert.doesNotMatch(JSON.stringify(snapshot), /unknown route|private-password/)
+})
+
 test('DEV access restores a credential-free tenant snapshot from the protected Vault', async () => {
   const controller = new PlatformDevAccessController(new FakeDevApi(), new FakeVault(), new InMemoryTenantResources())
   const snapshot = await controller.restore()

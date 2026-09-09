@@ -499,6 +499,7 @@ describe('published package surface', () => {
     const requestedRecovery = main.indexOf('if (recoveryModeRequested)')
     const prepare = main.indexOf('let prepared = prepareDesktopProfile(')
     const setupState = main.indexOf('readDesktopSetupWizardState(', prepare)
+    const automaticSetup = main.indexOf('bundledFutureStaffAutomaticSetup(activeProfileName)', setupState)
     const setupWindow = main.indexOf('new DesktopSetupWizardWindow({', setupState)
     const setupRun = main.indexOf('await setupWizardWindow.run()', setupWindow)
     const skipBranch = main.indexOf("if (setupResult.action === 'skip')", setupRun)
@@ -515,7 +516,8 @@ describe('published package surface', () => {
     expect(requestedRecovery).toBeGreaterThanOrEqual(0)
     expect(prepare).toBeGreaterThan(requestedRecovery)
     expect(setupState).toBeGreaterThan(prepare)
-    expect(setupWindow).toBeGreaterThan(setupState)
+    expect(automaticSetup).toBeGreaterThan(setupState)
+    expect(setupWindow).toBeGreaterThan(automaticSetup)
     expect(setupRun).toBeGreaterThan(setupWindow)
     expect(skipBranch).toBeGreaterThan(setupRun)
     expect(main.slice(skipBranch, completeBranch)).not.toContain('writeDesktopProfilePreferences(')
@@ -531,6 +533,7 @@ describe('published package surface', () => {
     expect(main).toContain("setupResult.action === 'skip'")
     expect(main).toContain("'skipped',")
     expect(main).toContain('clearDesktopProfileUsageHistory(releaseUserDataLocations, profileDir)')
+    expect(main).toContain("setupResult = { action: 'complete', selection: automaticSetup }")
   })
 
   it('keeps active Profile preferences as the lazy source and serializes runtime mirrors', () => {

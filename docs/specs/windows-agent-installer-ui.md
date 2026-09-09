@@ -52,11 +52,20 @@ Traditional Chinese (`en_US`, `zh_CN`, `zh_TW`) and includes all of these steps:
 
 - `futurestaff-alpha` is selected and its bundled Profile is upgraded from the
   preceding untouched private candidate when the manifest digest matches.
+- The generic DSH Setup Wizard is never shown for `futurestaff-alpha`. The
+  desktop automatically records the product defaults: compatibility mode,
+  ordinary Windows material, disabled plugin market, no browser access,
+  loopback-only networking, and enabled desktop notifications. Other DSH
+  Profiles retain their normal interactive Setup Wizard.
 - `ui-settings-models` is disabled before the Web client renders, so neither the
   internal-test notice nor the DeepSeek API Key dialog can appear.
 - Signed-out, loading, expired, and login-error states render a blocking
   FutureStaff account/password page over the workspace. It has no dismiss or
   `configure later` path.
+- A missing or unpublished Platform login route must be reported as a platform
+  service/version problem. It must never be presented as an incorrect account
+  or password. A real authentication rejection uses the separate bounded copy
+  `账号或密码错误，请重新输入。` and never reflects server details or credentials.
 - The workspace is revealed only after the protected session, active tenant,
   platform model list, and application grants have loaded.
 - Provider credentials and editable provider/model settings are never rendered
@@ -92,8 +101,8 @@ Before a Windows package is accepted:
 - The original controlled-shell worktree and its unrelated changes must remain
   preserved.
 - On first launch and after an upgrade, the active `futurestaff-alpha` Profile
-  must disable `ui-settings-models`; the upstream API Key onboarding dialog is
-  forbidden.
+  must bypass the generic Setup Wizard and disable `ui-settings-models`; the
+  upstream API Key onboarding dialog is forbidden.
 - Every signed-out, loading, expired, or authentication-error state must show a
   non-dismissible FutureStaff account/password login gate. The normal workspace
   is revealed only after the protected platform session and tenant context load.
@@ -118,10 +127,14 @@ which retained the embedded Mock and upstream API Key onboarding. It is an
 incomplete diagnostic artifact and must not be installed, distributed, or
 treated as the B02o release candidate.
 
-The corrected unsigned private candidate is
+The unsigned private candidate is
 `outputs/FutureStaff-Agent-2.0.6-x64-Setup.exe`, 134,448,311 bytes, SHA-256
 `3d1647f3c9bba99c382abbf3704b9c1a71f4bec49173792957a4cb71fdb63dc7`.
 It was rebuilt from merged product commit `358f194f93`, whose imported desktop
 history is rooted at `89f84fcb7856746cdbdb664989547fc835ea8179`, and passed the Windows
-installer verification gate. Signing, distribution, and installation remain
-separate explicitly authorized operations.
+installer verification gate. It predates the automatic first-launch defaults
+and the corrected platform-login diagnostics, so it is now a historical
+diagnostic artifact rather than the installable acceptance candidate. The next
+candidate must include both changes and pass this document's release gate.
+Signing, distribution, and installation remain separate explicitly authorized
+operations.

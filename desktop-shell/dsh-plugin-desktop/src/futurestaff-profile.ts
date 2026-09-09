@@ -13,6 +13,7 @@ import {
 } from 'node:fs'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { selectDesktopProfile } from './profile-manager.ts'
+import type { DesktopSetupWizardSelection } from './setup-wizard-contract.ts'
 
 const PROFILE_NAME = 'futurestaff-alpha'
 const PROFILE_RESOURCE_DIRECTORY = 'futurestaff-profile'
@@ -51,6 +52,31 @@ const BOOTSTRAP_IDENTITY = {
   FUTURESTAFF_TENANT_ID: 'futurestaff-desktop-bootstrap-tenant',
   FUTURESTAFF_USER_ID: 'futurestaff-desktop-bootstrap-user',
 } as const
+const AUTOMATIC_SETUP_SELECTION: DesktopSetupWizardSelection = Object.freeze({
+  mode: 'compatibility',
+  macosMaterial: 'transparent',
+  windowsMaterial: 'off',
+  openBrowser: false,
+  networkExposure: 'loopback',
+  market: 'disabled',
+  notifications: Object.freeze({
+    enabled: true,
+    notifyOnTurnCompletion: true,
+    notifyOnTurnFailure: true,
+    notifyOnJobCompletion: true,
+    notifyOnJobFailure: true,
+  }),
+})
+
+/**
+ * Return the product-owned first-launch policy for the bundled Profile. Generic
+ * DSH Profiles retain the interactive Setup Wizard and all of its choices.
+ */
+export function bundledFutureStaffAutomaticSetup(
+  profileName: string,
+): DesktopSetupWizardSelection | undefined {
+  return profileName === PROFILE_NAME ? AUTOMATIC_SETUP_SELECTION : undefined
+}
 
 /**
  * Provide the product Profile's process-scoped startup identity. These fixed
