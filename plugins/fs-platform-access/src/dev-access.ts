@@ -1,4 +1,5 @@
 import { PlatformApiError } from './api.js'
+import type { ChatCredentials } from './chat.js'
 import {
   assertKeys,
   isRecord,
@@ -285,6 +286,21 @@ export class PlatformDevAccessController {
   logout(): Promise<PlatformDevAccessSnapshot> { return this.#enqueue(() => this.#logout()) }
   issueApplicationToken(appId: string): Promise<ApplicationTokenResult> {
     return this.#enqueue(() => this.#issueApplicationToken(appId))
+  }
+
+  /** Host-only access; intentionally absent from all renderer HTTP routes. */
+  authorizeChat(): Promise<ChatCredentials> {
+    return this.#enqueue(async () => {
+      const modelId = this.#snapshot.activeModelId
+      if (this.#session === undefined || this.#user === undefined
+        || !['ready', 'no_apps'].includes(this.#snapshot.phase) || !modelId
+        || this.#snapshot.activeTenantId !== this.#session.activeTenantId
+        || !this.#snapshot.models.some(model => model.modelId === modelId)) {
+        throw new Error('请登录 FutureStaff 并确认平台已配置可用模型。')
+      }
+      return { accessToken: this.#session.accessToken, userId: this.#user.userId,
+        tenantId: this.#session.activeTenantId, modelId, signal: this.#request.signal }
+    })
   }
 
   async #login(input: PasswordLoginInput): Promise<PlatformDevAccessSnapshot> {

@@ -2,6 +2,15 @@
 - id: ui-settings-models
   disabled: true
 
+- id: agent-default-model
+  disabled: true
+
+- id: llm-deepseek
+  disabled: true
+
+- id: llm-pi-ai
+  disabled: true
+
 - insert:
     - id: futurestaff-core
       name: '@futurestaff/fs-core'

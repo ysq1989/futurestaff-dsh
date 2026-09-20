@@ -9,6 +9,24 @@ import {
 } from '../lib/client/index.js'
 
 const tenantId = '10000000-0000-4000-8000-000000000001'
+
+test('default browser fetch retains its Window receiver for password login', async () => {
+  const originalFetch = globalThis.fetch
+  let requests = 0
+  globalThis.fetch = function () {
+    assert.equal(this, globalThis, 'browser fetch requires the Window receiver')
+    requests += 1
+    return Promise.resolve(Response.json(snapshot))
+  }
+  try {
+    const controller = new PlatformDevClientController(undefined, () => {})
+    await controller.loginWithPassword({ loginIdentifier: 'test@example.invalid', password: 'offline-test' })
+    assert.equal(requests, 1)
+    assert.equal(controller.getSnapshot().phase, 'ready')
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
 const snapshot = {
   phase: 'ready', simulated: false, contractVersion: '0.1.1',
   user: { userId: '20000000-0000-4000-8000-000000000001', displayName: 'DEV 用户', email: 'dev@example.invalid' },

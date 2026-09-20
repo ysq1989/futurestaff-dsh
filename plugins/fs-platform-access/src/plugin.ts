@@ -2,6 +2,8 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import { PlatformDevApi } from './api.js'
+import { FutureStaffChatAdapter } from './chat.js'
+import { apply as applyManagedModelDefault } from './model-default.js'
 import { PLATFORM_CONTRACT_VERSION, PLATFORM_MOCK_BASE_URL } from './contracts.js'
 import type { ApplicationTokenResult } from './contracts.js'
 import { PlatformDevAccessController, type PlatformDevAccessSnapshot } from './dev-access.js'
@@ -105,6 +107,13 @@ function mountDevLogin(ctx: Context): void {
     pkce: new PlatformPkceTransaction(), api, vault,
   })
   const initialized = access.restore()
+  if (typeof ctx.inject === 'function') ctx.inject(['llm'], llmCtx => {
+    const adapter = new FutureStaffChatAdapter(async () => { await initialized; return access.authorizeChat() }, secrets)
+    llmCtx.effect(() => {
+      const unregister = llmCtx.llm.registerAdapter(['futurestaff'], adapter)
+      return () => { adapter.dispose(); unregister() }
+    }, 'futurestaff-platform-access: managed platform inference')
+  })
   let server: Server | undefined
   let expiry: NodeJS.Timeout | undefined
   const close = (): void => {
@@ -329,6 +338,7 @@ async function proxy(request: IncomingMessage, response: ServerResponse, path: s
 
 /** Register six exact, loopback-only bridge routes for the pinned local Mock. */
 export function apply(ctx: Context, config: PlatformAccessConfig = {}): void {
+  if (typeof ctx.provide === 'function') applyManagedModelDefault(ctx)
   for (const path of routes.keys()) {
     ctx.effect(() => ctx.webServer.register({
       kind: 'exact',

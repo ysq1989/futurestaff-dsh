@@ -1,5 +1,20 @@
 # Current Atomic Task
 
+## B03b: Windows 2.0.8 login and managed-chat candidate
+
+- User requested an updated installer on 2026-09-20. Build a distinct 2.0.8 private unsigned candidate; preserve 2.0.7, do not run the installer or push the desktop repository.
+- Includes platform-managed chat against DEV Platform 803d876 and the native browser fetch receiver fix. A hidden offline Electron probe reproduced Illegal invocation with the old receiver and succeeded with the wrapper. Plugin tests: 75 passed.
+- Acceptance: full npm run check, clean local source commit required by packaging, immutable installer export and SHA-256. Real account login/chat remain user acceptance items; do not claim verified authentication from offline tests.
+
+## B03a: Platform-managed desktop chat
+
+- Status: implementation and offline validation complete on 2026-09-20; not committed, deployed or packaged. Full DSH `npm run check` passed; latest platform-access suite 74 passed; combined Platform chat/auth suites 43 passed, including the actual FastAPI response consumed by the TypeScript adapter.
+- Authorization: user approved implementation in the DSH and Platform repositories and explicitly chose existing platform models/server-side credentials. No new key, live inference, deployment or push.
+- Scope: preserve the DSH chat UI; add Host `futurestaff/default` adapter and Platform `/desktop/v1/chat`, tenant/model authorization, bounded NDJSON, cancellation, durable local conversation ownership, quota admission and metadata audit. No DSH Core edits or database migration.
+- Contract and acceptance: `docs/specs/platform-chat-v0.1.0.md`; Platform ADR-0039. Run focused security/protocol tests, real Cordis composition, cross-repository offline consumer and full DSH gate. Preserve existing Platform identity changes.
+- Release: the existing 2.0.7 artifact remains a login-only acceptance candidate; this source requires a new separately authorized release after Platform DEV verification.
+- Limits: text and tool proposals only; no real-account inference verified, automatic expired-token refresh or transcript UI isolation across accounts. Durable ownership prevents sending another account/tenant's bound conversation to inference. Platform gateway lint passes; the shared main module retains the same 68 pre-existing diagnostics as HEAD.
+
 ## B02r: Prepare the versioned Windows acceptance candidate
 
 - Status: source ready for a clean 2.0.7 build; shared desktop login state and client error mapping repaired. Updated-source `npm run check` passed on 2026-09-20 (platform-access 61; stable and Beta desktop 1,029 passed + 13 skipped each; market 261; root 55). Installer build/verification follows the authorized source commit; see the exported acceptance record for artifact results.

@@ -129,7 +129,8 @@ export class PlatformDevClientController {
   readonly #listeners = new Set<Listener>()
 
   constructor(
-    private readonly fetcher: typeof fetch = fetch,
+    // Native browser fetch is receiver-sensitive; do not invoke it as this.fetcher.
+    private readonly fetcher: typeof fetch = (input, init) => globalThis.fetch(input, init),
     private readonly opener: Opener = (url, target, features) => window.open(url, target, features),
   ) {}
 

@@ -29,6 +29,9 @@ test('Alpha declares a fail-closed single-subject identity boundary', async () =
 test('FutureStaff hides upstream model setup and does not ship the embedded login mock', async () => {
   const profile = await read('profile/futurestaff-alpha/cordis.patch.yml')
   assert.match(profile, /- id: ui-settings-models\s+disabled: true/)
+  assert.match(profile, /- id: agent-default-model\s+disabled: true/)
+  assert.match(profile, /- id: llm-deepseek\s+disabled: true/)
+  assert.match(profile, /- id: llm-pi-ai\s+disabled: true/)
   assert.doesNotMatch(profile, /embeddedMock:\s*true/)
 })
 
