@@ -145,3 +145,102 @@ test('Product Hub token helper accepts only the exact active-tenant 60-second cr
     audience: 'futurestaff-product-hub-dev', tenantId, permissions: ['product_hub.read'],
   }), { status: 200 })), /unavailable/)
 })
+
+test('focus synchronization does not flash or republish an unchanged ready session', async () => {
+  const controller = new PlatformDevClientController(async () =>
+    new Response(JSON.stringify(snapshot)), () => {})
+  await controller.restore()
+  const initial = controller.getSnapshot()
+  let updates = 0
+  controller.subscribe(() => updates++)
+  await controller.synchronize()
+  assert.equal(controller.getSnapshot(), initial)
+  assert.equal(updates, 0)
+})
+
+test('settings logout immediately closes the shared gate for every subscriber', async () => {
+  let finishLogout
+  const controller = new PlatformDevClientController(async input => {
+    if (input.endsWith('/logout')) {
+      await new Promise(resolve => { finishLogout = resolve })
+      return new Response(JSON.stringify({
+        phase: 'signed_out', simulated: false, contractVersion: '0.1.1',
+        tenants: [], applications: [], models: [], activeModelId: null,
+      }))
+    }
+    return new Response(JSON.stringify(snapshot))
+  }, () => {})
+  await controller.restore()
+  const gateStates = []
+  const settingsStates = []
+  controller.subscribe(() => gateStates.push(shouldShowPlatformLoginGate(controller.getSnapshot())))
+  controller.subscribe(() => settingsStates.push(controller.getSnapshot().phase))
+  const logout = controller.logout()
+  assert.deepEqual(gateStates, [true])
+  finishLogout()
+  await logout
+  assert.deepEqual(gateStates, [true, true])
+  assert.deepEqual(settingsStates, ['loading', 'signed_out'])
+})
+
+test('focus and settings restores cannot replace an in-flight password login', async () => {
+  let finishLogin
+  const calls = []
+  const controller = new PlatformDevClientController(async input => {
+    calls.push(input)
+    await new Promise(resolve => { finishLogin = resolve })
+    return new Response(JSON.stringify(snapshot))
+  }, () => {})
+  const login = controller.loginWithPassword({ loginIdentifier: 'user', password: 'not-persisted' })
+  await controller.synchronize()
+  await controller.restore()
+  assert.equal(calls.length, 1)
+  finishLogin()
+  await login
+  assert.equal(controller.getSnapshot().phase, 'ready')
+})
+
+test('a stale focus response cannot unlock the workspace after logout', async () => {
+  let finishFocus
+  let calls = 0
+  const signedOut = {
+    phase: 'signed_out', simulated: false, contractVersion: '0.1.1',
+    tenants: [], applications: [], models: [], activeModelId: null,
+  }
+  const controller = new PlatformDevClientController(async input => {
+    if (input.endsWith('/logout')) return new Response(JSON.stringify(signedOut))
+    if (++calls === 2) await new Promise(resolve => { finishFocus = resolve })
+    return new Response(JSON.stringify(snapshot))
+  }, () => {})
+  await controller.restore()
+  const focus = controller.synchronize()
+  await controller.logout()
+  finishFocus()
+  await focus
+  assert.equal(controller.getSnapshot().phase, 'signed_out')
+})
+
+test('login transport, missing route and malformed responses are not password errors', async () => {
+  for (const fetcher of [
+    async () => { throw new Error('private-network-details') },
+    async () => new Response('not found', { status: 404 }),
+    async () => new Response(JSON.stringify({ error: 'private-host-error' }), { status: 401 }),
+    async () => new Response(JSON.stringify({ ...snapshot, accessToken: 'private-token' })),
+  ]) {
+    const controller = new PlatformDevClientController(fetcher, () => {})
+    await controller.loginWithPassword({ loginIdentifier: 'user', password: 'private-password' })
+    assert.equal(controller.getSnapshot().error.code, 'PLATFORM_UNAVAILABLE')
+    assert.doesNotMatch(JSON.stringify(controller.getSnapshot()), /账号或密码错误|private-/)
+  }
+})
+
+test('validated Host authentication rejection retains the bounded login guidance', async () => {
+  const controller = new PlatformDevClientController(async () => new Response(JSON.stringify({
+    phase: 'error', simulated: false, contractVersion: '0.1.1',
+    tenants: [], applications: [], models: [], activeModelId: null,
+    error: { code: 'AUTHENTICATION_REQUIRED', message: '账号或密码错误，请重新输入。', retryable: true },
+  })), () => {})
+  await controller.loginWithPassword({ loginIdentifier: 'user', password: 'private-password' })
+  assert.equal(controller.getSnapshot().error.code, 'AUTHENTICATION_REQUIRED')
+  assert.equal(controller.getSnapshot().error.message, '账号或密码错误，请重新输入。')
+})

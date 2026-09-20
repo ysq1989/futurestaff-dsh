@@ -70,6 +70,22 @@ Traditional Chinese (`en_US`, `zh_CN`, `zh_TW`) and includes all of these steps:
   platform model list, and application grants have loaded.
 - Provider credentials and editable provider/model settings are never rendered
   to a normal desktop user.
+- The account settings and blocking login page share one session store per
+  Client plugin instance. Logout and tenant changes immediately relock the
+  workspace. Focus reconciliation does not flash the gate or supersede an
+  in-flight account action; stale responses cannot unlock a newer session.
+- Missing real Host session routes fail closed; the desktop account UI never
+  silently falls back to the demonstration Mock.
+
+### 2.0.7 acceptance limitation
+
+The Platform `/desktop/v1/models` contract provides sanitized discovery only.
+This candidate does not yet connect platform-managed models to the DSH inference
+runtime. A model appearing in account settings is not evidence of working chat.
+Chat acceptance requires a separately agreed, tenant-authorized inference
+contract and a verified DSH Host adapter; provider keys must remain off the UI.
+Real-account login and graphical first-launch acceptance must be performed
+separately from the headless tests and installer build.
 
 The welcome and review copy is maintained in
 `dsh-plugin-desktop/build/assistedMessages.yml`, while the custom welcome/review
@@ -135,6 +151,7 @@ history is rooted at `89f84fcb7856746cdbdb664989547fc835ea8179`, and passed the 
 installer verification gate. It predates the automatic first-launch defaults
 and the corrected platform-login diagnostics, so it is now a historical
 diagnostic artifact rather than the installable acceptance candidate. The next
-candidate must include both changes and pass this document's release gate.
+candidate is versioned `2.0.7`; it must include both changes and pass this
+document's release gate without overwriting the retained 2.0.6 evidence.
 Signing, distribution, and installation remain separate explicitly authorized
 operations.

@@ -3,14 +3,11 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { createElement, useEffect, useRef, useSyncExternalStore } from 'react'
-import { PlatformMockApi } from '../api.js'
 import type { PasswordLoginInput } from '../contracts.js'
-import { PlatformAccessController, type PlatformAccessSnapshot } from '../controller.js'
+import type { PlatformAccessSnapshot } from '../controller.js'
 import { decodePlatformDevAccessSnapshot } from '../dev-access.js'
-import { InMemoryTenantResources } from '../isolation.js'
 import { mountPlatformAccessPanel } from '../view.js'
 
-const ROUTE_PREFIX = '/_futurestaff/platform-mock'
 const DEV_ROUTE_PREFIX = '/_futurestaff/platform-dev'
 const DEV_LOGIN_ROUTE = `${DEV_ROUTE_PREFIX}/login`
 const PRODUCT_HUB_TOKEN_ROUTE = `${DEV_ROUTE_PREFIX}/apps/product_hub/token`
@@ -34,10 +31,6 @@ export const platformAccessPanelCss = `
 @media (max-width: 640px){.futurestaff-access .fs-panel{gap:18px;padding:18px;border-radius:16px}.futurestaff-access .fs-header{display:grid}.futurestaff-access .fs-header-actions{width:100%}.futurestaff-access .fs-header-actions button{flex:1}.futurestaff-access .fs-tenant{grid-template-columns:1fr;gap:12px}.futurestaff-access .fs-app-grid{grid-template-columns:1fr}.futurestaff-access .fs-state{grid-template-columns:1fr}.futurestaff-access .fs-state-mark{display:none}.futurestaff-access .fs-actions button{flex:1}.futurestaff-access .fs-summary{align-items:flex-start;flex-direction:column}.futurestaff-access .fs-count{align-self:flex-end}}
 @media (prefers-reduced-motion: reduce){.futurestaff-access *{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
 `
-
-function sameOriginMockFetch(input: string | URL | Request, init?: RequestInit): Promise<Response> {
-  return fetch(`${ROUTE_PREFIX}${new URL(input instanceof Request ? input.url : input).pathname}`, init)
-}
 
 export async function beginPlatformDevLogin(
   fetcher: typeof fetch = fetch,
@@ -132,11 +125,12 @@ const initialDevSnapshot: PlatformAccessSnapshot = Object.freeze({
 export class PlatformDevClientController {
   #snapshot: PlatformAccessSnapshot = initialDevSnapshot
   #generation = 0
+  #pendingActions = 0
   readonly #listeners = new Set<Listener>()
 
   constructor(
     private readonly fetcher: typeof fetch = fetch,
-    private readonly opener: Opener = window.open.bind(window),
+    private readonly opener: Opener = (url, target, features) => window.open(url, target, features),
   ) {}
 
   getSnapshot = (): PlatformAccessSnapshot => this.#snapshot
@@ -147,11 +141,24 @@ export class PlatformDevClientController {
   }
 
   async restore(): Promise<void> {
+    if (this.#pendingActions > 0) return
+    await this.#readSession(true)
+  }
+
+  /** Reconcile browser-login callbacks and Host state without flashing the login gate. */
+  async synchronize(): Promise<void> {
+    if (this.#pendingActions > 0) return
+    await this.#readSession(false)
+  }
+
+  async #readSession(showLoading: boolean): Promise<void> {
     const generation = ++this.#generation
-    this.#publish({ ...initialDevSnapshot, phase: 'loading' })
+    if (showLoading) this.#publish({ ...initialDevSnapshot, phase: 'loading' })
     try {
       const snapshot = await this.#request('/session', { method: 'GET' })
-      if (generation === this.#generation) this.#publish(snapshot)
+      if (generation === this.#generation && JSON.stringify(snapshot) !== JSON.stringify(this.#snapshot)) {
+        this.#publish(snapshot)
+      }
     } catch (error) {
       if (error instanceof PlatformDevClientUnavailableError) {
         if (generation === this.#generation) this.#publishFailure()
@@ -162,14 +169,16 @@ export class PlatformDevClientController {
   }
 
   async startLogin(): Promise<void> {
+    this.#pendingActions += 1
     const generation = ++this.#generation
     this.#publish({ ...initialDevSnapshot, phase: 'loading' })
     try { await beginPlatformDevLogin(this.fetcher, this.opener) } catch {
       if (generation === this.#generation) this.#publishFailure()
-    }
+    } finally { this.#pendingActions -= 1 }
   }
 
   async loginWithPassword(input: PasswordLoginInput): Promise<void> {
+    this.#pendingActions += 1
     const generation = ++this.#generation
     this.#publish({ ...initialDevSnapshot, phase: 'loading' })
     try {
@@ -180,12 +189,10 @@ export class PlatformDevClientController {
       })
       if (generation === this.#generation) this.#publish(snapshot)
     } catch {
-      if (generation === this.#generation) this.#publish({
-        ...initialDevSnapshot,
-        phase: 'error',
-        error: { code: 'AUTHENTICATION_REQUIRED', message: '账号或密码错误，请重新输入。', retryable: true },
-      })
-    }
+      // Authentication rejections arrive as validated Host snapshots. Transport,
+      // missing-route and malformed-response failures must never blame a password.
+      if (generation === this.#generation) this.#publishFailure()
+    } finally { this.#pendingActions -= 1 }
   }
 
   async refresh(): Promise<void> { await this.#action('/session/refresh') }
@@ -197,6 +204,7 @@ export class PlatformDevClientController {
   }
 
   async #action(path: string, body?: unknown): Promise<void> {
+    this.#pendingActions += 1
     const generation = ++this.#generation
     this.#publish({ ...this.#snapshot, phase: 'loading', applications: Object.freeze([]) })
     try {
@@ -206,6 +214,7 @@ export class PlatformDevClientController {
       })
       if (generation === this.#generation) this.#publish(snapshot)
     } catch { if (generation === this.#generation) this.#publishFailure() }
+    finally { this.#pendingActions -= 1 }
   }
 
   async #request(path: string, init: RequestInit): Promise<PlatformAccessSnapshot> {
@@ -244,29 +253,14 @@ export class PlatformDevClientController {
   }
 }
 
-export function FutureStaffPlatformAccessSection() {
+interface PlatformAccessViewProps { readonly controller: PlatformDevClientController }
+
+export function FutureStaffPlatformAccessSection({ controller }: PlatformAccessViewProps) {
   const root = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (root.current === null) return
-    const element = root.current
-    const dev = new PlatformDevClientController()
-    let controller: PlatformDevClientController | PlatformAccessController = dev
-    let dispose = mountPlatformAccessPanel(element, dev)
-    let active = true
-    void dev.restore().catch(error => {
-      if (!active || !(error instanceof PlatformDevClientUnavailableError)) return
-      dispose()
-      controller = new PlatformAccessController(new PlatformMockApi(sameOriginMockFetch), new InMemoryTenantResources())
-      dispose = mountPlatformAccessPanel(element, controller)
-    })
-    const restoreOnFocus = (): void => { if (controller === dev) void dev.restore() }
-    window.addEventListener('focus', restoreOnFocus)
-    return () => {
-      active = false
-      window.removeEventListener('focus', restoreOnFocus)
-      dispose()
-    }
-  }, [])
+    return mountPlatformAccessPanel(root.current, controller)
+  }, [controller])
   return createElement('div', { className: 'futurestaff-access' },
     createElement('style', null, platformAccessPanelCss),
     createElement('div', { ref: root }),
@@ -277,15 +271,15 @@ export function shouldShowPlatformLoginGate(snapshot: PlatformAccessSnapshot): b
   return snapshot.phase !== 'ready' && snapshot.phase !== 'no_apps'
 }
 
-function FutureStaffPlatformLoginGate() {
-  const controllerRef = useRef<PlatformDevClientController | null>(null)
-  if (controllerRef.current === null) controllerRef.current = new PlatformDevClientController()
-  const controller = controllerRef.current
+function FutureStaffPlatformLoginGate({ controller }: PlatformAccessViewProps) {
   const snapshot = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot)
   const root = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     void controller.restore().catch(() => {})
+    const synchronize = (): void => { void controller.synchronize().catch(() => {}) }
+    window.addEventListener('focus', synchronize)
+    return () => window.removeEventListener('focus', synchronize)
   }, [controller])
 
   useEffect(() => {
@@ -307,10 +301,13 @@ export const inject = ['slots']
 
 /** Mount account access in Settings and require it before the desktop workspace is usable. */
 export function apply(ctx: ClientContext): void {
+  // One store per plugin instance: settings actions must immediately relock the
+  // workspace on logout/tenant changes, including while the gate renders null.
+  const controller = new PlatformDevClientController()
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section', id: 'futurestaff-access', order: -10, label: 'FutureStaff',
-  }, FutureStaffPlatformAccessSection))
+  }, () => createElement(FutureStaffPlatformAccessSection, { controller })))
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay', id: 'futurestaff-login-gate', order: -100,
-  }, FutureStaffPlatformLoginGate))
+  }, () => createElement(FutureStaffPlatformLoginGate, { controller })))
 }

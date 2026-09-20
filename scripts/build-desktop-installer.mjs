@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
+import { constants as fsConstants } from 'node:fs'
 import { copyFile, mkdir, readFile, readdir, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -10,6 +11,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 export function installerArtifactNames(files, version) {
   const expected = `FutureStaff-Agent-${version}-x64-Setup.exe`
   return files.filter(name => name === expected)
+}
+
+export async function exportInstallerArtifact(source, target) {
+  await copyFile(source, target, fsConstants.COPYFILE_EXCL)
 }
 
 async function sha256(file) {
@@ -38,7 +43,7 @@ export async function buildDesktopInstaller() {
   const output = path.join(root, 'outputs')
   await mkdir(output, { recursive: true })
   const target = path.join(output, names[0])
-  await copyFile(source, target)
+  await exportInstallerArtifact(source, target)
   const digest = await sha256(target)
   await writeFile(`${target}.sha256`, `${digest}  ${names[0]}\n`)
   console.log(`Exported unsigned private Alpha installer: ${target}`)

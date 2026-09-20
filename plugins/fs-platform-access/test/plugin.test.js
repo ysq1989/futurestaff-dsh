@@ -108,6 +108,15 @@ test('client registers Settings access and a mandatory login gate', () => {
     { name: 'shell.overlay', id: 'futurestaff-login-gate', order: -100 },
   ])
   assert.ok(components.every(component => typeof component === 'function'))
+  const settings = components[0]()
+  const gate = components[1]()
+  assert.equal(settings.props.controller, gate.props.controller)
+  const second = []
+  applyClient({ slots: {
+    inject: (_name, register) => register(),
+    register: (_options, component) => { second.push(component); return () => {} },
+  } })
+  assert.notEqual(settings.props.controller, second[0]().props.controller)
 })
 
 test('client panel styles cover narrow screens, keyboard focus and reduced motion', async () => {

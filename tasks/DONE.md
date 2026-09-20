@@ -183,8 +183,8 @@
 
 ## B02q: Automatically apply FutureStaff first-launch defaults
 
-- Status: completed locally; source and documentation changes remain uncommitted and no replacement installer has been built.
+- Status: completed by product commit `abebcbd7ea17926a52c2bc3a4f25543fd85b7860`; no replacement installer has been built.
 - Result: `futurestaff-alpha` no longer opens the generic DSH Setup Wizard. The launcher automatically records compatibility mode, ordinary Windows material, disabled plugin market, no browser access, loopback-only networking, enabled desktop notifications, and the completed Setup marker before continuing to the FutureStaff login gate.
 - Boundary: only the reserved bundled product Profile receives the automatic policy. Generic DSH Profiles retain the complete interactive Wizard, and authentication, tenant authority, platform model ownership, and credentials are unchanged.
 - Verification: focused product Profile/distribution/package tests passed 50/50 with TypeScript typecheck; the complete desktop gate passed with stable 109 files and 1029 tests plus 13 skips, Beta 108 files and 1029 tests plus 13 skips, both 228-node runtime closures, bilingual documents, variants, licenses, and operation reliability.
-- Operations: no commit, push, installer rebuild or execution, signing, distribution, deployment, or production mutation was performed.
+- Operations: the source was committed locally; no push, installer rebuild or execution, signing, distribution, deployment, or production mutation was performed.
