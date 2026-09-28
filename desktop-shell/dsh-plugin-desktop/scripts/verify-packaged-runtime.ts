@@ -75,6 +75,7 @@ export const REQUIRED_UNPACKED_RUNTIME_ENTRIES = [
   'cordis.patch.yml',
   'build/app-icon.png',
   'build/app-icon-mac.png',
+  'build/futurestaff-ai-icon.png',
   'build/tray-iconTemplate.png',
   'build/tray-icon-blue.png',
   'lib/main.js',

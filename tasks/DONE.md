@@ -1,5 +1,12 @@
 # Completed Atomic Tasks
 
+## B05: Restore FutureStaff Agent DEV login on the existing Desktop shell
+
+- Status: Completed locally as source commit `f890bce061` and release record `7042cc118d`; the user screenshot of installed 2.0.9 shows an authenticated chat workspace.
+- Result: the packaged Profile safely upgrades the exact intact older login client, preserving modified Profiles; bounded account guidance distinguishes password, verification, membership, and Agent access failures.
+- Verification: real DEV account login through API, client controller, Host route, and installed Electron form; full `npm run check`, Platform desktop-auth 20 tests, temporary Profile upgrade/preservation, installer verification and independent SHA-256 comparison passed.
+- Artifact: unsigned private `outputs/FutureStaff-Agent-2.0.9-x64-Setup.exe`, SHA-256 `0e7be4cfc9afbfc49e1ade43c710925cffa434512dd7872d3fc1e0657af723f3`. Chat model access belongs to B06.
+
 ## B01a: Connect the desktop product to the pinned local platform Mock
 
 - Status: Completed and pushed as `71174081fbbcd377f61c0abf4fb1874de84199ce`.

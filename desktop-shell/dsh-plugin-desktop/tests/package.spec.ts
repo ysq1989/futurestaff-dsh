@@ -691,7 +691,7 @@ describe('published package surface', () => {
 
   it('fixes the installed application identity', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.0.9')
+    expect(manifest.version).toBe('2.0.10')
     expect(manifest.build?.productName).toBe('FutureStaff Agent')
     expect(manifest.description).toBe('FutureStaff Agent: a secure desktop client for tenant-aware AI workflows')
     expect(manifest.build?.appId).toBe('net.fsstory.agent.desktop')
@@ -710,14 +710,13 @@ describe('published package surface', () => {
       'build/futurestaff-ai-icon.png',
       'build/installerHeader.bmp',
       'build/installerSidebar.bmp',
-      'build/tray-icon.svg',
       'build/tray-icon*.png',
       'docs/**',
     ]))
     expect(manifest.build?.files).toEqual([
       'build/app-icon.png',
       'build/app-icon-mac.png',
-      'build/tray-icon.svg',
+      'build/futurestaff-ai-icon.png',
       'build/tray-icon*.png',
       'cordis.patch.yml',
       'lib/**',
@@ -751,7 +750,7 @@ describe('published package surface', () => {
       useZip: false,
       artifactName: 'FutureStaff-Agent-${version}-${arch}-Setup.${ext}',
     })
-    expect(manifest.build?.linux?.icon).toBe('build/app-icon.png')
+    expect(manifest.build?.linux?.icon).toBe('build/futurestaff-ai-icon.png')
   })
 
   it('separates unsigned smoke packaging from the signed macOS release', () => {
@@ -860,29 +859,26 @@ describe('published package surface', () => {
     expect(ciWorkflow).toContain('Documentation-only change; product build and tests are not required.')
   })
 
-  it('keeps one fixed brand-blue tray source for generated native assets', () => {
-    const source = readFileSync(new URL('build/tray-icon.svg', packageRoot), 'utf8')
-
-    expect(source.match(/#4D6BFE/gu)).toHaveLength(1)
-    expect(source).not.toMatch(/<style\b|prefers-color-scheme/iu)
-    for (const filename of [
-      'tray-iconTemplate.png',
-      'tray-iconTemplate@2x.png',
-      'tray-icon-blue.png',
-      'tray-icon-blue@1.25x.png',
-      'tray-icon-blue@1.5x.png',
-      'tray-icon-blue@2x.png',
-    ]) {
-      expect(readFileSync(new URL(`build/${filename}`, packageRoot)).byteLength).toBeGreaterThan(0)
+  it('generates transparent tray variants from the FutureStaff icon', async () => {
+    for (const [filename, size] of [
+      ['tray-iconTemplate.png', 16],
+      ['tray-iconTemplate@2x.png', 32],
+      ['tray-icon-blue.png', 16],
+      ['tray-icon-blue@1.25x.png', 20],
+      ['tray-icon-blue@1.5x.png', 24],
+      ['tray-icon-blue@2x.png', 32],
+    ] as const) {
+      const metadata = await sharp(readFileSync(new URL(`build/${filename}`, packageRoot))).metadata()
+      expect(metadata).toEqual(expect.objectContaining({ width: size, height: size, hasAlpha: true }))
     }
   })
 
-  it('keeps the iOS Default source icon unmodified', () => {
+  it('uses the FutureStaff mark as the cross-platform app icon source', () => {
     const digest = createHash('sha256')
       .update(readFileSync(new URL('build/app-icon.png', packageRoot)))
       .digest('hex')
 
-    expect(digest).toBe('315fbc6e57ff1f34894f21f66fb7f9f26deccf78333c71fad21a6cec64e7de80')
+    expect(digest).toBe('e04f8e8f8d57069b427242a10fd162009fe4116cded7e644f1b041723d647f0e')
   })
 
   it('ships a square transparent FutureStaff desktop icon', async () => {
@@ -897,7 +893,7 @@ describe('published package surface', () => {
     }))
   })
 
-  it('generates a centered macOS icon with a 100-pixel visual inset', async () => {
+  it('keeps the FutureStaff macOS icon inside the visual safe area', async () => {
     const source = await sharp(readFileSync(new URL('build/app-icon.png', packageRoot))).metadata()
     const icon = sharp(readFileSync(new URL('build/app-icon-mac.png', packageRoot)))
     const metadata = await icon.metadata()
@@ -916,12 +912,12 @@ describe('published package surface', () => {
       hasAlpha: true,
     }))
     expect(metadata.icc).toEqual(source.icc)
-    expect(info).toEqual(expect.objectContaining({
-      width: 824,
-      height: 824,
-      trimOffsetLeft: -100,
-      trimOffsetTop: -100,
-    }))
+    const left = -(info.trimOffsetLeft ?? 0)
+    const top = -(info.trimOffsetTop ?? 0)
+    expect(left).toBeGreaterThanOrEqual(100)
+    expect(top).toBeGreaterThanOrEqual(100)
+    expect(1024 - left - info.width).toBeGreaterThanOrEqual(100)
+    expect(1024 - top - info.height).toBeGreaterThanOrEqual(100)
   })
 
   it('keeps Electron out of production dependencies consumed by electron-builder', () => {

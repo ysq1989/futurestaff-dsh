@@ -291,8 +291,8 @@ describe('desktop update Host plugin', () => {
     await vi.advanceTimersByTimeAsync(testConfig.initialDelayMs)
     await vi.waitFor(() => {
       expect(harness.notifications).toEqual([{
-        title: 'DSH Desktop Update Available',
-        body: 'Version 2.1.0 is ready to download. Open DSH Desktop to continue.',
+        title: 'DSH Desktop Beta Update Available',
+        body: 'Version 2.1.0 is ready to download. Open DSH Desktop Beta to continue.',
       }])
     })
     expect(harness.confirmDownload).not.toHaveBeenCalled()

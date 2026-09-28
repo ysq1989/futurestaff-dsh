@@ -14,6 +14,8 @@ const supersededReleaseManifests = [
   'f82212e5ba13adc4c4a144792aa9ef67baff3f8f7c7144f4a1f86ec7288059b8',
   // Installed 2.0.8 Profile with the old login client that loses the fetch receiver.
   '733377d44a1a7915029a172bc5da08886f66487304e72b9bfe8baa1beb0e9e38',
+  // Verified intact 2.0.9 Profile; the next release updates branding and model guidance.
+  '6cd4850a729b7fb1b276db94334652d8d510c1c1065c9bb6c53790494c9cb20f',
 ]
 const pnpmVersion = '11.8.0'
 const pnpmWorkspace = `packages:

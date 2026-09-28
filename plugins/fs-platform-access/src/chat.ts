@@ -77,7 +77,7 @@ export class FutureStaffChatAdapter extends LlmAdapter {
 
   async #credentials(): Promise<ChatCredentials> {
     try { return await this.authorize() } catch {
-      throw new LlmError('请登录 FutureStaff 并确认平台已配置可用模型。', 'FUTURESTAFF_AUTH')
+      throw new LlmError('请在设置 → FutureStaff 检查登录与当前租户的可用模型；如有其他租户，可切换后重试。', 'FUTURESTAFF_AUTH')
     }
   }
 
@@ -112,7 +112,7 @@ export class FutureStaffChatAdapter extends LlmAdapter {
     try { await this.#bind(options, credentials) } catch (error) {
       credentials.signal.throwIfAborted()
       if (error instanceof LlmError) throw error
-      throw unavailable()
+      throw new LlmError('无法保存此会话的账号归属，请检查本机受保护存储。', 'FUTURESTAFF_STORAGE')
     }
     const body = JSON.stringify({ requestId: randomUUID(), modelId: credentials.modelId,
       messages: messages(options), tools: options.tools ?? [], maxTokens: Math.min(options.maxTokens ?? 4096, 8192) })
@@ -130,7 +130,13 @@ export class FutureStaffChatAdapter extends LlmAdapter {
         response = await this.fetcher(ENDPOINT, { method: 'POST', redirect: 'error', cache: 'no-store', signal,
           headers: { authorization: `Bearer ${credentials.accessToken}`, 'content-type': 'application/json', accept: 'application/x-ndjson' }, body })
       } catch { signal.throwIfAborted(); throw unavailable() }
-      if (!response.ok) { await response.body?.cancel(); throw unavailable() }
+      if (!response.ok) {
+        await response.body?.cancel()
+        if (response.status === 401) throw new LlmError('平台登录已失效，请在设置 → FutureStaff 重新登录。', 'FUTURESTAFF_AUTH')
+        if (response.status === 403) throw new LlmError('当前租户无权使用所选模型，请切换租户或联系管理员。', 'FUTURESTAFF_MODEL_ACCESS')
+        if (response.status === 429) throw new LlmError('平台聊天请求过于频繁或额度已用尽，请稍后重试。', 'FUTURESTAFF_CHAT_LIMIT')
+        throw unavailable()
+      }
       if (response.headers.get('x-futurestaff-chat-contract') !== '0.1.0'
         || !response.headers.get('content-type')?.startsWith('application/x-ndjson') || !response.body) {
         await response.body?.cancel(); throw invalid()
@@ -159,7 +165,8 @@ export class FutureStaffChatAdapter extends LlmAdapter {
             if (!started) { started = true; yield { type: 'block-start', index, blockType: 'text' } }
             yield { type: 'text-delta', index, text: event.text }
           } else if (event.type === 'error') {
-            throw unavailable()
+            if (Object.keys(event).sort().join(',') !== 'code,type' || event.code !== 'PROVIDER_UNAVAILABLE') throw invalid()
+            throw new LlmError('当前租户的模型服务调用失败，请联系平台管理员检查模型配置与供应商连接。', 'FUTURESTAFF_PROVIDER')
           } else if (event.type === 'result') {
             if (Object.keys(event).sort().join(',') !== 'content,finishReason,toolCalls,type'
               || typeof event.content !== 'string' || !Array.isArray(event.toolCalls)

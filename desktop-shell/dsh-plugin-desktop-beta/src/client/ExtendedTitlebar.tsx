@@ -3,6 +3,7 @@
 import { createPortal } from 'react-dom'
 import { LayoutTemplate, PanelTop, RefreshCw, Sparkles } from 'lucide-react'
 import { useState } from 'react'
+import { DESKTOP_PRODUCT_NAME } from '../product-identity.ts'
 import type {
   InjectFace, PropsLocale, PropsRuntime,
 } from '@deepseek-ai/dsh-client-ui-slots'
@@ -178,7 +179,7 @@ export function DesktopFrameTitlebar({ api, environment, setMode, t }: DesktopFr
       data-material={environment.material}
     >
       <div className="dshDesktopFrameIdentity">
-        <span className="dshDesktopFrameProduct">DSH Desktop</span>
+        <span className="dshDesktopFrameProduct">{DESKTOP_PRODUCT_NAME}</span>
         <DesktopVersionControl version={environment.version} checkForUpdates={api.checkForUpdates} t={t} />
         <DesktopModeControl
           mode={environment.mode}

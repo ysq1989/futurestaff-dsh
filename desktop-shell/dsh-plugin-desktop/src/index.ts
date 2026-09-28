@@ -16,6 +16,7 @@ import {
   type ThemeSettings,
 } from '@deepseek-ai/dsh-client-ui-theme'
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
+import { DESKTOP_PRODUCT_NAME } from './product-identity.ts'
 import {
   handleRendererBootRequest,
   RENDERER_BOOT_REPORT_PATH,
@@ -239,7 +240,7 @@ export function apply(ctx: Context, config: Config): void {
   lanHttps.attach(ctx.webServer.port)
   const iconFilename = runtime.platform === 'darwin'
     ? 'app-icon-mac.png'
-    : 'app-icon.png'
+    : 'futurestaff-ai-icon.png'
   const iconPath = fileURLToPath(new URL(`../build/${iconFilename}`, import.meta.url))
   const trayIcons = {
     templatePath: fileURLToPath(new URL('../build/tray-iconTemplate.png', import.meta.url)),
@@ -474,8 +475,8 @@ export function apply(ctx: Context, config: Config): void {
         url,
         authenticationUrl: ctx.connection.authenticatedUrl(new URL(url).origin),
         rendererAccessHeader: browserAccess.rendererHeader,
-        productName: 'DSH Desktop',
-        windowTitle: 'DeepSeek Harness Desktop',
+        productName: DESKTOP_PRODUCT_NAME,
+        windowTitle: DESKTOP_PRODUCT_NAME,
         iconPath,
         trayIcons,
         readLocalePreference: () => {

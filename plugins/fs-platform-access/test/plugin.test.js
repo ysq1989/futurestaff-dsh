@@ -91,8 +91,10 @@ test('client registers Settings access and a mandatory login gate', () => {
   const slotNames = []
   const registrations = []
   const components = []
+  const OriginalContext = () => null
   const slots = {
     inject: (name, register) => { slotNames.push(name); register() },
+    entries: () => [{ options: { key: 'context' }, component: OriginalContext }],
     register: (options, candidate) => {
       registrations.push(options)
       components.push(candidate)
@@ -102,21 +104,34 @@ test('client registers Settings access and a mandatory login gate', () => {
 
   applyClient({ slots })
 
-  assert.deepEqual(slotNames, ['settings.section', 'shell.overlay'])
+  assert.deepEqual(slotNames, ['sidebar.brand.mark', 'sidebar.brand.name', 'conversation.chat.node', 'settings.section', 'shell.overlay'])
   assert.deepEqual(registrations, [
+    { name: 'sidebar.brand.mark', priority: -100 },
+    { name: 'sidebar.brand.name', priority: -100 },
+    { name: 'conversation.chat.node', key: 'context', priority: -100 },
     { name: 'settings.section', id: 'futurestaff-access', order: -10, label: 'FutureStaff' },
     { name: 'shell.overlay', id: 'futurestaff-login-gate', order: -100 },
   ])
   assert.ok(components.every(component => typeof component === 'function'))
-  const settings = components[0]()
-  const gate = components[1]()
+  assert.equal(components[0]({ size: 24 }).props.children, 'F')
+  assert.equal(components[1]().props.children, 'FutureStaff Agent')
+  const context = components[2]({ node: { data: {
+    source: { kind: 'plugin', plugin: '@deepseek-ai/dsh-system-prompt' },
+    provenance: { role: 'inject', label: '@deepseek-ai/dsh-system-prompt' },
+  } } })
+  assert.equal(context.type, OriginalContext)
+  assert.equal(context.props.node.data.provenance.label, 'FutureStaff 系统提示词')
+  assert.equal(context.props.node.data.source.plugin, 'FutureStaff 系统提示词')
+  const settings = components[3]()
+  const gate = components[4]()
   assert.equal(settings.props.controller, gate.props.controller)
   const second = []
   applyClient({ slots: {
     inject: (_name, register) => register(),
+    entries: () => [{ options: { key: 'context' }, component: OriginalContext }],
     register: (_options, component) => { second.push(component); return () => {} },
   } })
-  assert.notEqual(settings.props.controller, second[0]().props.controller)
+  assert.notEqual(settings.props.controller, second[3]().props.controller)
 })
 
 test('client panel styles cover narrow screens, keyboard focus and reduced motion', async () => {

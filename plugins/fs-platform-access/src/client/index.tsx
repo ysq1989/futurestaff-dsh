@@ -2,7 +2,10 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type { ChatNodeViewProps } from '@deepseek-ai/dsh-client-ui-chat/client'
 import { createElement, useEffect, useRef, useSyncExternalStore } from 'react'
+import type { ComponentType } from 'react'
 import type { PasswordLoginInput } from '../contracts.js'
 import type { PlatformAccessSnapshot } from '../controller.js'
 import { decodePlatformDevAccessSnapshot } from '../dev-access.js'
@@ -300,11 +303,49 @@ function FutureStaffPlatformLoginGate({ controller }: PlatformAccessViewProps) {
 
 export const inject = ['slots']
 
+function FutureStaffBrandMark({ size }: { readonly size: number }) {
+  return createElement('span', {
+    style: { display: 'grid', placeItems: 'center', width: size, height: size,
+      borderRadius: 6, border: '1px solid currentColor', color: 'var(--dsw-alias-brand-primary)',
+      fontSize: Math.round(size * 0.65), fontWeight: 700, lineHeight: 1 },
+  }, 'F')
+}
+
+function FutureStaffBrandName() {
+  return createElement('span', { style: { fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap' } }, 'FutureStaff Agent')
+}
+
+function contextRenderer(original: ComponentType<ChatNodeViewProps<'context'>>) {
+  return function FutureStaffContextNode(props: ChatNodeViewProps<'context'>) {
+    const data = props.node.data
+    if (data.provenance.label !== '@deepseek-ai/dsh-system-prompt') return createElement(original, props)
+    return createElement(original, { ...props, node: {
+      ...props.node, data: { ...data, provenance: { ...data.provenance, label: 'FutureStaff 系统提示词' },
+        source: data.source.kind === 'plugin'
+          ? { ...data.source, plugin: 'FutureStaff 系统提示词' }
+          : data.source },
+    } })
+  }
+}
+
 /** Mount account access in Settings and require it before the desktop workspace is usable. */
 export function apply(ctx: ClientContext): void {
   // One store per plugin instance: settings actions must immediately relock the
   // workspace on logout/tenant changes, including while the gate renders null.
   const controller = new PlatformDevClientController()
+  ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({
+    name: 'sidebar.brand.mark', priority: -100,
+  }, FutureStaffBrandMark))
+  ctx.slots.inject('sidebar.brand.name', () => ctx.slots.register({
+    name: 'sidebar.brand.name', priority: -100,
+  }, FutureStaffBrandName))
+  ctx.slots.inject('conversation.chat.node', () => {
+    const original = ctx.slots.entries('conversation.chat.node')
+      .find(entry => entry.options.key === 'context' && (entry.options.priority ?? 0) === 0)?.component
+    if (original === undefined) return () => {}
+    return ctx.slots.register({ name: 'conversation.chat.node', key: 'context', priority: -100 },
+      contextRenderer(original as ComponentType<ChatNodeViewProps<'context'>>))
+  })
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section', id: 'futurestaff-access', order: -10, label: 'FutureStaff',
   }, () => createElement(FutureStaffPlatformAccessSection, { controller })))

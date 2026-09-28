@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-desktop",
-  "version": "2.0.9",
+  "version": "2.0.10",
   "description": "FutureStaff Agent: a secure desktop client for tenant-aware AI workflows",
   "license": "MIT",
   "publishConfig": {
@@ -83,7 +83,6 @@
     "build/futurestaff-ai-icon.png",
     "build/installerHeader.bmp",
     "build/installerSidebar.bmp",
-    "build/tray-icon.svg",
     "build/tray-icon*.png",
     "cordis.patch.yml",
     "docs/**",
@@ -343,7 +342,7 @@
     "files": [
       "build/app-icon.png",
       "build/app-icon-mac.png",
-      "build/tray-icon.svg",
+      "build/futurestaff-ai-icon.png",
       "build/tray-icon*.png",
       "cordis.patch.yml",
       "lib/**",
@@ -416,7 +415,7 @@
       "target": [
         "dir"
       ],
-      "icon": "build/app-icon.png"
+      "icon": "build/futurestaff-ai-icon.png"
     }
   }
 }
