@@ -12,6 +12,8 @@ const supersededReleaseManifests = [
   '24c260169b8cbafaec0de5fc209702d8c882243cf32bbcdb37b8e78c6afe11c9',
   // B02n Profile installed by the previous private Windows candidate.
   'f82212e5ba13adc4c4a144792aa9ef67baff3f8f7c7144f4a1f86ec7288059b8',
+  // Installed 2.0.8 Profile with the old login client that loses the fetch receiver.
+  '733377d44a1a7915029a172bc5da08886f66487304e72b9bfe8baa1beb0e9e38',
 ]
 const pnpmVersion = '11.8.0'
 const pnpmWorkspace = `packages:

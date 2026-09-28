@@ -229,7 +229,9 @@ function failure(error: unknown, context: 'login' | 'session' = 'session'): Plat
       if (error.code === 'AUTHENTICATION_REQUIRED') {
         return Object.freeze({
           code: error.code,
-          message: '账号或密码错误，请重新输入。',
+          message: error.status === 403
+            ? '账号尚未完成邮箱验证，请先在 FutureStaff 平台网页完成验证后重试。'
+            : '账号或密码错误，请重新输入。',
           retryable: error.retryable,
         })
       }
@@ -237,6 +239,20 @@ function failure(error: unknown, context: 'login' | 'session' = 'session'): Plat
         return Object.freeze({
           code: error.code,
           message: 'FutureStaff Platform DEV 登录服务尚未发布，请联系管理员更新平台。',
+          retryable: false,
+        })
+      }
+      if (error.code === 'TENANT_MEMBERSHIP_REQUIRED') {
+        return Object.freeze({
+          code: error.code,
+          message: '当前账号没有可用的组织成员身份，请联系管理员开通。',
+          retryable: false,
+        })
+      }
+      if (error.code === 'APPLICATION_ACCESS_DENIED') {
+        return Object.freeze({
+          code: error.code,
+          message: '当前账号尚未获授权使用 FutureStaff Agent，请联系管理员开通。',
           retryable: false,
         })
       }

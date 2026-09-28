@@ -81,6 +81,39 @@ test('DEV password login reports invalid credentials without reflecting platform
   assert.doesNotMatch(JSON.stringify(snapshot), /private platform detail|private-password/)
 })
 
+test('DEV password login explains the platform email-verification rejection', async () => {
+  const api = new FakeDevApi()
+  api.loginWithPassword = async () => {
+    throw new PlatformApiError('AUTHENTICATION_REQUIRED', 'private verification detail', false, 403)
+  }
+  const controller = new PlatformDevAccessController(api, new FakeVault(), new InMemoryTenantResources())
+
+  const snapshot = await controller.login({ loginIdentifier: 'dev@example.invalid', password: 'private-password' })
+
+  assert.equal(snapshot.phase, 'error')
+  assert.equal(snapshot.error.code, 'AUTHENTICATION_REQUIRED')
+  assert.equal(snapshot.error.message, '账号尚未完成邮箱验证，请先在 FutureStaff 平台网页完成验证后重试。')
+  assert.doesNotMatch(JSON.stringify(snapshot), /private verification detail|private-password/)
+})
+
+test('DEV password login explains missing membership and Agent authorization without server details', async () => {
+  for (const [code, message] of [
+    ['TENANT_MEMBERSHIP_REQUIRED', '当前账号没有可用的组织成员身份，请联系管理员开通。'],
+    ['APPLICATION_ACCESS_DENIED', '当前账号尚未获授权使用 FutureStaff Agent，请联系管理员开通。'],
+  ]) {
+    const api = new FakeDevApi()
+    api.loginWithPassword = async () => {
+      throw new PlatformApiError(code, 'private platform detail', false, 403)
+    }
+    const controller = new PlatformDevAccessController(api, new FakeVault(), new InMemoryTenantResources())
+    const snapshot = await controller.login({ loginIdentifier: 'dev@example.invalid', password: 'private-password' })
+    assert.equal(snapshot.phase, 'error')
+    assert.equal(snapshot.error.code, code)
+    assert.equal(snapshot.error.message, message)
+    assert.doesNotMatch(JSON.stringify(snapshot), /private platform detail|private-password/)
+  }
+})
+
 test('DEV password login distinguishes an unpublished platform route from invalid credentials', async () => {
   const api = new FakeDevApi()
   api.loginWithPassword = async () => {

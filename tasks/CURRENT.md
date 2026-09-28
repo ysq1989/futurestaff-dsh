@@ -1,5 +1,15 @@
 # Current Atomic Task
 
+## B05: Restore FutureStaff Agent DEV login on the existing Desktop shell
+
+- User selected the current `anywhere-labs/dsh-desktop v2.0.5` derived shell on 2026-09-28. Keep its pinned Harness `0.1.2-rc.1` while diagnosing login.
+- Goal: make the packaged FutureStaff account/password flow work against `https://dev.fsstory.net/desktop/v1/**`, with the server deriving identity, tenant membership, and Agent access.
+- Acceptance: authentication and authorization failures show bounded guidance; a valid DEV account reaches a tenant-bound ready snapshot through protected storage without exposing credentials; verify a new installer before distribution.
+- Evidence: the DEV password endpoint returns contract `0.1.1`; the supplied test account succeeds through the live API, client controller, and local Host route, each followed by logout. DEV returns two tenants, two apps, and zero available models for that account. The full product `npm run check` passed after the fix, and the Platform desktop-auth suite passed 20 tests. The installed Electron form incorrectly reports a password error with the same credentials, while its Host route succeeds. Its intact installed Profile has the older client bundle with an unbound browser `fetch` and manifest SHA-256 `733377d44a1a7915029a172bc5da08886f66487304e72b9bfe8baa1beb0e9e38`. The staged release now explicitly supersedes that exact Profile; a temporary copy upgraded to the current client and preserved a locally modified Profile. Official Desktop candidate dependency changes are preserved in Git stash `official-desktop-candidate-before-anywhere-login`.
+- User authorized real-account testing and a local app restart on 2026-09-28, then approved committing this fix on `main` and generating a new 2.0.9 installer. No DEV deployment, push, installer execution, or installed-Profile replacement has been authorized.
+
+## Historical task notes
+
 ## B03b: Windows 2.0.8 login and managed-chat candidate
 
 - User requested an updated installer on 2026-09-20. Build a distinct 2.0.8 private unsigned candidate; preserve 2.0.7, do not run the installer or push the desktop repository.
