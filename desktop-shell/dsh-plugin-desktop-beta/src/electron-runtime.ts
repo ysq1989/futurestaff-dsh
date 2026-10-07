@@ -54,6 +54,7 @@ import {
   type DesktopUpdateArtifact,
 } from './update-download.ts'
 import type { UpdateCheckResult } from './update-checker.ts'
+import { withFutureStaffInstaller, verifyFutureStaffInstaller, type FutureStaffRelease, type FutureStaffUpdateTrust } from './futurestaff-update.ts'
 import type { DesktopInstallationId } from './desktop-installation-id.ts'
 import { DESKTOP_RELEASE_CHANNEL } from './product-identity.ts'
 import type { DesktopReleaseChannel } from './update-checker.ts'
@@ -151,6 +152,17 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       ...(workspaceVolumeQuery === undefined ? {} : { volumeQuery: workspaceVolumeQuery }),
     })
     this.updates = {
+      futureStaff: {
+        notice: async message => { await this.showUpdateMessageBox({ type: 'info', title: 'FutureStaff Agent', message, buttons: [desktopNativeCopy(this.currentLocale).ok], noLink: true }) },
+        confirm: async release => {
+          const copy = desktopNativeCopy(this.currentLocale)
+          const result = await this.showUpdateMessageBox({ type: 'info', title: copy.updateAvailableTitle,
+            message: copy.updateAvailableMessage(release.version), detail: release.notes,
+            buttons: [copy.saveAndDownload, copy.later], defaultId: 1, cancelId: 1, noLink: true })
+          return result.response === 0
+        },
+        install: (release, trust, signal) => this.installFutureStaffUpdate(release, trust, signal),
+      },
       get isPackaged() { return app.isPackaged },
       get canDownload() { return app.isPackaged && platformStrategy.updateDownloadPlatform !== undefined },
       get currentVersion() { return PRODUCT_VERSION },
@@ -645,6 +657,30 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       buttons: [copy.ok],
       defaultId: 0,
       noLink: true,
+    })
+  }
+
+  private async installFutureStaffUpdate(release: FutureStaffRelease, trust: FutureStaffUpdateTrust, signal: AbortSignal): Promise<void> {
+    if (!app.isPackaged || this.platform !== 'win32' || process.arch !== 'x64') throw new Error('UPDATE_PLATFORM_REJECTED')
+    const directory = join(app.getPath('userData'), 'updates')
+    await (await import('node:fs/promises')).mkdir(directory, { recursive: true, mode: 0o700 })
+    await withFutureStaffInstaller(release, trust, directory, (url, init) => net.fetch(url, init), signal, async path => {
+      const copy = desktopNativeCopy(this.currentLocale)
+      const answer = await this.showUpdateMessageBox({ type: 'info', title: copy.updateDownloadedTitle,
+        message: copy.updateReady(release.version), detail: copy.windowsInstallQuestion,
+        buttons: [copy.restartAndInstall, copy.later], defaultId: 1, cancelId: 1, noLink: true })
+      if (answer.response !== 0) return false
+      signal.throwIfAborted()
+      const spec = this.scheduled
+      if (!spec) throw new Error('UPDATE_SHELL_UNAVAILABLE')
+      // Recheck after the user dialog before any executable is launched.
+      await verifyFutureStaffInstaller(path, release.installer, trust.signerThumbprint)
+      signal.throwIfAborted()
+      await this.launchWindowsUpdateInstaller(path)
+      await recordDesktopUpdateArtifact(app.getPath('userData'), { platform: 'win32', version: release.version, path }).catch(() => {})
+      this.quitting = true
+      spec.requestQuit(0)
+      return true
     })
   }
 

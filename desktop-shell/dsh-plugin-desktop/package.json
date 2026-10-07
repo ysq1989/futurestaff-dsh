@@ -19,6 +19,10 @@
     "dsh-plugin-desktop": "lib/bin.js"
   },
   "exports": {
+    "./futurestaff-updates": {
+      "types": "./lib/types/futurestaff-updates.d.ts",
+      "default": "./lib/futurestaff-updates.js"
+    },
     ".": {
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"

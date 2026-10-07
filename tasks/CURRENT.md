@@ -1,5 +1,39 @@
 # Current Atomic Task
 
+## B07: FutureStaff desktop software updates
+
+- Requested 2026-10-07: add DSH desktop software updates.
+- Risk: High Risk, downloaded executable/installation boundary. Work on main
+  `57bb64e2e0`; preserve all pre-existing changes, including official-desktop.
+- Owner: embedded product desktop shell; no tenant/business/schema changes.
+- Contract: `docs/specs/desktop-updates-v1.md`, ADR-015. Keep upstream updater
+  disabled; signed first-party feed, SHA-256, pinned Authenticode publisher,
+  rollback reference, explicit download and install confirmation.
+- Acceptance: focused security and lifecycle tests, desktop typecheck/build,
+  desktop foundation gate and exact task diff review. Live update acceptance
+  requires a configured feed and two signed artifacts; neither is assumed.
+- Authorization: on 2026-10-08 the user authorized commit and push and requested
+  deployment. The deployment target is awaiting clarification; signing setup,
+  feed publication and installer execution are not inferred from that request.
+- Status: client source implementation and offline acceptance complete; live
+  acceptance pending the release operator's feed/key/certificate and signed
+  current/rollback installers. No installer was built or executed in this task.
+- Validation: stable package `check` passed (1,064 tests, 13 skipped, build,
+  typecheck, runtime/CLI/Loader/Profile/license/operations gates); subsequent
+  focused update tests passed 33, including real Windows rejection of an
+  unsigned fixture. Beta typecheck/build and 117 adjacent regression tests
+  passed; foundation gate and 6 root foundation tests passed; diff check passed.
+- Repository limitation: `verify-desktop-variants.mjs` remains blocked by the
+  pre-existing `electron-shell-generation.ts` and `module-window.ts` differences.
+  This task's four shared update/runtime source files are aligned in stable and
+  Beta. No gate, existing feature, or unrelated change was removed to make it pass.
+- Publication verification (2026-10-08): the root `npm run check` passed
+  workspace checks/builds and then stopped at those two unrelated local variant
+  differences. The exact task-only staged source snapshot passed the unchanged
+  variant checker (133 aligned shared source files); update tests passed 33.
+  The stable package's full `check` passed again (1,066 tests, 13 skipped).
+  The task-only commit excludes all unrelated staged and unstaged changes.
+
 ## B06: Brand FutureStaff Agent and diagnose tenant model access
 
 - User supplied a 2.0.9 screenshot showing DeepSeek/DSH marks and a failed `futurestaff/default` chat turn after login.

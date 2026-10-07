@@ -21,6 +21,13 @@
       disabled: true
       config:
         enabled: false
+    - id: futurestaff-updates
+      name: dsh-plugin-desktop/futurestaff-updates
+      config:
+        manifestUrl: ''
+        publicKey: ''
+        signerThumbprint: ''
+        background: true
 
 # A desktop launch has no terminal operator waiting for the Web readiness line.
 - id: web-runtime

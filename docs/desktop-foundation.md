@@ -25,8 +25,10 @@ packages. See [ADR-014](decisions/014-embed-desktop-shell-in-product-monorepo.md
 The FutureStaff distribution uses its own application ID, user-data directory,
 and log namespace. Third-party update services, both community markets,
 sponsor/aggregation links, and LAN remote control are disabled by default.
-Future update wiring is intentionally empty until a signed FutureStaff manifest,
-SHA-256 verification, and rollback artifact are available.
+The first-party update plugin provides version/tray checks and confirmation-gated
+Windows x64 installation. Release trust configuration remains empty until a
+signed FutureStaff manifest, approved Windows publisher and rollback artifact
+are available. See [desktop updates V1](specs/desktop-updates-v1.md).
 
 Window, tray, terminal, Profile management, recovery, and Windows installer
 capabilities remain part of the distribution.
