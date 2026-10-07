@@ -6,17 +6,18 @@ import type { DesktopTrayItem } from '../src/runtime.ts'
 
 const keys = generateKeyPairSync('ed25519')
 const config: Config = { manifestUrl: 'https://updates.fsstory.net/stable.json',
-  publicKey: keys.publicKey.export({ type: 'spki', format: 'pem' }).toString(), signerThumbprint: 'A'.repeat(40), background: true }
+  publicKey: keys.publicKey.export({ type: 'spki', format: 'pem' }).toString(), signerThumbprint: 'A'.repeat(40), background: true, delivery: 'signed-install' }
 function signed(version = '2.0.11'): Response {
   const artifact = { url: 'https://updates.fsstory.net/setup.exe', sha256: 'a'.repeat(64), size: 100 }
   const payload = JSON.stringify({ schemaVersion: 1, productId: 'net.fsstory.agent.desktop', platform: 'win32', arch: 'x64',
     version, notes: 'Release notes', installer: artifact, rollback: { ...artifact, version: '2.0.9' } })
   return Response.json({ payload, signature: sign(null, Buffer.from(payload), keys.privateKey).toString('base64') })
 }
-function harness(options: { configured?: boolean; accept?: boolean; version?: string; packaged?: boolean; reject?: boolean } = {}) {
+function harness(options: { configured?: boolean; accept?: boolean; version?: string; packaged?: boolean; reject?: boolean; delivery?: Config['delivery']; signer?: string } = {}) {
   const notice = vi.fn(async () => {})
   const confirm = vi.fn(async () => options.accept ?? false)
   const install = vi.fn(async () => {})
+  const download = vi.fn(async () => {})
   const notify = vi.fn()
   const request = vi.fn(async () => { if (options.reject) throw new Error('offline'); return signed(options.version) })
   const unregister = vi.fn()
@@ -24,16 +25,29 @@ function harness(options: { configured?: boolean; accept?: boolean; version?: st
   let tray: DesktopTrayItem | undefined
   let dispose: (() => void) | undefined
   const ctx = { desktopRuntime: { platform: 'win32', locale: 'zh', updates: { isPackaged: options.packaged ?? true,
-    currentVersion: '2.0.10', request, notify, futureStaff: { notice, confirm, install } },
+    currentVersion: '2.0.10', request, notify, futureStaff: { notice, confirm, install, download } },
   registerTrayItem: (item: DesktopTrayItem) => { tray = item; return { refresh() {}, dispose: trayDispose } } },
   webServer: { port: 43821, register: vi.fn(() => unregister) },
   effect: (fn: () => (() => void)) => { dispose = fn() },
   } as unknown as Context
-  apply(ctx, options.configured === false ? { ...config, manifestUrl: '' } : config)
-  return { notice, confirm, install, notify, request, unregister, trayDispose,
+  apply(ctx, { ...config, ...(options.delivery === undefined ? {} : { delivery: options.delivery }),
+    ...(options.signer === undefined ? {} : { signerThumbprint: options.signer }),
+    ...(options.configured === false ? { manifestUrl: '' } : {}) })
+  return { notice, confirm, install, download, notify, request, unregister, trayDispose,
     check: () => tray!.invoke(), dispose: () => dispose!(), ctx }
 }
 afterEach(() => { vi.useRealTimers() })
+
+it('manual download works without an Authenticode pin and never calls the installer', async () => {
+  const h = harness({ accept: true, delivery: 'manual-download', signer: '' })
+  await h.check(); h.dispose()
+  expect(h.download).toHaveBeenCalledOnce(); expect(h.install).not.toHaveBeenCalled()
+})
+it('signed installation still requires a configured certificate pin', async () => {
+  const h = harness({ accept: true, delivery: 'signed-install', signer: '' })
+  await h.check(); h.dispose()
+  expect(h.request).not.toHaveBeenCalled(); expect(h.install).not.toHaveBeenCalled(); expect(h.download).not.toHaveBeenCalled()
+})
 
 it('reports missing source without any external request', async () => {
   const h = harness({ configured: false }); await h.check(); h.dispose()

@@ -6,6 +6,11 @@ import { DESKTOP_FRAME_HEIGHT } from '../src/window-chrome.ts'
 
 const terminal = vi.hoisted(() => ({ open: vi.fn() }))
 const diagnostics = vi.hoisted(() => ({ export: vi.fn() }))
+const firstParty = vi.hoisted(() => ({ download: vi.fn() }))
+vi.mock('../src/futurestaff-update.ts', async importOriginal => ({
+  ...await importOriginal<typeof import('../src/futurestaff-update.ts')>(),
+  withFutureStaffDownload: firstParty.download,
+}))
 const updater = vi.hoisted(() => ({
   download: vi.fn(),
   filename: vi.fn(),
@@ -191,7 +196,7 @@ const electron = vi.hoisted(() => {
       dock: { setIcon: vi.fn() },
       getLocale: vi.fn(() => 'en-US'),
       getPreferredSystemLanguages: vi.fn(() => ['en-US']),
-      getPath: vi.fn((name: string) => {
+      getPath: vi.fn((name: string): string => {
         if (name === 'crashDumps') return '/tmp/dsh-desktop-user-data/Crashpad'
         if (name === 'downloads') return '/tmp/Downloads'
         return '/tmp/dsh-desktop-user-data'
@@ -310,6 +315,32 @@ const spec: DesktopShellSpec = {
 }
 
 describe('Electron desktop runtime', () => {
+  it('reveals a manually downloaded update without opening the EXE, spawning or restarting', async () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+    electron.app.isPackaged = true
+    const fs = await import('node:fs/promises')
+    const root = await fs.mkdtemp(join((await import('node:os')).tmpdir(), 'fs-manual-runtime-'))
+    const originalGetPath = electron.app.getPath.getMockImplementation()!
+    electron.app.getPath.mockImplementation(() => root)
+    firstParty.download.mockImplementation(async (_release: unknown, _trust: unknown, _directory: string,
+      _request: unknown, _signal: AbortSignal, retain: (path: string) => Promise<boolean>) => {
+      await retain('C:/verified/FutureStaff-Agent-Setup.exe')
+    })
+    const restart = vi.fn(async () => {})
+    const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
+    try {
+      const runtime = new ElectronDesktopRuntime(restart)
+      await runtime.updates.futureStaff!.download!({ version: '2.0.12' } as never,
+        { manifestUrl: 'https://fsstory.net/desktop-updates/stable.json', publicKey: 'test fixture' }, new AbortController().signal)
+      expect(electron.shell.showItemInFolder).toHaveBeenCalledWith('C:/verified/FutureStaff-Agent-Setup.exe')
+      expect(electron.shell.openPath).not.toHaveBeenCalled()
+      expect(childProcess.spawn).not.toHaveBeenCalled()
+      expect(restart).not.toHaveBeenCalled()
+    } finally {
+      electron.app.getPath.mockImplementation(originalGetPath)
+      await fs.rm(root, { recursive: true, force: true })
+    }
+  })
   beforeEach(() => {
     clearMainWindowState()
     electron.app.isPackaged = false
@@ -1573,7 +1604,7 @@ describe('Electron desktop runtime', () => {
         appExecutable: process.execPath,
         electronVersion: '43.4.0',
         profileName: 'desktop',
-        productVersion: '2.0.10',
+        productVersion: '2.0.11',
         profileDir: expect.stringMatching(/profiles[\\/]+desktop$/u),
         homeDir: expect.stringContaining('dsh-desktop-user-data'),
         spawn: expect.any(Function),
@@ -1609,7 +1640,7 @@ describe('Electron desktop runtime', () => {
     expect(diagnostics.export).toHaveBeenCalledWith(
       expect.stringContaining('dsh-desktop-user-data'),
       expect.objectContaining({
-        appVersion: '2.0.10',
+        appVersion: '2.0.11',
         crashDumpsDir: expect.stringMatching(/[\\/]Crashpad$/u),
       }),
     )
@@ -1879,7 +1910,7 @@ describe('Electron desktop runtime', () => {
     expect(runtime.updates).toMatchObject({
       isPackaged: false,
       canDownload: false,
-      currentVersion: '2.0.10',
+      currentVersion: '2.0.11',
       statePath: join('/tmp/dsh-desktop-user-data', 'updates', 'state.json'),
     })
     electron.app.isPackaged = true

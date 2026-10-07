@@ -1,0 +1,13 @@
+{
+  "delivery": "manual-download",
+  "manifestUrl": "https://fsstory.net/desktop-updates/stable.json",
+  "publicKey": "<operator-pinned Ed25519 SPKI PEM public key>",
+  "signerThumbprint": "",
+  "privateKeyPath": "C:/Users/<operator>/.futurestaff-signing/manifest.pem",
+  "installerPath": "D:/releases/FutureStaff-Agent-2.0.11-x64-Setup.exe",
+  "rollbackPath": "D:/releases/FutureStaff-Agent-2.0.10-x64-Setup.exe",
+  "version": "2.0.11",
+  "rollbackVersion": "2.0.10",
+  "notes": "<release notes>",
+  "outputDirectory": "D:/releases/desktop-update-2.0.11"
+}

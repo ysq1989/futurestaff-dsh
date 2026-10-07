@@ -7,10 +7,13 @@ import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { compareSemVerVersions, parseSemVer, type UpdateRequest } from './update-checker.ts'
 
-export interface FutureStaffUpdateTrust {
+export interface FutureStaffManifestTrust {
   readonly manifestUrl: string
   /** Ed25519 SPKI PEM pinned by the release operator, never supplied by the feed. */
   readonly publicKey: string
+}
+
+export interface FutureStaffUpdateTrust extends FutureStaffManifestTrust {
   readonly signerThumbprint: string
 }
 
@@ -49,10 +52,14 @@ export function trustedUpdateUrl(value: string): string {
   return url.href
 }
 
-export function validateUpdateTrust(trust: FutureStaffUpdateTrust): void {
+export function validateManifestTrust(trust: FutureStaffManifestTrust): void {
   trustedUpdateUrl(trust.manifestUrl)
-  if (createPublicKey(trust.publicKey).asymmetricKeyType !== 'ed25519'
-    || !/^[A-Fa-f0-9]{40}$/.test(trust.signerThumbprint)) throw new Error('UPDATE_TRUST_REJECTED')
+  if (createPublicKey(trust.publicKey).asymmetricKeyType !== 'ed25519') throw new Error('UPDATE_TRUST_REJECTED')
+}
+
+export function validateUpdateTrust(trust: FutureStaffUpdateTrust): void {
+  validateManifestTrust(trust)
+  if (!/^[A-Fa-f0-9]{40}$/.test(trust.signerThumbprint)) throw new Error('UPDATE_TRUST_REJECTED')
 }
 
 function artifact(value: unknown, origin: string): FutureStaffArtifact {
@@ -65,8 +72,8 @@ function artifact(value: unknown, origin: string): FutureStaffArtifact {
 }
 
 /** Envelope signature covers the exact UTF-8 payload string, avoiding JSON canonicalization. */
-export function parseSignedRelease(text: string, trust: FutureStaffUpdateTrust): FutureStaffRelease {
-  validateUpdateTrust(trust)
+export function parseSignedRelease(text: string, trust: FutureStaffManifestTrust): FutureStaffRelease {
+  validateManifestTrust(trust)
   if (Buffer.byteLength(text) > MAX_MANIFEST_BYTES) throw new Error('UPDATE_MANIFEST_TOO_LARGE')
   const envelope: unknown = JSON.parse(text)
   if (!record(envelope) || typeof envelope.payload !== 'string' || typeof envelope.signature !== 'string'
@@ -98,9 +105,9 @@ async function response(request: UpdateRequest, url: string, signal: AbortSignal
 }
 
 export async function checkFutureStaffUpdate(
-  trust: FutureStaffUpdateTrust, request: UpdateRequest, signal: AbortSignal,
+  trust: FutureStaffManifestTrust, request: UpdateRequest, signal: AbortSignal,
 ): Promise<FutureStaffRelease> {
-  validateUpdateTrust(trust)
+  validateManifestTrust(trust)
   const result = await response(request, trust.manifestUrl, signal)
   const reader = result.body!.getReader()
   const chunks: Uint8Array[] = []
@@ -139,13 +146,26 @@ export async function verifyFutureStaffInstaller(path: string, artifact: FutureS
   await verifyWindowsUpdate(path, thumbprint)
 }
 
-/** Keep verified executables in a unique private directory; clean every failed/declined transfer. */
+/** Installation remains a separate boundary with mandatory publisher verification. */
 export async function withFutureStaffInstaller(
   release: FutureStaffRelease, trust: FutureStaffUpdateTrust, directory: string,
   request: UpdateRequest, signal: AbortSignal, consume: (path: string) => Promise<boolean>,
   verifySignature: (path: string, thumbprint: string) => Promise<void> = verifyWindowsUpdate,
 ): Promise<void> {
   validateUpdateTrust(trust)
+  await withFutureStaffDownload(release, trust, directory, request, signal, async path => {
+    await verifySignature(path, trust.signerThumbprint)
+    signal.throwIfAborted()
+    return consume(path)
+  })
+}
+
+/** Verify bytes in a private directory. This helper neither opens nor executes the EXE. */
+export async function withFutureStaffDownload(
+  release: FutureStaffRelease, trust: FutureStaffManifestTrust, directory: string,
+  request: UpdateRequest, signal: AbortSignal, retain: (path: string) => Promise<boolean>,
+): Promise<void> {
+  validateManifestTrust(trust)
   const selected = artifact(release.installer, new URL(trust.manifestUrl).origin)
   const temporary = await mkdtemp(join(directory, 'futurestaff-update-'))
   const path = join(temporary, 'FutureStaff-Agent-Setup.exe')
@@ -172,8 +192,6 @@ export async function withFutureStaffInstaller(
     }
     if (size !== selected.size || digest.digest('hex') !== selected.sha256) throw new Error('UPDATE_HASH_REJECTED')
     signal.throwIfAborted()
-    await verifySignature(path, trust.signerThumbprint)
-    signal.throwIfAborted()
-    retained = await consume(path)
+    retained = await retain(path)
   } finally { if (!retained) await rm(temporary, { recursive: true, force: true }) }
 }

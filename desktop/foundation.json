@@ -38,7 +38,8 @@
     }
   },
   "futureUpdateContract": {
-    "manifestUrl": null,
+    "manifestUrl": "https://fsstory.net/desktop-updates/stable.json",
+    "delivery": "manual-download",
     "requireSha256": true,
     "requireWindowsSignature": true,
     "requireRollbackArtifact": true

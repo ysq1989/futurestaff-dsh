@@ -54,7 +54,7 @@ import {
   type DesktopUpdateArtifact,
 } from './update-download.ts'
 import type { UpdateCheckResult } from './update-checker.ts'
-import { withFutureStaffInstaller, verifyFutureStaffInstaller, type FutureStaffRelease, type FutureStaffUpdateTrust } from './futurestaff-update.ts'
+import { withFutureStaffDownload, withFutureStaffInstaller, verifyFutureStaffInstaller, type FutureStaffRelease, type FutureStaffUpdateTrust, type FutureStaffManifestTrust } from './futurestaff-update.ts'
 import type { DesktopInstallationId } from './desktop-installation-id.ts'
 import { DESKTOP_RELEASE_CHANNEL } from './product-identity.ts'
 import type { DesktopReleaseChannel } from './update-checker.ts'
@@ -162,6 +162,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
           return result.response === 0
         },
         install: (release, trust, signal) => this.installFutureStaffUpdate(release, trust, signal),
+        download: (release, trust, signal) => this.downloadFutureStaffUpdate(release, trust, signal),
       },
       get isPackaged() { return app.isPackaged },
       get canDownload() { return app.isPackaged && platformStrategy.updateDownloadPlatform !== undefined },
@@ -657,6 +658,26 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
       buttons: [copy.ok],
       defaultId: 0,
       noLink: true,
+    })
+  }
+
+  private async downloadFutureStaffUpdate(release: FutureStaffRelease, trust: FutureStaffManifestTrust, signal: AbortSignal): Promise<void> {
+    if (!app.isPackaged || this.platform !== 'win32' || process.arch !== 'x64') throw new Error('UPDATE_PLATFORM_REJECTED')
+    const directory = join(app.getPath('userData'), 'updates')
+    await (await import('node:fs/promises')).mkdir(directory, { recursive: true, mode: 0o700 })
+    await withFutureStaffDownload(release, trust, directory, (url, init) => net.fetch(url, init), signal, async path => {
+      signal.throwIfAborted()
+      shell.showItemInFolder(path)
+      const copy = desktopNativeCopy(this.currentLocale)
+      await this.showUpdateMessageBox({ type: 'info', title: copy.updateDownloadedTitle,
+        message: this.currentLocale === 'zh'
+          ? `版本 ${release.version} 已下载并通过文件校验，请在打开的文件夹中点击安装包。`
+          : `Version ${release.version} has been downloaded and verified. Run the installer from the opened folder.`,
+        detail: this.currentLocale === 'zh'
+          ? '此安装包可能尚未经过 Windows 发布者签名，系统可能显示安全提示。'
+          : 'This installer may not have a Windows publisher signature; Windows may display a security prompt.',
+        buttons: [copy.ok], noLink: true })
+      return true
     })
   }
 

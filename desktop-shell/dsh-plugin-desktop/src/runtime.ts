@@ -3,7 +3,7 @@ import type { DesktopRendererAccessHeader } from './desktop-browser-access.ts'
 import type { RendererBootReport } from './renderer-boot-contract.ts'
 import type { DesktopReleaseChannel, UpdateCheckResult, UpdateRequest } from './update-checker.ts'
 import type { DesktopInstallationId } from './desktop-installation-id.ts'
-import type { FutureStaffRelease, FutureStaffUpdateTrust } from './futurestaff-update.ts'
+import type { FutureStaffRelease, FutureStaffUpdateTrust, FutureStaffManifestTrust } from './futurestaff-update.ts'
 import type { ProfileCreateWindowOptions } from './profile-create-window.ts'
 import type {
   DesktopWindowMaterial,
@@ -104,6 +104,7 @@ export interface DesktopUpdateAdapter {
   readonly futureStaff?: {
     notice(message: string): Promise<void>
     confirm(release: FutureStaffRelease): Promise<boolean>
+    download?(release: FutureStaffRelease, trust: FutureStaffManifestTrust, signal: AbortSignal): Promise<void>
     install(release: FutureStaffRelease, trust: FutureStaffUpdateTrust, signal: AbortSignal): Promise<void>
   }
   /** Whether the running executable came from an Electron package. */

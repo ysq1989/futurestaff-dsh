@@ -1,5 +1,9 @@
 # FutureStaff desktop updates V1
 
+The user's selected default is now download-only manual installation (ADR-016).
+See [manual updates](desktop-manual-updates.md). The signed-installation details
+below remain applicable only to optional `delivery: signed-install`.
+
 Owner: the embedded product desktop shell. Windows x64 only; no business data,
 tenant API, session token, database change, or upstream Harness modification.
 The first-party `futurestaff-updates` plugin owns the existing local update-check

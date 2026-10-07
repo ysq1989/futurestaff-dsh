@@ -2,6 +2,42 @@
 
 ## B07: FutureStaff desktop software updates
 
+- Current direction (2026-10-08): user selected checking/downloading updates and
+  clicking the installer themselves. Default manual-download; paid certificate
+  purchase and vendor inquiry are deferred. ADR-016 separates signed manifest
+  verification from optional Authenticode-gated native execution.
+- Manual-flow validation: stable desktop build/typecheck passed, full stable tests
+  passed 1,071 with 13 skipped, and root tests passed 63. Beta typecheck and the
+  exact task-only source variant gate passed. The local whole-workspace check
+  failed in an unrelated uncommitted Douyin UI test; that module is excluded from
+  this release. Nginx runtime validation awaits server access (no local Docker).
+- Source candidate: 2.0.11, pinned public manifest key and intended HTTPS feed
+  `https://fsstory.net/desktop-updates/stable.json`. The private key was generated
+  in an ACL-protected directory outside the repository and was not printed.
+- Server access check: the documented host rejected this local session's SSH
+  credentials. No remote container, live feed, certificate or existing integration
+  was modified. The destination is configured but is not yet a verified live feed.
+
+- Publisher decision: personal publication, residence China (2026-10-08).
+  Main-server container hosting is the user's selected server direction; this local
+  session still has no authenticated transport to inspect or change that server.
+  Candidate and ready-to-send non-identifying vendor inquiry are recorded in
+  `docs/specs/desktop-signing-vendor-check.md`; vendor acceptance/total cost and
+  permission to send the inquiry are pending. No order or payment has been made.
+
+- Follow-up (2026-10-08): user requested completion of the update source and signed
+  installer workflow. Baseline main `683c5cc57c`; preserve all unrelated work.
+  Add certificate-store signed packaging, signed current/rollback bundle preparation
+  and atomic static publication. Real signing awaits a valid certificate/provider;
+  real publication awaits the selected HTTPS target and working server access.
+- Follow-up validation: 14 release/installer/foundation tests passed; all three
+  new publication scripts passed Node syntax checks; signing configuration passed
+  the installed electron-builder 26.15.7 schema validator. Real Authenticode
+  inspection confirmed the historical 2.0.10 installer is unsigned. CurrentUser/My
+  and LocalMachine/My have no code-signing certificate; no signing-service variables
+  are configured; `ssh -G futurestaff-dev` resolves no usable host alias. Real
+  signing/publication is awaiting the user's certificate/service and target answers.
+
 - Requested 2026-10-07: add DSH desktop software updates.
 - Risk: High Risk, downloaded executable/installation boundary. Work on main
   `57bb64e2e0`; preserve all pre-existing changes, including official-desktop.

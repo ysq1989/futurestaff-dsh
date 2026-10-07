@@ -3,7 +3,7 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { checkFutureStaffUpdate, parseSignedRelease, trustedUpdateUrl, withFutureStaffInstaller, verifyFutureStaffInstaller, verifyWindowsUpdate,
+import { checkFutureStaffUpdate, parseSignedRelease, trustedUpdateUrl, withFutureStaffInstaller, withFutureStaffDownload, verifyFutureStaffInstaller, verifyWindowsUpdate,
   type FutureStaffUpdateTrust, type FutureStaffRelease } from '../src/futurestaff-update.ts'
 
 const keys = generateKeyPairSync('ed25519')
@@ -60,6 +60,20 @@ describe('FutureStaff signed release boundary', () => {
 })
 
 describe('verified installer handoff', () => {
+  it('manual download validates a signed feed and bytes without a Windows signing certificate', async () => {
+    const root = await directory()
+    const manifestTrust = { manifestUrl: trust.manifestUrl, publicKey: trust.publicKey }
+    expect(parseSignedRelease(envelope(), manifestTrust)).toEqual(release)
+    const retain = vi.fn(async (path: string) => { expect(await readFile(path)).toEqual(bytes); return true })
+    await withFutureStaffDownload(release, manifestTrust, root, async () => new Response(bytes), new AbortController().signal, retain)
+    expect(retain).toHaveBeenCalledOnce()
+  })
+  it('manual download rejects damaged bytes before exposing any file to the user', async () => {
+    const root = await directory()
+    const retain = vi.fn(async () => true)
+    await expect(withFutureStaffDownload(release, trust, root, async () => new Response('bad'), new AbortController().signal, retain)).rejects.toThrow('UPDATE_HASH_REJECTED')
+    expect(retain).not.toHaveBeenCalled(); expect(await readdir(root)).toEqual([])
+  })
   it('checks complete bytes and publisher before handing the private path to the installer', async () => {
     const root = await directory()
     const verify = vi.fn(async () => {})

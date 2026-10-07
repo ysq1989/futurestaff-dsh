@@ -10,10 +10,14 @@ import { compareSemVerVersions } from './update-checker.ts'
 
 export const name = 'futurestaff-updates'
 export const inject = ['desktopRuntime', 'webServer']
-export interface Config extends FutureStaffUpdateTrust { readonly background: boolean }
+export interface Config extends FutureStaffUpdateTrust {
+  readonly background: boolean
+  readonly delivery?: 'manual-download' | 'signed-install'
+}
 export const Config: z<Config> = z.object({
   manifestUrl: z.string().default(''), publicKey: z.string().default(''),
   signerThumbprint: z.string().default(''), background: z.boolean().default(true),
+  delivery: z.union(['manual-download', 'signed-install'] as const).default('manual-download'),
 })
 
 export function apply(ctx: Context, config: Config): void {
@@ -35,7 +39,8 @@ export function apply(ctx: Context, config: Config): void {
       activeManual = manual
       active = (async () => {
         if (!native) throw new Error('FUTURESTAFF_UPDATE_RUNTIME_REQUIRED')
-        if (!config.manifestUrl || !config.publicKey || !config.signerThumbprint) {
+        const delivery = config.delivery ?? 'manual-download'
+        if (!config.manifestUrl || !config.publicKey || (delivery === 'signed-install' && !config.signerThumbprint)) {
           if (manual) await native.notice(message('尚未配置软件更新源，请联系管理员。', 'The update source is not configured. Contact your administrator.'))
           return
         }
@@ -62,7 +67,12 @@ export function apply(ctx: Context, config: Config): void {
           return
         }
         if (await native.confirm(release) && !disposed) {
-          await native.install(release, config, AbortSignal.any([controller.signal, AbortSignal.timeout(10 * 60_000)]))
+          const transferSignal = AbortSignal.any([controller.signal, AbortSignal.timeout(10 * 60_000)])
+          if (delivery === 'signed-install') await native.install(release, config, transferSignal)
+          else {
+            if (!native.download) throw new Error('UPDATE_DOWNLOAD_RUNTIME_REQUIRED')
+            await native.download(release, config, transferSignal)
+          }
         }
       })().catch(async () => {
         if (manual && !disposed && native) await native.notice(message('更新检查或安装包校验失败，请稍后重试或联系管理员。', 'The update check or installer verification failed. Try again or contact your administrator.'))
