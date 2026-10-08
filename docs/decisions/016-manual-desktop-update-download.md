@@ -21,3 +21,8 @@ streaming, version/rollback metadata, immutable artifacts and atomic publication
 This supplements the platform ADR-0034 distribution boundary with a download-only
 path; it does not permit unsigned automatic execution. Signing and renewal of a
 Windows publisher certificate is deferred until a formal distribution requires it.
+
+Hosting uses its own `futurestaff-prod-desktop-updates` Compose project, an audited
+immutable nginx image, non-root read-only runtime, isolated public artifact mount
+and loopback port. The existing host HTTPS proxy exposes only `/desktop-updates/`.
+No business API, database, worker or existing application container is redeployed.

@@ -42,8 +42,24 @@ and versioned installers, excluding administrative/temporary files. Verify it
 against the actual server's current configuration and run `nginx -t` before any
 reload. This file has not been applied to the live server.
 
-The intended feed is `https://fsstory.net/desktop-updates/stable.json` on the user's
-main-server hosting infrastructure. This URL is a configured destination, not
-evidence of a completed deployment. Publication requires authenticated server
-access; no live feed or successful installed-client upgrade is claimed before
-those checks pass. Certificate vendor enquiries/purchases are deferred.
+The live feed is `https://fsstory.net/desktop-updates/stable.json` on the user's
+main server (published and externally verified 2026-10-08). The dedicated
+`futurestaff-prod-desktop-updates` Compose project serves a read-only public mount
+through loopback 3178 and the host HTTPS proxy. `docker/compose.updates.yml`,
+`docker/nginx/desktop-updates-server.conf` and `desktop-updates-host.conf` describe
+the runtime. The current host reuses its audited immutable nginx image ID
+`sha256:c6d108360ade1083cd9d78943b393515c98b068c77ee70f339508c25a3163321`.
+The new hostname uses a free Let's Encrypt website certificate and the existing
+ACME renewal cron; no paid Windows certificate or vendor enquiry was needed.
+
+Runtime paths are `/opt/futurestaff/prod/desktop-updates-runtime`,
+`desktop-update-bundles/2.0.11` and `desktop-updates-public`. Operator trust remains
+outside the public webroot. First user installation and a subsequent installed
+client upgrade remain manual acceptance steps, distinct from the verified HTTPS
+feed, signature and full-download hash checks.
+
+Rollback restores the prior signed feed and its unchanged immutable installers.
+For this first deployment, disable only the new fsstory.net vhost and stop only
+the dedicated updates Compose project if hosting must be withdrawn; preserve
+release artifacts and certificate/renewal configuration for recovery. Validate
+host nginx before reloading, and leave all other application projects untouched.

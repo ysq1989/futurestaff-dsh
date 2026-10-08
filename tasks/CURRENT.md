@@ -2,10 +2,39 @@
 
 ## B07: FutureStaff desktop software updates
 
+- Live publication completed (2026-10-08): explicit local SSH identity successfully
+  connected to the documented main server. An isolated, healthy
+  `futurestaff-prod-desktop-updates` container serves read-only public artifacts
+  on host loopback 3178. The new fsstory.net HTTPS vhost uses a free Let's Encrypt
+  certificate with the existing ACME renewal cron/hook. Existing business
+  containers were not restarted.
+- Live acceptance: HTTPS feed returned 200 with no-store caching; actual client
+  signature parser verified version 2.0.11 and rollback 2.0.10. External full
+  installer download matched SHA-256
+  `97a976985435d2f1f81c98fd16cea59c7711ca510586a3564367211ea907fd57`.
+  Rollback download returned 200; trust.json and READY returned 404. Platform and
+  Product Hub health/API/web probes returned 200. Container and host nginx syntax
+  checks passed. User installation/first installed-client upgrade remains a
+  manual acceptance step; no installer was executed by the agent.
+
 - Current direction (2026-10-08): user selected checking/downloading updates and
   clicking the installer themselves. Default manual-download; paid certificate
   purchase and vendor inquiry are deferred. ADR-016 separates signed manifest
   verification from optional Authenticode-gated native execution.
+- Local release ready: source `6b16a21b2cc177c85a84bb966d3a9994a1e6252c`
+  was pushed to main. Its clean release clone passed workspace checks, complete
+  stable/Beta desktop gates and root tests after building workspace declarations;
+  Windows packaging verification passed. Installer exported to
+  `outputs/FutureStaff-Agent-2.0.11-x64-Setup.exe`, SHA-256
+  `97a976985435d2f1f81c98fd16cea59c7711ca510586a3564367211ea907fd57`.
+- Public update bundle: `outputs/desktop-updates-2.0.11`, manifest SHA-256
+  `75a4ccf01ae7c2b440a525d8bd9fe9ead4524b074d37b7a828d3d3e407c17a9d`.
+  Actual ASAR inspection confirmed the pinned public key/manual-delivery row;
+  local publication and actual client manifest/size/hash verification passed.
+  No private key was copied into the bundle. No installer was executed.
+- Remaining: first user installation and a subsequent installed-client upgrade.
+  The earlier server-access, HTTPS and publication blockers are resolved by the
+  live-publication evidence above. Final clean-source `npm run check` passed.
 - Manual-flow validation: stable desktop build/typecheck passed, full stable tests
   passed 1,071 with 13 skipped, and root tests passed 63. Beta typecheck and the
   exact task-only source variant gate passed. The local whole-workspace check
