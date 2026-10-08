@@ -80,4 +80,22 @@ the settings trigger inside the data-slot anchor, not the anchor itself.
 Primary 144 tests and actual native renderer late-registration browser fixture
 passed: subject header, account/version footer, tabs, normal/task copy, FutureStaff
 Agent title and initially hidden settings all verified. Same feature release
-authorization remains in scope; 2.0.20 correction publication in progress.
+authorization remains in scope; 2.0.20 correction published and verified.
+
+Correction release complete: source main ae3e0138d0f22ef5c68ee5a15f641c3dfa9cd968;
+primary access 144, clean access 139, desktop 1095 tests (13 existing skips),
+build/typecheck/runtime closure and two staging tests passed. Native renderer
+fixture first showed the old sidebar/title, then public registration observation
+and invalidation switched mounted outlets to the new subject/account/sidebar,
+FutureStaff Agent title and Normal/Task labels. Also tested native registration
+after product setup. Native settings anchor initially hid its trigger and showed
+it only on account click. Fixture uses mock identity, not actual platform login.
+Proof: D:/项目/.codex-build/sidebar-lifecycle-20261008/native-renderer-fixed.png.
+Packaged Electron imported Host and resolved 59 local references; staged hashes,
+UI markers and prior 2.0.19 upgrade inventory verified. Live signature and full
+HTTPS installer verified: 130856151 bytes, SHA-256 ff5985ea149516dad5514566847c2fae7680c547986e4dbb6ebdab1eab179c5b.
+Feed digest 0a87ab5da4380b2f979483b44c17081ca23cdb1a0259cba29cf6c1f55b009ad7;
+rollback 2.0.19. Local client.js/.map and view.js/.map backed up and atomically
+updated; brand dependency checked and custom Host hashes unchanged. No installer
+execution, credential reads, business-data changes or server restart. User
+restart/update and actual acceptance remain pending.
