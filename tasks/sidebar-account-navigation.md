@@ -33,9 +33,8 @@ search reset on subject change and fake logout verified. Fixture does not claim
 live platform login or native settings RPC execution. Screenshot and logs:
 D:/项目/.codex-build/branding-fix-20261008/sidebar-menu-preview.png and sidebar-tests.log.
 
-Implementation complete; commit/push/packaging/publication not performed. Previous
-2.0.18 authorization and live artifact are unchanged. User release acceptance is
-pending after a separately authorized release.
+Implementation complete. User subsequently authorized commit, push and publication;
+2.0.19 is now published and verified. User restart/update acceptance remains pending.
 
 Compact login follow-up: removed the subject-selection return/logout button;
 gate cards now cap at 380px instead of 520px. Browser fixture measured 380px and
@@ -55,4 +54,19 @@ SlotCore verifies hero/mode copy, unchanged native composition and disposal.
 Final access regression: 142 tests passed; typecheck/build and diff checks passed.
 
 User explicitly authorized commit, push and deployment for this complete UI follow-up.
-2.0.19 release in progress; rollback is 2.0.18.
+2.0.19 released; rollback is 2.0.18.
+
+Published 2026-10-08 from main 3261684a64f2a0c6f6dd185a4e8351e20b2e0c13.
+Clean source access 137 tests passed (primary 142 includes five existing inference
+tests), desktop 1095 passed/13 original skips, all typecheck/build/closure and two
+Profile checks passed. Packaged Electron imported Host entrypoints and resolved
+58 relative module references; all staged Profile hashes, native icon, UI copy,
+missing-view dependency protection and previous 2.0.18 upgrade inventory verified.
+Live signature/full HTTPS download verified: 130851077 bytes, SHA-256
+e3f74ef498690851828a2c3488905c4b330c4792df301e8f2e40b11e7d7e82f4.
+Feed SHA-256 1f1203fa9f7eb28905c2075fc4a1d549b51ed76248bfa8cda02ef8b1a6d034f4.
+Private trust/READY requests returned 404. Local custom Profile client.js/.map and
+view.js/.map backed up and updated from the verified package; canonical brand.js
+dependency checked and plugin.js/index.js hashes unchanged. No installer execution,
+credential reads, business-data changes, migration or server restart performed.
+Restart/update and real login/UI acceptance remain with the user.
