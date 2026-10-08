@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { LayoutTemplate, PanelTop, RefreshCw, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { DESKTOP_PRODUCT_NAME } from '../product-identity.ts'
+import { FUTURESTAFF_MANAGED_DESKTOP } from '../futurestaff-desktop-policy.ts'
 import type {
   InjectFace, PropsLocale, PropsRuntime,
 } from '@deepseek-ai/dsh-client-ui-slots'
@@ -181,12 +182,12 @@ export function DesktopFrameTitlebar({ api, environment, setMode, t }: DesktopFr
       <div className="dshDesktopFrameIdentity">
         <span className="dshDesktopFrameProduct">{DESKTOP_PRODUCT_NAME}</span>
         <DesktopVersionControl version={environment.version} checkForUpdates={api.checkForUpdates} t={t} />
-        <DesktopModeControl
+        {!FUTURESTAFF_MANAGED_DESKTOP && <DesktopModeControl
           mode={environment.mode}
           setMode={setMode}
           restart={api.restart}
           t={t}
-        />
+        />}
       </div>
       <div className="dshDesktopFrameActions">
         <DesktopNativeActions api={api} t={t} placement="titlebar" />

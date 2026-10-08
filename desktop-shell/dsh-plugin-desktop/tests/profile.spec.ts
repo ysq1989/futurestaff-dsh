@@ -16,6 +16,7 @@ import {
   validateDshMarketBundlePatches,
 } from '../src/profile.ts'
 import { DESKTOP_MARKET_IDENTITIES } from '../src/desktop-market.ts'
+import { futureStaffDesktopPolicy } from '../src/futurestaff-desktop-policy.ts'
 
 const homes: string[] = []
 
@@ -440,6 +441,26 @@ virtualStoreDirMaxLength: 60
       undefined,
       { lanAddresses: ['desktop.internal'] },
     )).toThrow('LAN address "desktop.internal" is not an IPv4 literal')
+  })
+
+  it('enforces product policy over legacy settings and market selection for generated profiles', () => {
+    const home = temporaryHome()
+    const desktopDir = ensureDesktopProfile(home)
+    const generatedName = 'fs-production-test-user'
+    const manifest = JSON.parse(readFileSync(join(desktopDir, 'package.json'), 'utf8')) as {
+      dsh: { profile: { bundles: string[]; patchReload?: string[] } }
+    }
+    initProfile(join(home, 'profiles', generatedName), manifest.dsh.profile.bundles)
+    writeFileSync(join(home, 'settings.yaml'), 'dsh-desktop:\n  mode: compatibility\n  windowsMaterial: off\n  openBrowser: true\n  networkExposure: lan\n')
+    const prepared = prepareDesktopProfile(undefined, home, 'win32', generatedName, undefined,
+      { requested: 'community-market', effective: 'community-market', legacyDefaulted: false },
+      { desktopPolicy: futureStaffDesktopPolicy('win32') })
+    expect(prepared).toMatchObject({ mode: 'advanced', windowsMaterial: 'mica', openBrowser: false,
+      networkExposure: 'loopback', market: { requested: 'disabled', effective: 'disabled' } })
+    const rows = composeEntries([prepared.patches])
+    expect(rows.find(row => row.id === 'desktop-shell')?.config).toMatchObject({ mode: 'advanced', windowsMaterial: 'mica' })
+    expect(rows.some(row => row.id === DESKTOP_MARKET_IDENTITIES.community.rowId
+      || row.id === DESKTOP_MARKET_IDENTITIES.dshMarket.rowId)).toBe(false)
   })
 
   it('keeps both Market providers absent until the user explicitly enables one', () => {

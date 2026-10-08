@@ -1,5 +1,25 @@
 # Current Atomic Task
 
+## B08: Managed desktop defaults
+
+- Requested 2026-10-08: keep the user's selected enhanced mode/Mica, disabled
+  market, all notifications, disabled browser access and loopback networking.
+  Remove both first-run/upgrade choices and later modification controls.
+- High Risk: launcher/preferences/Host validation and shared desktop presentation;
+  no business schema, tenant authority, credentials or platform API changes.
+- Baseline main `bd06288884`; preserve all unrelated pending changes and upstream
+  Harness. Product identity owns policy, all profiles inherit it, Safe Mode remains
+  an isolated recovery exception. ADR-017 records the boundary.
+- Acceptance: startup normalization/new authenticated profiles, conflicting
+  settings and market writes rejected, no ordinary mode/settings controls,
+  unsupported Mica fallback preserved, focused tests plus desktop typecheck/build.
+- Validation: isolated main candidate passed full npm run check: stable 1,073
+  tests, Beta 1,029 tests, root 63 tests, workspace checks, builds, typechecks,
+  runtime/loader/operations gates and git diff --check. Generated-profile policy,
+  Host write rejection, notification locking and native/UI entry removal passed.
+- Status: source verified; preparing a distinct 2.0.12 installer and publication.
+  Existing 2.0.11 remains available for rollback.
+
 ## B07: FutureStaff desktop software updates
 
 - Live publication completed (2026-10-08): explicit local SSH identity successfully

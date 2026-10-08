@@ -136,6 +136,7 @@ import {
 } from './setup-wizard-settings.ts'
 import type { DesktopSetupWizardResult } from './setup-wizard-contract.ts'
 import { DesktopSetupWizardWindow } from './setup-wizard-window.ts'
+import { futureStaffDesktopPolicy } from './futurestaff-desktop-policy.ts'
 import { ProfileCreateWindow } from './profile-create-window.ts'
 import { DesktopProfileSelectionWindow } from './profile-selection-window.ts'
 import { showDesktopDialog } from './desktop-dialog-window.ts'
@@ -540,7 +541,7 @@ async function start(): Promise<void> {
     // Main owns every pre-health failure branch. Returning true prevents the
     // legacy Renderer recovery dialog from racing the native startup window.
     return report.status === 'failed'
-  }, electronLogger, undefined, undefined, installationId)
+  }, electronLogger, undefined, undefined, installationId, futureStaffDesktopPolicy(process.platform, safeModePaths !== undefined))
   const finalExit = (code: number): void => { nativeExit.finish(code) }
   shutdown = createDesktopShutdown(
     async () => { await generation.release() },
@@ -980,7 +981,9 @@ async function start(): Promise<void> {
     let marketSelection = profilePreferences === undefined
       ? legacyMarketSelection
       : desktopProfileMarketSnapshot(profilePreferences.market)
+    if (runtime.desktopPolicy !== undefined) marketSelection = desktopProfileMarketSnapshot('disabled')
     const preparationHooks = {
+      desktopPolicy: runtime.desktopPolicy,
       lanAddresses,
       onSettingsDocumentResolved: (settingsDocument: string) => {
         if (startupRecoveryConfigurationPaths === undefined) return
@@ -1023,6 +1026,16 @@ async function start(): Promise<void> {
         marketSelection,
         preparationHooks,
       )
+    } else if (runtime.desktopPolicy !== undefined) {
+      const policy = runtime.desktopPolicy
+      await updateDesktopSetupWizardSettings(prepared.settingsDocument, policy)
+      await selectDesktopMarketProvider(marketUserDataDir, 'disabled')
+      marketSelection = desktopProfileMarketSnapshot('disabled')
+      profilePreferences = await writeDesktopProfilePreferences(marketUserDataDir, prepared.profile.dir,
+        desktopProfilePreferencesFromSettings(policy, policy.notifications, 'disabled'))
+      prepared = prepareDesktopProfile(process.env.DSH_TELEMETRY_DISABLED, homeDir, process.platform,
+        activeProfileName, pluginManagementStatePath, marketSelection, preparationHooks)
+      await completeOrSkipDesktopSetupWizard(marketUserDataDir, prepared.profile.dir, 'completed', setupWizardVersions)
     } else if (profilePreferences === undefined) {
       const browserAccessMigrated = await migrateDesktopBrowserAccessSettings(prepared.settingsDocument)
       let windowMaterialMigrated = false
@@ -1433,6 +1446,7 @@ async function start(): Promise<void> {
             }
           },
           selectMarket: async provider => {
+            if (runtime.desktopPolicy !== undefined && provider !== 'disabled') throw new Error('FUTURESTAFF_PLUGIN_MARKET_MANAGED')
             await enqueueProfilePreferencesWrite(current => desktopProfilePreferencesFromSettings(
               current,
               current.notifications,

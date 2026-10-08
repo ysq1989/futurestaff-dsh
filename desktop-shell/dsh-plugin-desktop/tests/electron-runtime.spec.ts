@@ -315,6 +315,20 @@ const spec: DesktopShellSpec = {
 }
 
 describe('Electron desktop runtime', () => {
+  it('withdraws the native mode toggle for a managed product', async () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+    const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
+    const { futureStaffDesktopPolicy } = await import('../src/futurestaff-desktop-policy.ts')
+    const runtime = new ElectronDesktopRuntime(async () => {}, undefined, undefined,
+      undefined, undefined, undefined, futureStaffDesktopPolicy('win32'))
+    const release = runtime.schedule({ ...spec, mode: 'advanced' })
+    await runtime.mountScheduled()
+    const labels = (electron.menuTemplates.at(-1) as Array<{ label?: string }>).map(item => item.label)
+    expect(labels).toContain('Quit')
+    expect(labels.some(label => label?.startsWith('Switch to'))).toBe(false)
+    await release()
+  })
+
   it('reveals a manually downloaded update without opening the EXE, spawning or restarting', async () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
     electron.app.isPackaged = true
@@ -1604,7 +1618,7 @@ describe('Electron desktop runtime', () => {
         appExecutable: process.execPath,
         electronVersion: '43.4.0',
         profileName: 'desktop',
-        productVersion: '2.0.11',
+        productVersion: '2.0.12',
         profileDir: expect.stringMatching(/profiles[\\/]+desktop$/u),
         homeDir: expect.stringContaining('dsh-desktop-user-data'),
         spawn: expect.any(Function),
@@ -1640,7 +1654,7 @@ describe('Electron desktop runtime', () => {
     expect(diagnostics.export).toHaveBeenCalledWith(
       expect.stringContaining('dsh-desktop-user-data'),
       expect.objectContaining({
-        appVersion: '2.0.11',
+        appVersion: '2.0.12',
         crashDumpsDir: expect.stringMatching(/[\\/]Crashpad$/u),
       }),
     )
@@ -1910,7 +1924,7 @@ describe('Electron desktop runtime', () => {
     expect(runtime.updates).toMatchObject({
       isPackaged: false,
       canDownload: false,
-      currentVersion: '2.0.11',
+      currentVersion: '2.0.12',
       statePath: join('/tmp/dsh-desktop-user-data', 'updates', 'state.json'),
     })
     electron.app.isPackaged = true

@@ -9,6 +9,7 @@ import { createDesktopSettingsApi } from './desktop-settings-api.ts'
 import { en, zh, type DesktopSettingsLocaleKey } from './desktop-settings-locales.ts'
 import { installDesktopSettingsStyles } from './desktop-settings-styles.ts'
 import type { DesktopClientEnvironment } from './environment.ts'
+import { FUTURESTAFF_MANAGED_DESKTOP } from '../futurestaff-desktop-policy.ts'
 
 /** Locale namespace owned by the Desktop settings page. */
 export const DESKTOP_SETTINGS_LOCALE_NAMESPACE = 'desktop.settings'
@@ -67,6 +68,7 @@ export function applyDesktopSettings(
   const api = createDesktopSettingsApi()
   const t = ctx.locale.bind(DESKTOP_SETTINGS_LOCALE_NAMESPACE)
   const setMode = async (mode: DesktopShellSettings['mode']): Promise<void> => {
+    if (FUTURESTAFF_MANAGED_DESKTOP) throw new Error('FUTURESTAFF_DESKTOP_PREFERENCE_MANAGED')
     await persistDesktopModeSelection(desktopSettings, mode)
   }
 
@@ -78,7 +80,7 @@ export function applyDesktopSettings(
     () => installDesktopSettingsStyles(),
     'dsh-plugin-desktop: settings styles',
   )
-  ctx.slots.inject('settings.section', () => ctx.slots.register({
+  if (!FUTURESTAFF_MANAGED_DESKTOP) ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'desktop',
     order: 100,

@@ -281,6 +281,8 @@ export interface PreparedDesktopProfile {
 
 /** Optional observations emitted before profile preparation can fail. */
 export interface DesktopProfilePreparationHooks {
+  /** Product policy supplied by the trusted desktop launcher. */
+  desktopPolicy?: import('./setup-wizard-contract.ts').DesktopSetupWizardSelection | undefined
   /** Receive the trusted settings path before its contents are parsed. */
   onSettingsDocumentResolved?: (path: string) => void
   /** LAN IPv4 literals sampled once before this profile generation is composed. */
@@ -816,6 +818,9 @@ export function prepareDesktopProfile(
   marketSelection: DesktopMarketSnapshot = DEFAULT_DESKTOP_MARKET_SNAPSHOT,
   hooks: DesktopProfilePreparationHooks = {},
 ): PreparedDesktopProfile {
+  if (hooks.desktopPolicy !== undefined) marketSelection = {
+    requested: 'disabled', effective: 'disabled', legacyDefaulted: false,
+  }
   const lanAddresses = preparedLanAddresses(hooks.lanAddresses)
   const profileDir = profileName === DESKTOP_PROFILE_NAME
     ? ensureDesktopProfile(home)
@@ -939,7 +944,7 @@ export function prepareDesktopProfile(
     windowsMaterial,
     openBrowser,
     networkExposure,
-  } = readDesktopStartupSettings(settingsConfig)
+  } = { ...readDesktopStartupSettings(settingsConfig), ...hooks.desktopPolicy }
   patches.push({
     id: 'settings',
     config: settingsConfig,

@@ -40,6 +40,7 @@ import {
 } from '../src/desktop-settings-contract.ts'
 import type { DesktopRuntime, DesktopShellSpec } from '../src/runtime.ts'
 import { createDesktopBrowserAccess } from '../src/desktop-browser-access.ts'
+import { futureStaffDesktopPolicy } from '../src/futurestaff-desktop-policy.ts'
 import { DesktopLanHttpsRuntime } from '../src/lan-https-runtime.ts'
 import { RENDERER_BOOT_REPORT_PATH, type RendererBootReport } from '../src/renderer-boot-contract.ts'
 
@@ -227,6 +228,23 @@ function createHarness(
 }
 
 describe('desktop Host plugin', () => {
+  it('rejects preference changes through the Host settings validator', () => {
+    const harness = createHarness('win32')
+    const policy = futureStaffDesktopPolicy('win32')!
+    Object.assign(harness.runtime, { desktopPolicy: policy })
+    apply(harness.ctx, { ...config, ...policy })
+    const register = harness.ctx.settings.register as unknown as ReturnType<typeof vi.fn>
+    const options = register.mock.calls[0]![2] as { validate(value: DesktopSettings): void }
+    const fixed = { ...DesktopSettingsSchema({} as DesktopSettings), ...policy }
+    expect(() => options.validate(fixed)).not.toThrow()
+    for (const patch of [{ mode: 'compatibility' }, { windowsMaterial: 'off' },
+      { macosMaterial: 'off' }, { openBrowser: true }, { networkExposure: 'lan' }]) {
+      expect(() => options.validate({ ...fixed, ...patch } as DesktopSettings))
+        .toThrow('FUTURESTAFF_DESKTOP_PREFERENCE_MANAGED')
+    }
+    expect(harness.update).not.toHaveBeenCalled()
+  })
+
   it('defaults to compatibility mode and validates both schemas', () => {
     expect(Config({} as DesktopConfig)).toEqual(config)
     expect(Config({ mode: 'advanced' } as DesktopConfig)).toEqual({ ...config, mode: 'advanced' })

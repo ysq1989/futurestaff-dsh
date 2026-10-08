@@ -54,6 +54,7 @@ import {
   type DesktopUpdateArtifact,
 } from './update-download.ts'
 import type { UpdateCheckResult } from './update-checker.ts'
+import type { DesktopSetupWizardSelection } from './setup-wizard-contract.ts'
 import { withFutureStaffDownload, withFutureStaffInstaller, verifyFutureStaffInstaller, type FutureStaffRelease, type FutureStaffUpdateTrust, type FutureStaffManifestTrust } from './futurestaff-update.ts'
 import type { DesktopInstallationId } from './desktop-installation-id.ts'
 import { DESKTOP_RELEASE_CHANNEL } from './product-identity.ts'
@@ -135,6 +136,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     workspaceVolumeQuery: WindowsVolumeQuery | undefined = undefined,
     private readonly mainWindowState: MainWindowStateStore = new FileMainWindowStateStore(app.getPath('userData')),
     installationId?: DesktopInstallationId,
+    readonly desktopPolicy?: DesktopSetupWizardSelection,
   ) {
     this.platformStrategy = electronPlatformStrategy()
     this.platform = this.platformStrategy.platform
@@ -897,7 +899,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     if (tools.length > 0) template.push({ type: 'separator' }, ...tools)
     if (profiles.length > 0) template.push({ type: 'separator' }, ...profiles)
     if (status.length > 0) template.push({ type: 'separator' }, ...status)
-    template.push(
+    if (this.desktopPolicy === undefined) template.push(
       { type: 'separator' },
       {
         label: modeToggleLabel(spec.mode, this.locale),
@@ -908,9 +910,8 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
           })
         },
       },
-      { type: 'separator' },
-      { label: desktopTrayLabel(this.locale, 'quit'), click: () => { spec.requestQuit(0) } },
     )
+    template.push({ type: 'separator' }, { label: desktopTrayLabel(this.locale, 'quit'), click: () => { spec.requestQuit(0) } })
     return template
   }
 

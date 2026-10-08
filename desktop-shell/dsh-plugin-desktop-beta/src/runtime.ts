@@ -2,6 +2,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { DesktopRendererAccessHeader } from './desktop-browser-access.ts'
 import type { RendererBootReport } from './renderer-boot-contract.ts'
 import type { DesktopReleaseChannel, UpdateCheckResult, UpdateRequest } from './update-checker.ts'
+import type { DesktopSetupWizardSelection } from './setup-wizard-contract.ts'
 import type { DesktopInstallationId } from './desktop-installation-id.ts'
 import type { FutureStaffRelease, FutureStaffUpdateTrust, FutureStaffManifestTrust } from './futurestaff-update.ts'
 import type { ProfileCreateWindowOptions } from './profile-create-window.ts'
@@ -173,6 +174,8 @@ export interface DesktopShellSpec extends DesktopWindowConfig {
 
 /** Electron bootstrap capability supplied before the profile tree mounts. */
 export interface DesktopRuntime {
+  /** Immutable launcher policy for the FutureStaff distribution; omitted by generic adapters. */
+  readonly desktopPolicy?: DesktopSetupWizardSelection | undefined
   /** Current Electron platform. */
   readonly platform: DesktopPlatform
 

@@ -17,6 +17,7 @@ import {
 } from '@deepseek-ai/dsh-client-ui-theme'
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { DESKTOP_PRODUCT_NAME } from './product-identity.ts'
+import { assertDesktopPolicy } from './futurestaff-desktop-policy.ts'
 import {
   handleRendererBootRequest,
   RENDERER_BOOT_REPORT_PATH,
@@ -252,6 +253,7 @@ export function apply(ctx: Context, config: Config): void {
     {
       applies: 'restart',
       validate: (value) => {
+        if (runtime.desktopPolicy !== undefined) assertDesktopPolicy(value, runtime.desktopPolicy)
         if (!desktopBrowserAccessAvailable(value.mode) && value.openBrowser) {
           throw new Error('dsh-plugin-desktop: browser access requires compatibility mode')
         }
@@ -493,6 +495,7 @@ export function apply(ctx: Context, config: Config): void {
         },
         requestQuit: appExit,
         requestModeChange: async mode => {
+          if (runtime.desktopPolicy !== undefined && mode !== runtime.desktopPolicy.mode) throw new Error('FUTURESTAFF_DESKTOP_PREFERENCE_MANAGED')
           const current = settings.get()
           const storedBrowserCapability = current.openBrowser || current.networkExposure === 'lan'
           await settings.update(mode !== 'compatibility' && storedBrowserCapability

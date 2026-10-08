@@ -15,7 +15,6 @@ import {
 } from '../src/client/ExtendedTitlebar.tsx'
 import {
   desktopBrowserUrlsShouldRender,
-  DesktopSettingsSection,
   persistDesktopBrowserAccessHot,
   persistDesktopNetworkExposureHot,
   readDesktopSettingsUntilLanSettled,
@@ -621,28 +620,9 @@ describe('Desktop settings Slot registration', () => {
 
     expect(bind).toHaveBeenNthCalledWith(1, { namespace: DESKTOP_SHELL_SETTINGS_NAMESPACE })
     expect(bind).toHaveBeenNthCalledWith(2, { namespace: DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE })
-    expect(inject).toHaveBeenCalledWith('settings.section', expect.any(Function))
+    expect(inject).not.toHaveBeenCalledWith('settings.section', expect.any(Function))
     expect(inject).toHaveBeenCalledWith('settings.action', expect.any(Function))
-    const [options, component] = register.mock.calls[0] as unknown as [
-      { id: string; order: number; locale: string; label: () => string; inject: () => Record<string, unknown> },
-      unknown,
-    ]
-    expect(options).toMatchObject({
-      name: 'settings.section',
-      id: 'desktop',
-      order: 100,
-      locale: DESKTOP_SETTINGS_LOCALE_NAMESPACE,
-    })
-    expect(options.label()).toBe(`${DESKTOP_SETTINGS_LOCALE_NAMESPACE}:nav`)
-    expect(options.inject()).toMatchObject({
-      platform: 'darwin',
-      initialMode: 'compatibility',
-      micaSupported: false,
-      setMode: expect.any(Function),
-    })
-    expect(component).toBe(DesktopSettingsSection)
-
-    const [actionOptions, actionComponent] = register.mock.calls[1] as unknown as [
+    const [actionOptions, actionComponent] = register.mock.calls[0] as unknown as [
       { id: string; order: number; locale: string; inject: () => Record<string, unknown> },
       unknown,
     ]
@@ -654,7 +634,7 @@ describe('Desktop settings Slot registration', () => {
     })
     expect(actionOptions.inject()).toHaveProperty('api')
     expect(actionComponent).toBe(DesktopTerminalSettingsAction)
-    await control.setMode('extended')
-    expect(scope.set).toHaveBeenCalledWith('mode', 'extended')
+    await expect(control.setMode('extended')).rejects.toThrow('FUTURESTAFF_DESKTOP_PREFERENCE_MANAGED')
+    expect(scope.set).not.toHaveBeenCalled()
   })
 })

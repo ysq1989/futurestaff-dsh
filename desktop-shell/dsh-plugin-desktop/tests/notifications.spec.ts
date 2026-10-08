@@ -11,6 +11,7 @@ import {
   type DesktopNotificationSettings,
 } from '../src/notifications.ts'
 import type { DesktopRuntime } from '../src/runtime.ts'
+import { futureStaffDesktopPolicy } from '../src/futurestaff-desktop-policy.ts'
 
 type OptionalService = 'jobs' | 'sessions' | 'settings'
 
@@ -28,7 +29,7 @@ interface NotificationHarness {
   dispose(): void
 }
 
-function createHarness(available: readonly OptionalService[] = ['jobs', 'sessions', 'settings']): NotificationHarness {
+function createHarness(available: readonly OptionalService[] = ['jobs', 'sessions', 'settings'], managed = false): NotificationHarness {
   const notifyAttention = vi.fn()
   const stopJobs = vi.fn()
   const stopSessions = vi.fn()
@@ -45,6 +46,7 @@ function createHarness(available: readonly OptionalService[] = ['jobs', 'session
   let currentSettings = DesktopNotificationSettingsSchema({} as DesktopNotificationSettings)
 
   const runtime = {
+    desktopPolicy: managed ? futureStaffDesktopPolicy('darwin') : undefined,
     platform: 'darwin',
     locale: 'en',
     notifyAttention,
@@ -165,6 +167,18 @@ function userMessage(source: 'user' | 'plugin', seq: number): SessionEvent<'user
 }
 
 describe('desktop notifications Host plugin', () => {
+  it('prevents users from disabling any managed notification flag', () => {
+    const harness = createHarness(['jobs', 'sessions', 'settings'], true)
+    const options = harness.registerSettings.mock.calls[0] as unknown as [unknown, unknown,
+      { validate(value: DesktopNotificationSettings): void }]
+    const fixed = futureStaffDesktopPolicy('darwin')!.notifications
+    expect(() => options[2].validate(fixed)).not.toThrow()
+    for (const key of Object.keys(fixed)) {
+      expect(() => options[2].validate({ ...fixed, [key]: false }))
+        .toThrow('FUTURESTAFF_NOTIFICATION_PREFERENCE_MANAGED')
+    }
+  })
+
   it('registers live notification settings with the global switch enabled by default', () => {
     const harness = createHarness(['settings'])
 
@@ -181,7 +195,7 @@ describe('desktop notifications Host plugin', () => {
     expect(harness.registerSettings).toHaveBeenCalledWith(
       DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE,
       DesktopNotificationSettingsSchema,
-      { applies: 'live' },
+      { applies: 'live', validate: expect.any(Function) },
     )
   })
 

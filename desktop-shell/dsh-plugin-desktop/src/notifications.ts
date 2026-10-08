@@ -6,6 +6,7 @@ import type { Session, SessionEvent } from '@deepseek-ai/dsh-session'
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import z from '@deepseek-ai/schemastery'
 import type { DesktopLocale, DesktopNotification } from './runtime.ts'
+import { assertNotificationPolicy } from './futurestaff-desktop-policy.ts'
 
 export const name = 'desktop-notifications'
 export const inject = ['desktopRuntime']
@@ -109,7 +110,9 @@ export function apply(ctx: Context): void {
       const scope = settingsCtx.settings.register(
         DESKTOP_NOTIFICATIONS_SETTINGS_NAMESPACE,
         DesktopNotificationSettingsSchema,
-        { applies: 'live' },
+        { applies: 'live', validate: value => {
+          if (settingsCtx.desktopRuntime.desktopPolicy !== undefined) assertNotificationPolicy(value, settingsCtx.desktopRuntime.desktopPolicy.notifications)
+        } },
       )
       settings = scope.get()
       const stopWatching = scope.watch((next) => { settings = next })
