@@ -1,3 +1,7 @@
+## Branding and protected-password follow-up 2.0.18 — published 2026-10-08
+
+Official blue/white f across hero, browser identity, recovery-window icon and installer artwork; retryable password-capability probe and clear errors. Missing local overlay brand.js repaired with custom Host integration preserved. Source 7f1eb3c832af6831db99e04ae44ff06953429dc4. Access 128 tests and desktop 1095 tests (13 existing skips), build/typecheck/runtime closure and two staging tests passed; actual packaged Electron imported both Host entrypoints and resolved 56 module references. Signed live feed and complete HTTPS download verified: 130847518 bytes, SHA-256 74c2685d0e8d6874b334f13db507376110da0b117ca4050b7a26260740cf5dcf. Rollback 2.0.17. User installation/restart and real encrypted-password acceptance remain pending; no installer executed or credentials read. Evidence: tasks/branding-remember-fix.md.
+
 ## Login UI and protected remember-password 2.0.17 — published 2026-10-08
 
 Both login flows centered, concise titles, one-row subject buttons and opt-in OS-protected password remembering. No Renderer password export or plaintext preference persistence. 125 access tests, 1095 desktop tests (13 skips), two staging tests, browser centering checks and actual packaged fixture passed. Signed feed and complete HTTPS installer verified; rollback 2.0.16. Source 26d8eceddf; user restart/acceptance pending. Evidence: tasks/login-ux.md.

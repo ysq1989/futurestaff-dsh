@@ -48,3 +48,14 @@ window, so it used the executable fallback. Added an explicit canonical f PNG
 to its BrowserWindow options. Desktop build/typecheck, all 1095 tests (13 original
 skips) and runtime closure checks passed. This shell code fix requires a new signed
 installer; it is not active in the currently installed recovery-window code.
+
+Publication complete: user authorized commit, push and release; source main
+7f1eb3c832af6831db99e04ae44ff06953429dc4. Built immutable installer, verified
+packaged official native PNG/recovery icon/hero/brand dependency and all Profile
+hashes, then imported packaged Host entrypoints under packaged Electron with 56
+relative references resolved. Signed stable feed published atomically; full public
+HTTPS download is 130847518 bytes, SHA-256 74c2685d0e8d6874b334f13db507376110da0b117ca4050b7a26260740cf5dcf.
+Feed digest e4bad9a3710b869783cdb888223f00e21156a23a0a79cb732a1a9a1303e4b010;
+rollback 2.0.17. Private trust/READY URLs returned 404. No server restart, database
+migration, real credential read or installer execution. User update/restart and
+real protected-password acceptance remain pending.

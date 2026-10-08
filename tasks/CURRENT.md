@@ -1,3 +1,3 @@
 # Current task
 
-Branding and remember-checkbox follow-up: 2.0.18 release authorized; signed publication and public download verification in progress. See tasks/branding-remember-fix.md.
+Branding and remember-checkbox follow-up: signed 2.0.18 published and verified. Implementation/release complete; user update/restart and acceptance pending. See tasks/branding-remember-fix.md.
