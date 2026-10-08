@@ -31,7 +31,10 @@ export interface DesktopDialogOptions {
   readonly defaultId?: number
   readonly cancelId?: number
   /** Use a larger shadcn scroll surface for bounded technical diagnostics. */
-  readonly presentation?: 'default' | 'diagnostic' | 'profile-compatibility'
+  readonly presentation?: 'default' | 'diagnostic' | 'profile-compatibility' | 'update'
+  readonly updateVersion?: string
+  readonly primaryId?: number
+  readonly locale?: 'zh' | 'en'
   /** Override whether this dialog exposes native close/caption controls. */
   readonly windowControls?: boolean
 }
@@ -83,6 +86,9 @@ export class DesktopDialogWindow {
       defaultId,
       cancelId,
       presentation: this.options.presentation ?? 'default',
+      ...(this.options.updateVersion === undefined ? {} : { updateVersion: this.options.updateVersion }),
+      ...(this.options.primaryId === undefined ? {} : { primaryId: normalizedIndex(this.options.primaryId, defaultId, this.options.buttons.length) }),
+      ...(this.options.locale === undefined ? {} : { locale: this.options.locale }),
     }), 'utf8').toString('base64url')
     const parent = this.parent !== undefined && !this.parent.isDestroyed() ? this.parent : undefined
     // Parented modal dialogs are action surfaces, not independently navigable
@@ -91,7 +97,7 @@ export class DesktopDialogWindow {
     const windowControls = this.options.windowControls ?? parent === undefined
     const customFrame = auxiliaryWindowHasCustomFrame(process.platform, windowControls)
     const diagnostic = this.options.presentation === 'diagnostic'
-    const dialogWidth = diagnostic ? DIAGNOSTIC_DIALOG_WIDTH : DIALOG_WIDTH
+    const dialogWidth = diagnostic ? DIAGNOSTIC_DIALOG_WIDTH : this.options.presentation === 'update' ? 520 : DIALOG_WIDTH
     const window = new BrowserWindow({
       title: this.options.title,
       ...auxiliaryWindowChromeOptions(process.platform, windowControls),
@@ -219,7 +225,7 @@ export async function showDesktopDialog(
 
 /** Electron MessageBox-compatible adapter backed by the Desktop dialog window. */
 export async function showDesktopMessageBox(
-  options: MessageBoxOptions,
+  options: DesktopMessageBoxOptions,
   parent?: BrowserWindow,
 ): Promise<MessageBoxReturnValue> {
   const result = await showDesktopDialog({
@@ -230,6 +236,20 @@ export async function showDesktopMessageBox(
     buttons: options.buttons ?? ['OK'],
     ...(options.defaultId === undefined ? {} : { defaultId: options.defaultId }),
     ...(options.cancelId === undefined ? {} : { cancelId: options.cancelId }),
+    ...(options.presentation === undefined ? {} : { presentation: options.presentation }),
+    ...(options.updateVersion === undefined ? {} : { updateVersion: options.updateVersion }),
+    ...(options.primaryId === undefined ? {} : { primaryId: options.primaryId }),
+    ...(options.advisory === undefined ? {} : { advisory: options.advisory }),
+    ...(options.locale === undefined ? {} : { locale: options.locale }),
   }, parent)
   return Object.freeze({ response: result.response, checkboxChecked: false })
+}
+
+/** Internal presentation metadata; action indices retain Electron MessageBox semantics. */
+export interface DesktopMessageBoxOptions extends MessageBoxOptions {
+  readonly presentation?: DesktopDialogOptions['presentation']
+  readonly updateVersion?: string
+  readonly primaryId?: number
+  readonly advisory?: string
+  readonly locale?: 'zh' | 'en'
 }

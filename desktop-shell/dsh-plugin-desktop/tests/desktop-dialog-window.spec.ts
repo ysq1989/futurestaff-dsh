@@ -196,6 +196,24 @@ describe('DesktopDialogWindow', () => {
     await expect(result).resolves.toEqual({ response: 2 })
   })
 
+  it('carries update presentation through the native window while close still postpones', async () => {
+    const result = new DesktopDialogWindow({
+      title: 'FutureStaff Agent', message: 'Your update is ready', presentation: 'update',
+      updateVersion: '2.0.21', primaryId: 0, locale: 'en', advisory: 'Save your work first.',
+      buttons: ['Restart and Update', 'Later'], defaultId: 1, cancelId: 1,
+    }).run()
+    const window = electron.windows[0]!
+    expect(window.options.width).toBe(520)
+    const calls = window.loadFile.mock.calls as unknown as Array<[string, { query: { state: string } }]>
+    const options = calls[0]![1]
+    expect(JSON.parse(Buffer.from(options.query.state, 'base64url').toString('utf8'))).toEqual(expect.objectContaining({
+      presentation: 'update', updateVersion: '2.0.21', primaryId: 0, defaultId: 1, cancelId: 1,
+      advisory: 'Save your work first.', locale: 'en',
+    }))
+    window.listeners.get('closed')?.()
+    await expect(result).resolves.toEqual({ response: 1 })
+  })
+
   it('maps window close to the configured cancel response', async () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
     const result = new DesktopDialogWindow({

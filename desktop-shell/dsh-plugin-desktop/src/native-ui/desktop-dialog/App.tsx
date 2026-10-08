@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { Button } from '../components/ui/button.tsx'
 import { ScrollArea } from '../components/ui/scroll-area.tsx'
 import { DesktopFrame } from '../shared/DesktopFrame.tsx'
+import { DesktopUpdateDialog } from './UpdateDialog.tsx'
 
 const SCHEME = 'dsh-desktop-dialog:'
 
@@ -15,7 +16,10 @@ interface DesktopDialogState {
   readonly buttons: readonly string[]
   readonly defaultId: number
   readonly cancelId: number
-  readonly presentation?: 'default' | 'diagnostic' | 'profile-compatibility'
+  readonly presentation?: 'default' | 'diagnostic' | 'profile-compatibility' | 'update'
+  readonly updateVersion?: string
+  readonly primaryId?: number
+  readonly locale?: 'zh' | 'en'
 }
 
 function decodeState(): DesktopDialogState | undefined {
@@ -77,6 +81,7 @@ export function DesktopDialogApp(): JSX.Element {
   }, [state])
 
   if (state === undefined) return <><DesktopFrame /><main className="dshNativeContent flex items-center justify-center p-5"><p className="text-sm text-destructive">Desktop dialog state is unavailable.</p></main></>
+  if (state.presentation === 'update') return <><DesktopFrame /><DesktopUpdateDialog state={state} respond={respond} /></>
   const diagnostic = state.presentation === 'diagnostic'
   const profileCompatibility = state.presentation === 'profile-compatibility'
   const showToneIcon = desktopDialogShowsToneIcon(state.presentation)

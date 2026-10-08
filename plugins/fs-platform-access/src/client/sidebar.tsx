@@ -30,10 +30,10 @@ export const sidebarCss = `
 .fs-sidebar button:hover{background:var(--bg-hover)}.fs-sidebar button:focus-visible{outline:2px solid var(--accent-primary);outline-offset:2px}
 .fs-sidebar-brand{display:flex;align-items:center;gap:9px;min-width:0}.fs-sidebar-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
 .fs-sidebar-avatar{display:grid;place-items:center;flex-shrink:0;width:30px;height:30px;border-radius:8px;object-fit:contain;background:var(--bg-active);color:var(--accent-primary);font-weight:600}
-.fs-sidebar-new{border:1px solid var(--border-default)!important;width:100%}
-.fs-sidebar-tabs{display:flex;border-radius:9px;background:var(--bg-tertiary);padding:3px;gap:3px}.fs-sidebar-tabs button{flex:1}.fs-sidebar-tabs button[aria-selected=true]{background:var(--bg-secondary);color:var(--accent-primary);font-weight:600}
+.fs-sidebar-new{width:100%;flex-shrink:0;background:var(--accent-primary)!important;color:var(--fs-on-accent,#fff)!important;font-weight:600!important;margin-bottom:14px;box-shadow:0 3px 9px color-mix(in srgb,var(--accent-primary) 14%,transparent)}.fs-sidebar-new:hover{background:var(--accent-hover,var(--accent-primary))!important}
+.fs-sidebar-tabs{display:flex;border-radius:10px;background:color-mix(in srgb,var(--accent-primary) 6%,var(--bg-secondary));padding:4px;gap:4px}.fs-sidebar-tabs button{flex:1;color:var(--text-secondary);min-height:34px}.fs-sidebar-tabs button[aria-selected=true]{background:var(--accent-primary);color:var(--fs-on-accent,#fff);font-weight:600;box-shadow:0 2px 6px color-mix(in srgb,var(--accent-primary) 12%,transparent)}
 .fs-sidebar-region{flex:1;min-height:0;display:flex;flex-direction:column}.fs-sidebar-region[hidden]{display:none}.fs-sidebar-menu{gap:6px;overflow:auto}.fs-sidebar-menu:empty:after{content:'暂无菜单';color:var(--text-tertiary);padding:12px}
-.fs-sidebar-footer{position:relative;flex-shrink:0;border-top:1px solid var(--border-default);padding-top:8px}.fs-sidebar-user{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:7px!important}.fs-sidebar-user-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fs-sidebar-footer{position:relative;flex-shrink:0;border-top:1px solid color-mix(in srgb,var(--accent-primary) 12%,var(--border-default));padding-top:10px}.fs-sidebar-user{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px!important;background:color-mix(in srgb,var(--accent-primary) 6%,var(--bg-secondary))!important}.fs-sidebar-user-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fs-sidebar-version{display:block;text-align:center;color:var(--text-tertiary);font-size:11px;padding:5px}
 .fs-sidebar-account{position:absolute;bottom:100%;left:0;right:0;z-index:20}.fs-sidebar-account[data-open=true]{background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:10px;padding:6px;box-shadow:0 8px 24px var(--fs-shadow)}
 /* Keep the native settings modal and onboarding mounted; hide only its trigger row. */
@@ -88,12 +88,12 @@ export function createAccountSidebar(controller: SidebarAccountController) {
         {!collapsed && <><SubjectLogo name={identity.tenantName} url={identity.logoUrl} /><span className="fs-sidebar-name" title={identity.tenantName}>{identity.tenantName}</span></>}
         <button type="button" aria-label={collapsed ? '展开侧栏' : '收起侧栏'} onClick={toggleSidebar}>☰</button>
       </header>
-      <button type="button" className="fs-sidebar-new" aria-label="新会话" onClick={() => { setTab('sessions'); startSession() }}>{collapsed ? '+' : '+ 新会话'}</button>
       <div className="fs-sidebar-tabs" role="tablist" aria-label="侧栏内容" aria-orientation={collapsed ? 'vertical' : 'horizontal'} onKeyDown={switchByKey}>
         <button type="button" role="tab" id="fs-sessions-tab" tabIndex={tab === 'sessions' ? 0 : -1} aria-controls="fs-sessions-panel" aria-selected={tab === 'sessions'} onClick={() => { chooseTab('sessions') }}>会话</button>
         <button type="button" role="tab" id="fs-menu-tab" tabIndex={tab === 'menu' ? 0 : -1} aria-controls="fs-menu-panel" aria-selected={tab === 'menu'} onClick={() => { chooseTab('menu') }}>菜单</button>
       </div>
       <section key={`sessions:${snapshot.activeTenantId ?? 'signed-out'}`} className="fs-sidebar-region" id="fs-sessions-panel" role="tabpanel" aria-labelledby="fs-sessions-tab" hidden={tab !== 'sessions'}>
+        <button type="button" className="fs-sidebar-new" aria-label="新会话" onClick={() => { startSession() }}>{collapsed ? '+' : '+ 新会话'}</button>
         {renderSlot('sidebar.workspaces', { wide: !collapsed, expandSidebar: () => { if (collapsed) toggleSidebar() } })}
       </section>
       <section key={`menu:${snapshot.activeTenantId ?? 'signed-out'}`} className="fs-sidebar-region fs-sidebar-menu" id="fs-menu-panel" role="tabpanel" aria-labelledby="fs-menu-tab" hidden={tab !== 'menu'}>

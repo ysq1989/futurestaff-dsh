@@ -13,7 +13,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { desktopTerminalStateDirectory, openDesktopTerminal } from './desktop-terminal.ts'
-import { showDesktopMessageBox } from './desktop-dialog-window.ts'
+import { showDesktopMessageBox, type DesktopMessageBoxOptions } from './desktop-dialog-window.ts'
 import { packagedDependencyPath } from './packaged-runtime-path.ts'
 import { ElectronShellGeneration } from './electron-shell-generation.ts'
 import { electronPlatformStrategy, type ElectronPlatformStrategy } from './electron-platform.ts'
@@ -589,7 +589,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     nativeNotification.show()
   }
 
-  private async showUpdateMessageBox(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue> {
+  private async showUpdateMessageBox(options: DesktopMessageBoxOptions): Promise<Electron.MessageBoxReturnValue> {
     return await this.showDesktopMessageBox(options)
   }
 
@@ -695,10 +695,12 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     if (!manual) return
     const copy = desktopNativeCopy(this.currentLocale)
     const answer = await this.showUpdateMessageBox({ type: 'info', title: copy.updateDownloadedTitle,
-      message: copy.updateReady(release.version),
-      detail: release.notes + '\n\n' + (this.currentLocale === 'zh'
+      message: this.currentLocale === 'zh' ? '新版本已准备好' : 'Your update is ready',
+      presentation: 'update', updateVersion: release.version, primaryId: 0, locale: this.currentLocale,
+      detail: release.notes,
+      advisory: this.currentLocale === 'zh'
         ? '点击后将关闭软件、安装更新并自动重新打开。请先保存当前工作。'
-        : 'The app will close, install the update and reopen. Save your work first.'),
+        : 'The app will close, install the update and reopen. Save your work first.',
       buttons: [this.currentLocale === 'zh' ? '重启并更新' : 'Restart and Update', copy.later],
       defaultId: 1, cancelId: 1, noLink: true })
     if (answer.response !== 0) return
