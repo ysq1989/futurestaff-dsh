@@ -1,3 +1,13 @@
+## B11 — Website Logo, blue-white access and remembered login released 2.0.14 (2026-10-08)
+
+- User authorized commit, push and publication. Source: 05b35f334e8571694bc2ecac826eebf70e8cc443 (UI source 0ce52bebee and existing workspace fix 05b35f334e).
+- Original public website SVG is bundled offline in login/sidebar and app/tray icons; no visible platform endpoint label. Includes B10's blue-white palette and harmless account/subject hints, with offered-subject confirmation still authenticated by Platform.
+- Required access/workspace/managed-settings composition reviewed; no business API/schema migration, production data change or service restart. Pending Douyin/window changes excluded, inference service not registered/exported, and original staged changes preserved. Existing identity workspaces receive only verified browser code; Host code, credentials, profile identity and history remain in place.
+- Validation: affected access suite 110 passed; focused login/workspace checks 28 passed; fixed-profile refresh checks 13 passed; stable desktop 1092 passed, Beta 1029 passed, root 64 passed. Full npm check encountered one unchanged Beta test's Windows ephemeral-port EACCES; complete Beta retry and remaining root suite passed without modifying the test. Typechecks, builds, package preflight and Windows installer verification passed. Actual ASAR/profile confirms Logo, skin, hints, fixed-workspace client refresh, pinned update source and confirmed silent installation/relaunch.
+- Live HTTPS download verified by the real client signature parser and complete size/SHA-256: 130937325 bytes; a5ddf84d165a51bd92ab372dc6d410fe5c80eb993b3d3b2ae56fb0e0da3f6b3d. Signed feed manifest: 0c927d07cf9010f115c9fd72699a05385ece22cefa5ffc5ec022dabb169b8764. Rollback 2.0.13 matches the previous signed live artifact.
+- Published https://fsstory.net/desktop-updates/stable.json and the versioned 2.0.14 installer. Update server, Platform API and Product Hub API remain healthy at unchanged start times; trust.json and READY remain private (404). Real interactive installation/restart remains user acceptance; no installer executed on the user's desktop.
+- Build hygiene follow-up: reused access lib contains three inactive inference helper outputs (inference.js/.d.ts/.js.map) from an earlier local build. They are not exported or loaded and do not activate inference. Before the next installer, clean generated product-package outputs and verify the staged inventory against fresh compilation; do not replace the already published immutable 2.0.14 artifact.
+
 # Completed Atomic Tasks
 
 ## B09: Confirmed in-app software updates

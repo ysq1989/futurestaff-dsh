@@ -1,9 +1,3 @@
 # Current task
 
-## B11: Official website branding and access UI release 2.0.14
-
-- User authorized commit, push and release.
-- High risk: installer/public update publication; access prerequisites reviewed.
-- Scope: access branding, blue-white palette, login hints, required tenant selection/workspace/managed settings; no business module deployment or database changes.
-- Acceptance: access tests, full npm check, packaged SVG/icons and update controls, verified signed feed and HTTPS installer bytes, rollback 2.0.13.
-- Status: full checks passed; source ready for installer build and publication.
+No active task. B11 completed: desktop 2.0.14 committed, pushed and published; official Logo, blue-white access, account/subject hints and existing workspace UI refresh verified. See tasks/DONE.md for validation and rollback evidence.
