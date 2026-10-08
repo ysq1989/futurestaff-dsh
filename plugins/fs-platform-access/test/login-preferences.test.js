@@ -24,7 +24,7 @@ test('form hints persist by account without storing password, tokens or permissi
   let response = state
   const controller = new PlatformDevClientController(async () => Response.json(response), () => {}, preferences)
   await controller.loginWithPassword({ loginIdentifier: ' user@example.invalid ', password: 'private-test-password' })
-  assert.deepEqual(controller.getLoginHints(), { loginIdentifier: 'user@example.invalid', tenantId: second })
+  assert.deepEqual(controller.getLoginHints(), { loginIdentifier: 'user@example.invalid', tenantId: second, rememberPassword: false, rememberPasswordAvailable: false })
   assert.match(renderPlatformAccessView(controller.getSnapshot(), controller.getLoginHints()),
     new RegExp(`value="${second}" selected`))
   const persisted = [...data.values()].join('')
@@ -69,7 +69,7 @@ test('an existing authenticated session seeds first-use hints from its validated
     phase: 'no_apps', activeTenantId: second, user: { ...state.user, email: 'known@example.invalid' },
   }), () => {}, preferences)
   await controller.restore()
-  assert.deepEqual(controller.getLoginHints(), { loginIdentifier: 'known@example.invalid', tenantId: second })
+  assert.deepEqual(controller.getLoginHints(), { loginIdentifier: 'known@example.invalid', tenantId: second, rememberPassword: false, rememberPasswordAvailable: false })
 })
 test('a newly created preference reader restores hints and storage failures do not block login', () => {
   const { preferences, data } = fixture()

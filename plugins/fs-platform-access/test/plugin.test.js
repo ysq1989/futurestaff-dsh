@@ -225,7 +225,8 @@ test('desktop Host mounts one exact loopback callback and persists a fake DEV ex
     provide: (name, value) => { if (name === 'platformDevLogin') loginService = value; return () => {} },
     webServer: { host: '127.0.0.1', port: 43821, register: route => { registrations.push(route); return () => {} } },
   })
-  assert.equal(registrations.length, 15)
+  assert.equal(registrations.length, 16)
+  assert.ok(registrations.some(route => route.path === '/_futurestaff/platform-dev/auth/remembered'))
   assert.ok(registrations.some(route => route.path === '/_futurestaff/platform-dev/auth/tenant'))
   const startRoute = registrations.find(item => item.path === '/_futurestaff/platform-dev/login')
   const startServer = createServer((request, response) => {

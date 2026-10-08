@@ -1,6 +1,7 @@
 import { platformOrigin, type PlatformEnvironment } from './environment.js'
 import { mountMarket } from './market-host.js'
 import { roleRoot } from './market.js'
+import { RememberedLogin } from './remembered-login.js'
 import { DesktopLoginWorkspace, readWorkspaceIdentity, workspaceName } from './workspace.js'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
@@ -64,7 +65,7 @@ export interface PlatformDevLoginService {
   authorizeLocal(): Promise<{ tenantId: string; userId: string; signal: AbortSignal; namespace?: string }>
   begin(): Promise<{ readonly authorizationUrl: string }>
   snapshot(): Promise<PlatformDevAccessSnapshot>
-  loginWithPassword(loginIdentifier: string, password: string, tenantId?: string): Promise<PlatformDevAccessSnapshot>
+  loginWithPassword(loginIdentifier: string, password: string, tenantId?: string, rememberPassword?: boolean): Promise<PlatformDevAccessSnapshot>
   selectLoginTenant(tenantId: string): Promise<PlatformDevAccessSnapshot>
   refresh(): Promise<PlatformDevAccessSnapshot>
   switchTenant(tenantId: string): Promise<PlatformDevAccessSnapshot>
@@ -107,6 +108,7 @@ function mountDevLogin(ctx: Context, environment: PlatformEnvironment): void {
   const secrets = ctx.get('desktopProtectedSecrets') as unknown
   if (!protectedSecrets(secrets)) return
   const origin = platformOrigin(environment)
+  const remembered = new RememberedLogin(secrets, environment)
   const api = new PlatformDevApi(globalThis.fetch, origin)
   const profiles = ctx.get('desktopProfiles') as ConstructorParameters<typeof DesktopLoginWorkspace>[0] | undefined
   if (environment === 'production' && !profiles) throw new Error('TENANT_WORKSPACE_SERVICE_REQUIRED')
@@ -188,8 +190,8 @@ function mountDevLogin(ctx: Context, environment: PlatformEnvironment): void {
       }
     },
     snapshot: async () => { await initialized; return access.getSnapshot() },
-    loginWithPassword: (loginIdentifier: string, password: string, tenantId?: string) =>
-      access.login({ loginIdentifier, password, ...(tenantId ? { tenantId } : {}) }),
+    loginWithPassword: (loginIdentifier: string, password: string, tenantId?: string, rememberPassword?: boolean) =>
+      remembered.login({ loginIdentifier, password, ...(tenantId ? { tenantId } : {}) }, rememberPassword, input => access.login(input)),
     selectLoginTenant: (tenantId: string) => access.selectLoginTenant(tenantId),
     refresh: () => access.refresh(),
     switchTenant: (tenantId: string) => access.switchTenant(tenantId),
@@ -223,22 +225,35 @@ function mountDevLogin(ctx: Context, environment: PlatformEnvironment): void {
         const body = JSON.parse((await readBody(request)).toString('utf8')) as unknown
         if (body === null || typeof body !== 'object' || Array.isArray(body)) throw new Error('invalid login')
         const input = body as Record<string, unknown>
-        const allowed = new Set(['loginIdentifier', 'password', 'tenantId'])
+        const allowed = new Set(['loginIdentifier', 'password', 'tenantId', 'rememberPassword'])
         if (Object.keys(input).some(key => !allowed.has(key))
           || typeof input.loginIdentifier !== 'string' || typeof input.password !== 'string'
-          || (input.tenantId !== undefined && typeof input.tenantId !== 'string')) {
+          || (input.tenantId !== undefined && typeof input.tenantId !== 'string')
+          || (input.rememberPassword !== undefined && typeof input.rememberPassword !== 'boolean')) {
           throw new Error('invalid login')
         }
         loginJson(response, 200, await service.loginWithPassword(
           input.loginIdentifier,
           input.password,
           input.tenantId as string | undefined,
+          input.rememberPassword as boolean | undefined,
         ))
       } catch {
         loginJson(response, 401, { error: 'LOGIN_UNAVAILABLE' })
       }
     },
-  }), 'futurestaff-platform-access: password login without credential persistence')
+  }), 'futurestaff-platform-access: password login with optional OS-protected remembering')
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact', path: '/_futurestaff/platform-dev/auth/remembered',
+    handler: async (request, response) => {
+      if (!['GET', 'DELETE'].includes(request.method ?? '') || !isLoopback(request.socket.remoteAddress)
+        || request.headers['x-futurestaff-login'] !== '1') return loginJson(response, 403, { error: 'LOGIN_UNAVAILABLE' })
+      try {
+        if (request.method === 'DELETE') await remembered.forget()
+        loginJson(response, 200, await remembered.hint())
+      } catch { loginJson(response, 503, { error: 'LOGIN_UNAVAILABLE' }) }
+    },
+  }), 'futurestaff-platform-access: credential-free remembered-login metadata')
   const guarded = (request: IncomingMessage): boolean => request.headers['x-futurestaff-session'] === '1'
     && isLoopback(request.socket.remoteAddress)
   ctx.effect(() => ctx.webServer.register({

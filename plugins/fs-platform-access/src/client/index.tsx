@@ -14,6 +14,7 @@ import { mountPlatformAccessPanel } from '../view.js'
 import { installAppearance } from './appearance.js'
 import { LoginPreferences } from '../login-preferences.js'
 import { AgentMarketSection } from './market.js'
+import type { RememberedLoginHint } from '../remembered-login.js'
 
 const DEV_ROUTE_PREFIX = '/_futurestaff/platform-dev'
 const DEV_LOGIN_ROUTE = `${DEV_ROUTE_PREFIX}/login`
@@ -37,6 +38,7 @@ export const platformAccessPanelCss = `
 @keyframes fs-shimmer{to{background-position:-200% 0}}
 @media (max-width: 640px){.futurestaff-access .fs-panel{gap:18px;padding:18px;border-radius:16px}.futurestaff-access .fs-header{display:grid}.futurestaff-access .fs-header-actions{width:100%}.futurestaff-access .fs-header-actions button{flex:1}.futurestaff-access .fs-tenant{grid-template-columns:1fr;gap:12px}.futurestaff-access .fs-app-grid{grid-template-columns:1fr}.futurestaff-access .fs-state{grid-template-columns:1fr}.futurestaff-access .fs-state-mark{display:none}.futurestaff-access .fs-actions button{flex:1}.futurestaff-access .fs-summary{align-items:flex-start;flex-direction:column}.futurestaff-access .fs-count{align-self:flex-end}}
 @media (prefers-reduced-motion: reduce){.futurestaff-access *{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}}
+.futurestaff-login-gate{overflow:auto}.futurestaff-login-gate .fs-state{grid-template-columns:minmax(0,1fr);justify-items:center;gap:16px}.futurestaff-login-gate .fs-state-copy{width:100%;text-align:center;gap:20px}.futurestaff-login-gate .fs-state .fs-state-mark{display:block}.futurestaff-login-gate .fs-login-form{width:100%;max-width:none;text-align:left;margin:0}.futurestaff-access .fs-login-buttons{display:flex;gap:12px;margin-top:8px}.futurestaff-access .fs-login-buttons button{flex:1;margin:0}.futurestaff-access .fs-remember{display:flex;align-items:center;gap:8px;cursor:pointer}.futurestaff-access .fs-remember input{width:16px;height:16px;min-height:0;padding:0;accent-color:var(--fs-accent)}.futurestaff-access .fs-sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 `
 
 export async function beginPlatformDevLogin(
@@ -142,7 +144,47 @@ export class PlatformDevClientController {
     private readonly preferences = new LoginPreferences(),
   ) {}
 
-  getLoginHints = () => this.preferences.hints(this.#snapshot.user?.userId)
+  #remembered: RememberedLoginHint = { available: false, remembered: false }
+  #rememberGeneration = 0
+  #rememberSupported = false
+  getLoginHints = () => ({ ...this.preferences.hints(this.#snapshot.user?.userId),
+    ...(this.#remembered.remembered ? { loginIdentifier: this.#remembered.loginIdentifier } : {}),
+    rememberPassword: this.#remembered.remembered, rememberPasswordAvailable: this.#remembered.available })
+
+  async restoreRememberedLogin(): Promise<void> {
+    const generation = ++this.#rememberGeneration
+    try {
+      const hint = await this.#rememberedRequest('GET')
+      if (generation === this.#rememberGeneration && JSON.stringify(hint) !== JSON.stringify(this.#remembered)) {
+        this.#remembered = hint
+        for (const listener of this.#listeners) listener()
+      }
+    } catch { /* Older Hosts and unavailable OS protection leave the option disabled. */ }
+  }
+  async forgetRememberedPassword(): Promise<void> {
+    const generation = ++this.#rememberGeneration
+    try {
+      const hint = await this.#rememberedRequest('DELETE')
+      if (generation === this.#rememberGeneration) {
+        this.#remembered = hint
+        for (const listener of this.#listeners) listener()
+      }
+    } catch { if (generation === this.#rememberGeneration) this.#publishFailure() }
+  }
+  async #rememberedRequest(method: 'GET' | 'DELETE'): Promise<RememberedLoginHint> {
+    const response = await this.fetcher(`${DEV_ROUTE_PREFIX}/auth/remembered`, {
+      method, cache: 'no-store', headers: { 'x-futurestaff-login': '1' },
+    })
+    if (!response.ok) throw new Error('REMEMBERED_LOGIN_UNAVAILABLE')
+    const value = await response.json() as RememberedLoginHint
+    if (!value || typeof value !== 'object' || Array.isArray(value)
+      || Object.keys(value).some(key => !['available', 'remembered', 'loginIdentifier'].includes(key))
+      || typeof value.available !== 'boolean' || typeof value.remembered !== 'boolean'
+      || (value.remembered && (!value.available || typeof value.loginIdentifier !== 'string' || !value.loginIdentifier.trim() || value.loginIdentifier.length > 254))
+      || (!value.remembered && value.loginIdentifier !== undefined)) throw new Error('REMEMBERED_LOGIN_INVALID')
+    this.#rememberSupported = true
+    return value
+  }
 
   getSnapshot = (): PlatformAccessSnapshot => this.#snapshot
 
@@ -188,14 +230,15 @@ export class PlatformDevClientController {
     } finally { this.#pendingActions -= 1 }
   }
 
-  async loginWithPassword(input: PasswordLoginInput): Promise<void> {
+  async loginWithPassword(input: PasswordLoginInput & { rememberPassword?: boolean }): Promise<void> {
     this.#pendingActions += 1
     const generation = ++this.#generation
     this.#publish({ ...initialDevSnapshot, phase: 'loading' })
     try {
       const snapshot = await this.#request('/auth/password', {
         method: 'POST',
-        body: JSON.stringify(input),
+        body: JSON.stringify(this.#rememberSupported ? input : { loginIdentifier: input.loginIdentifier, password: input.password,
+          ...(input.tenantId ? { tenantId: input.tenantId } : {}) }),
         headers: { 'x-futurestaff-login': '1' },
       })
       if (generation === this.#generation) {
@@ -204,6 +247,7 @@ export class PlatformDevClientController {
         }
         this.#publish(snapshot)
       }
+      if (input.rememberPassword !== undefined) await this.restoreRememberedLogin()
     } catch {
       // Authentication rejections arrive as validated Host snapshots. Transport,
       // missing-route and malformed-response failures must never blame a password.
@@ -320,7 +364,7 @@ function FutureStaffPlatformLoginGate({ controller }: PlatformAccessViewProps) {
   if (!shouldShowPlatformLoginGate(snapshot)) return null
   return createElement('section', {
     className: 'futurestaff-login-gate', role: 'dialog', 'aria-modal': true,
-    'aria-label': '登录 FutureStaff',
+    'aria-label': 'FutureStaff Agent',
   }, createElement('div', { className: 'futurestaff-access' },
     createElement('style', null, platformAccessPanelCss),
     createElement('div', { ref: root }),

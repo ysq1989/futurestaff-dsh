@@ -83,8 +83,8 @@ test('tenant selection snapshot rejects injected active context and UI offers lo
   const selection={phase:'selecting_tenant',simulated:false,contractVersion:'0.1.1',user:user(u),tenants,models:[],applications:[]}
   assert.doesNotThrow(()=>decodePlatformDevAccessSnapshot(selection))
   assert.throws(()=>decodePlatformDevAccessSnapshot({...selection,activeTenantId:a}))
-  assert.match(renderPlatformAccessView(selection),/登录此租户/)
-  assert.match(renderPlatformAccessView(selection),/请选择租户/)
+  assert.match(renderPlatformAccessView(selection),/选择登录主体/)
+  assert.match(renderPlatformAccessView(selection),/请选择登录主体/)
   assert.doesNotMatch(renderPlatformAccessView(selection),/type="password"|确认密码/)
   assert.doesNotMatch(renderPlatformAccessView({...selection,phase:'no_apps',activeTenantId:a}),/data-action="switch-tenant"/)
 })
