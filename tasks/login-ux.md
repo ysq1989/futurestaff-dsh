@@ -37,3 +37,14 @@ Release validation: 125 access tests passed including HTTP integration, desktop
 Profile staging tests passed. Browser bundle excludes Host password-store code.
 Only fixture credentials were used. The local six-file overlay has code backups
 and retains the original custom inference and market services; it needs app restart.
+
+Published 2.0.17 on 2026-10-08; packaged source
+`26d8eceddf506c93c956418f570d38b53fbd33bc`. Actual packaged Profile tests under
+installed Electron verified protected remember/reuse/forget and credential-free
+hints using fake secrets, plus exact page titles and subject action-row markup.
+Signed live feed and complete HTTPS installer download verified: 130946299 bytes,
+`acbd7c0a3b4de910847ff6ed39810e09c7fda1e26e9a50de5baa7816c4f0b910`.
+Feed digest `a2ba3a1a2ef24a49c7b7ffbe92c2bc87df27cb7ff3cc30f26a2c0b3ef4eed153`;
+rollback 2.0.16; private trust/READY return 404. No server restart or schema change.
+No real user passwords were entered/read, no installer was executed, and actual
+user opt-in/password remembering remains interactive acceptance after restart.

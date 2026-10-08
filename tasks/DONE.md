@@ -1,3 +1,7 @@
+## Login UI and protected remember-password 2.0.17 — published 2026-10-08
+
+Both login flows centered, concise titles, one-row subject buttons and opt-in OS-protected password remembering. No Renderer password export or plaintext preference persistence. 125 access tests, 1095 desktop tests (13 skips), two staging tests, browser centering checks and actual packaged fixture passed. Signed feed and complete HTTPS installer verified; rollback 2.0.16. Source 26d8eceddf; user restart/acceptance pending. Evidence: tasks/login-ux.md.
+
 ## Agent market recovery fix 2.0.16 — published 2026-10-08
 
 Fixed required native preset default and one-time v1 workspace migration, plus ASAR preset asset copying. Repaired and backed up local market-owned files. 119 access tests, 1095 desktop tests (13 skips), real installed-schema and final bundled ASAR fixture passed. Signed live feed and complete installer bytes verified; rollback 2.0.14. Packaged source 19a7e074f2; user restart/acceptance pending. Evidence: tasks/agent-market.md.
