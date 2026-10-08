@@ -57,6 +57,13 @@ test('restoration and refresh cannot cross a fixed workspace identity', async ()
   const wrong=new PlatformDevAccessController(f.api,f.vault,new InMemoryTenantResources(),{accepts:()=>false,enter:async()=>true})
   assert.equal((await wrong.restore()).phase,'signed_out'); await assert.rejects(wrong.authorizeLocal())
 })
+test('restoration applies workspace upgrades before enabling the old Host generation', async () => {
+  const f=fixture(async()=>false)
+  f.vault.load=async()=>({session:session(a),user:user(u)})
+  assert.equal((await f.controller.restore()).phase,'loading')
+  assert.deepEqual(f.calls,[])
+  await assert.rejects(f.controller.authorizeLocal())
+})
 test('pending credential is unavailable after expiry, return to login or Host disposal', async () => {
   for (const cancel of ['expiry','logout','dispose']) {
     const f=fixture()

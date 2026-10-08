@@ -411,6 +411,8 @@ export class PlatformDevAccessController {
         this.#publish(initialSnapshot)
         return this.#snapshot
       }
+      if (this.workspace && !await this.workspace.enter(stored.session, stored.user)) return this.#snapshot
+      if (!this.#isCurrent(operation.generation)) return this.#snapshot
       this.#session = stored.session
       this.#user = stored.user
       this.#publish({
