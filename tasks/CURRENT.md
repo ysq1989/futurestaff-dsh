@@ -1,3 +1,3 @@
 # Current task
 
-Branding and remember-checkbox follow-up: signed 2.0.18 published and verified. Implementation/release complete; user update/restart and acceptance pending. See tasks/branding-remember-fix.md.
+Subject/account sidebar, Normal/Task modes and compact login: 2.0.19 commit, push and publication explicitly authorized; release in progress. See tasks/sidebar-account-navigation.md.

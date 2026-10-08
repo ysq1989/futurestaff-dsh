@@ -104,12 +104,11 @@ test('client registers Settings access and a mandatory login gate', () => {
 
   applyClient({ slots })
 
-  assert.deepEqual(slotNames, ['sidebar.brand.mark', 'sidebar.brand.name', 'conversation.hero.brand.mark', 'conversation', 'conversation.chat.node', 'settings.section', 'settings.section', 'shell.overlay'])
+  assert.deepEqual(slotNames, ['sidebar', 'sidebar.brand.mark', 'sidebar.brand.name', 'conversation.hero.brand.mark', 'conversation', 'conversation.hero.agentPreset', 'conversation.session.header.actions', 'settings.section', 'conversation.chat.node', 'settings.section', 'settings.section', 'shell.overlay'])
   assert.deepEqual(registrations, [
     { name: 'sidebar.brand.mark', priority: -100 },
     { name: 'sidebar.brand.name', priority: -100 },
     { name: 'conversation.hero.brand.mark', priority: -100 },
-    { name: 'conversation', key: 'context', priority: -100 },
     { name: 'conversation.chat.node', key: 'context', priority: -100 },
     { name: 'settings.section', id: 'futurestaff-agent-market', order: -9, label: 'Agent 市场' },
     { name: 'settings.section', id: 'futurestaff-access', order: -10, label: 'FutureStaff' },
@@ -122,15 +121,15 @@ test('client registers Settings access and a mandatory login gate', () => {
   assert.match(mark.props.src, /^data:image\/svg\+xml,/)
   assert.match(decodeURIComponent(mark.props.src), /viewBox="0 0 34 36"/)
   assert.equal(components[1]().props.children, 'FutureStaff Agent')
-  const context = components[4]({ node: { data: {
+  const context = components[3]({ node: { data: {
     source: { kind: 'plugin', plugin: '@deepseek-ai/dsh-system-prompt' },
     provenance: { role: 'inject', label: '@deepseek-ai/dsh-system-prompt' },
   } } })
   assert.equal(context.type, OriginalContext)
   assert.equal(context.props.node.data.provenance.label, 'FutureStaff 系统提示词')
   assert.equal(context.props.node.data.source.plugin, 'FutureStaff 系统提示词')
-  const settings = components[6]()
-  const gate = components[7]()
+  const settings = components[5]()
+  const gate = components[6]()
   assert.equal(settings.props.controller, gate.props.controller)
   const second = []
   applyClient({ slots: {
@@ -138,7 +137,7 @@ test('client registers Settings access and a mandatory login gate', () => {
     entries: () => [{ options: { key: 'context' }, component: OriginalContext }],
     register: (_options, component) => { second.push(component); return () => {} },
   } })
-  assert.notEqual(settings.props.controller, second[6]().props.controller)
+  assert.notEqual(settings.props.controller, second[5]().props.controller)
 })
 
 test('client panel styles cover narrow screens, keyboard focus and reduced motion', async () => {

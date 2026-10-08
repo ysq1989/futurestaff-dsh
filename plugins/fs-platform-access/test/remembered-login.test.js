@@ -60,7 +60,7 @@ test('Renderer accepts only credential-free remembered metadata', async () => {
   await injected.restoreRememberedLogin()
   assert.equal(injected.getLoginHints().rememberPassword, false)
 })
-test('login and subject headings are concise and subject actions share one row', () => {
+test('login and subject headings are concise and subject selection only offers login', () => {
   const state = { phase: 'signed_out', simulated: false, contractVersion: '0.1.1', tenants: [], applications: [], models: [] }
   const html = renderPlatformAccessView(state)
   assert.match(html, /FutureStaff Agent/)
@@ -68,6 +68,7 @@ test('login and subject headings are concise and subject actions share one row',
   assert.doesNotMatch(html, /访问中心|先验证|登录 FutureStaff/)
   const subject = renderPlatformAccessView({ ...state, phase: 'selecting_tenant' })
   assert.match(subject, /选择登录主体/)
-  assert.match(subject, /fs-login-buttons[^]*返回账号登录[^]*type="submit"/)
+  assert.match(subject, /fs-login-buttons[^]*type="submit"/)
+  assert.doesNotMatch(subject, /返回账号登录|data-action="logout"/)
   assert.doesNotMatch(subject, /账号已验证|选择租户登录|访问中心/)
 })

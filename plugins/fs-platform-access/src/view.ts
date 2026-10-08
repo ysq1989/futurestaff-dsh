@@ -49,7 +49,7 @@ export function renderPlatformAccessView(state: PlatformAccessSnapshot, hints: L
   }
   if (state.phase === 'selecting_tenant') {
     const choices = state.tenants.map(item => `<option value="${escape(item.tenantId)}"${item.tenantId === hints.tenantId ? ' selected' : ''}>${escape(item.displayName)}</option>`).join('')
-    return stateShell('selecting_tenant', '选择登录主体', `<form class="fs-login-form" data-action="tenant-login"><label class="fs-sr-only" for="futurestaff-login-tenant">登录主体</label><select id="futurestaff-login-tenant" name="tenantId" required><option value="">请选择登录主体</option>${choices}</select><div class="fs-login-buttons">${actionButton('logout', '返回账号登录')}<button type="submit" data-kind="primary">登录</button></div></form>`)
+    return stateShell('selecting_tenant', '选择登录主体', `<form class="fs-login-form" data-action="tenant-login"><label class="fs-sr-only" for="futurestaff-login-tenant">登录主体</label><select id="futurestaff-login-tenant" name="tenantId" required><option value="">请选择登录主体</option>${choices}</select><div class="fs-login-buttons"><button type="submit" data-kind="primary">登录</button></div></form>`)
   }
   if (state.phase === 'expired') {
     return stateShell('expired', '登录已过期', loginForm(state.error?.message ?? '请重新登录。'), { alert: true })

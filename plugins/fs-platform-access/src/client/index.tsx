@@ -12,6 +12,8 @@ import type { PlatformAccessSnapshot } from '../controller.js'
 import { decodePlatformDevAccessSnapshot } from '../dev-access.js'
 import { mountPlatformAccessPanel } from '../view.js'
 import { installAppearance } from './appearance.js'
+import { modePresentation } from './modes.js'
+import { createAccountSidebar } from './sidebar.js'
 import { LoginPreferences } from '../login-preferences.js'
 import { AgentMarketSection } from './market.js'
 import type { RememberedLoginHint } from '../remembered-login.js'
@@ -33,7 +35,7 @@ export const platformAccessPanelCss = `
 .futurestaff-access .fs-empty{display:grid;justify-items:center;gap:5px;padding:30px 18px;border:1px dashed color-mix(in srgb,currentColor 20%,transparent);border-radius:14px;text-align:center}.futurestaff-access .fs-empty-mark{display:grid;place-items:center;width:42px;height:42px;margin-bottom:4px;border-radius:13px;background:var(--fs-accent-soft);color:var(--fs-accent);font-weight:780}
 .futurestaff-access .fs-login-form{display:grid;gap:8px;max-width:420px;margin-top:4px}.futurestaff-access .fs-login-form label{margin-top:4px;font-size:.82rem;font-weight:680}.futurestaff-access .fs-login-form input{width:100%;min-height:42px;padding:9px 12px;border:1px solid var(--fs-border);border-radius:10px;background:color-mix(in srgb,currentColor 2.5%,transparent);color:inherit;font:inherit}.futurestaff-access .fs-login-form input:focus-visible{outline:3px solid color-mix(in srgb,var(--fs-accent) 35%,transparent);outline-offset:2px}.futurestaff-access .fs-login-form button{margin-top:8px}
 .futurestaff-access .fs-model-list{display:grid;gap:8px;margin:0;padding:0;list-style:none}.futurestaff-access .fs-model-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border:1px solid var(--fs-border);border-radius:12px;background:color-mix(in srgb,currentColor 1.5%,transparent)}.futurestaff-access .fs-model-list li[data-active=true]{border-color:color-mix(in srgb,var(--fs-accent) 45%,transparent);background:var(--fs-accent-soft)}.futurestaff-access .fs-model-list strong,.futurestaff-access .fs-model-list span{display:block}.futurestaff-access .fs-model-list span{margin-top:2px;color:var(--fs-muted);font-size:.76rem}.futurestaff-access .fs-model-list em{flex:0 0 auto;padding:4px 8px;border-radius:999px;background:var(--fs-accent);color:#fff;font-size:.7rem;font-style:normal;font-weight:700}
-.futurestaff-login-gate{position:fixed;inset:0;z-index:1400;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% 12%,rgba(34,211,238,.18),transparent 38%),rgba(3,10,24,.82);backdrop-filter:blur(12px);pointer-events:auto}.futurestaff-login-gate .futurestaff-access{width:min(520px,100%);max-width:520px}.futurestaff-login-gate .fs-panel{background:color-mix(in srgb,#fff 96%,#e8f5ff);box-shadow:0 28px 90px rgba(0,0,0,.34)}
+.futurestaff-login-gate{position:fixed;inset:0;z-index:1400;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 50% 12%,rgba(34,211,238,.18),transparent 38%),rgba(3,10,24,.82);backdrop-filter:blur(12px);pointer-events:auto}.futurestaff-login-gate .futurestaff-access{width:min(380px,100%);max-width:380px}.futurestaff-login-gate .fs-panel{background:color-mix(in srgb,#fff 96%,#e8f5ff);box-shadow:0 28px 90px rgba(0,0,0,.34)}
 .futurestaff-access .fs-state{grid-template-columns:auto minmax(0,1fr);align-items:start}.futurestaff-access .fs-state-copy{display:grid;gap:11px;min-width:0}.futurestaff-access .fs-state .fs-state-mark{width:50px;height:50px}.futurestaff-access .fs-state .fs-actions{margin-top:4px}.futurestaff-access .fs-skeletons{display:grid;gap:8px;margin-top:4px}.futurestaff-access .fs-skeletons span{height:12px;border-radius:999px;background:linear-gradient(90deg,var(--fs-border),color-mix(in srgb,currentColor 7%,transparent),var(--fs-border));background-size:200% 100%;animation:fs-shimmer 1.25s ease-in-out infinite}.futurestaff-access .fs-skeletons span:nth-child(2){width:78%}.futurestaff-access .fs-skeletons span:nth-child(3){width:52%}
 @keyframes fs-shimmer{to{background-position:-200% 0}}
 @media (max-width: 640px){.futurestaff-access .fs-panel{gap:18px;padding:18px;border-radius:16px}.futurestaff-access .fs-header{display:grid}.futurestaff-access .fs-header-actions{width:100%}.futurestaff-access .fs-header-actions button{flex:1}.futurestaff-access .fs-tenant{grid-template-columns:1fr;gap:12px}.futurestaff-access .fs-app-grid{grid-template-columns:1fr}.futurestaff-access .fs-state{grid-template-columns:1fr}.futurestaff-access .fs-state-mark{display:none}.futurestaff-access .fs-actions button{flex:1}.futurestaff-access .fs-summary{align-items:flex-start;flex-direction:column}.futurestaff-access .fs-count{align-self:flex-end}}
@@ -432,6 +434,16 @@ function contextRenderer(original: ComponentType<ChatNodeViewProps<'context'>>) 
   }
 }
 
+/** Preserve the pinned registry entry's declaration and all composed prop faces.
+ * Shadow registration cannot borrow children: the native registry rejects duplicate declarations.
+ * Restore only our component on disposal, leaving subsequent product customizations intact.
+ */
+export function decorateSlotEntry(entry: { component: unknown }, replacement: unknown): () => void {
+  const original = entry.component
+  entry.component = replacement
+  return () => { if (entry.component === replacement) entry.component = original }
+}
+
 /** Mount account access in Settings and require it before the desktop workspace is usable. */
 export function apply(ctx: ClientContext): void {
   if (typeof document !== 'undefined') ctx.effect(() => {
@@ -453,6 +465,11 @@ export function apply(ctx: ClientContext): void {
   // workspace on logout/tenant changes, including while the gate renders null.
   const controller = new PlatformDevClientController()
   if (typeof ctx.provide === 'function') ctx.provide('platformClientSession', controller)
+  ctx.slots.inject('sidebar', () => {
+    const original = ctx.slots.entries('sidebar').find(entry => entry.locale === 'sidebar' && (entry.options.priority ?? 0) === 0)
+    if (!original) return () => {}
+    return decorateSlotEntry(original, createAccountSidebar(controller))
+  })
   ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({
     name: 'sidebar.brand.mark', priority: -100,
   }, FutureStaffBrandMark))
@@ -465,9 +482,16 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('conversation', () => {
     const original = ctx.slots.entries('conversation').find(entry => (entry.options.priority ?? 0) === 0)
     if (!original) return () => {}
-    return ctx.slots.register({ ...original.options, name: 'conversation', priority: -100 },
-      brandConversation(original.component as ComponentType<BrandedConversationProps>))
+    return decorateSlotEntry(original, brandConversation(original.component as ComponentType<BrandedConversationProps>))
   })
+  for (const name of ['conversation.hero.agentPreset', 'conversation.session.header.actions', 'settings.section'] as const) {
+    ctx.slots.inject(name, () => {
+      const original = ctx.slots.entries(name).find(entry =>
+        entry.locale === 'settings.agentPreset' && (entry.options.priority ?? 0) === 0)
+      if (!original) return () => {}
+      return decorateSlotEntry(original, modePresentation(original.component as ComponentType<Record<string, unknown>>, name === 'conversation.hero.agentPreset'))
+    })
+  }
   ctx.slots.inject('conversation.chat.node', () => {
     const original = ctx.slots.entries('conversation.chat.node')
       .find(entry => entry.options.key === 'context' && (entry.options.priority ?? 0) === 0)?.component
