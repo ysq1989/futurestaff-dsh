@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -44,6 +44,39 @@ function fixture() {
 }
 
 describe('bundled FutureStaff Profile', () => {
+  it.each(['valid', 'wrong-identity', 'linked-code'] as const)('refreshes only owned workspace client code: %s', mode => {
+    const value = fixture()
+    try {
+      const relative = 'node_modules/@futurestaff/fs-platform-access/lib/client.js'
+      mkdirSync(join(value.source, 'node_modules/@futurestaff/fs-platform-access/lib'), { recursive: true })
+      writeFileSync(join(value.source, relative), 'new bundled browser code')
+      const manifest = JSON.parse(readFileSync(join(value.source, 'release-manifest.json'), 'utf8'))
+      manifest.files[relative] = createHash('sha256').update('new bundled browser code').digest('hex')
+      writeFileSync(join(value.source, 'release-manifest.json'), JSON.stringify(manifest))
+      const identity = { environment: 'production', tenantId: '10000000-0000-4000-8000-000000000001', userId: '20000000-0000-4000-8000-000000000001' }
+      const name = 'fs-production-' + createHash('sha256').update(JSON.stringify(identity)).digest('hex')
+      const target = join(value.homeDir, 'profiles', name)
+      mkdirSync(join(target, 'node_modules/@futurestaff'), { recursive: true })
+      const module = join(target, 'node_modules/@futurestaff/fs-platform-access')
+      const actual = mode === 'linked-code' ? join(value.root, 'external-module') : module
+      mkdirSync(join(actual, 'lib'), { recursive: true })
+      if (mode === 'linked-code') symlinkSync(actual, module, process.platform === 'win32' ? 'junction' : 'dir')
+      writeFileSync(join(actual, 'lib/client.js'), 'old browser code')
+      writeFileSync(join(actual, 'lib/index.js'), 'original Host code')
+      const marker = JSON.stringify(mode === 'wrong-identity' ? { ...identity, userId: '20000000-0000-4000-8000-000000000002' } : identity)
+      writeFileSync(join(target, 'futurestaff-workspace.json'), marker)
+      writeFileSync(join(target, 'private-history.json'), 'original private data')
+      writeFileSync(join(target, 'cordis.patch.yml'), 'original identity composition')
+      installBundledFutureStaffProfile(value)
+      expect(readFileSync(join(actual, 'lib/client.js'), 'utf8')).toBe(mode === 'valid' ? 'new bundled browser code' : 'old browser code')
+      expect(readFileSync(join(actual, 'lib/index.js'), 'utf8')).toBe('original Host code')
+      expect(readFileSync(join(target, 'private-history.json'), 'utf8')).toBe('original private data')
+      expect(readFileSync(join(target, 'futurestaff-workspace.json'), 'utf8')).toBe(marker)
+      expect(readFileSync(join(target, 'cordis.patch.yml'), 'utf8')).toBe('original identity composition')
+      installBundledFutureStaffProfile(value)
+      expect(readFileSync(join(actual, 'lib/client.js'), 'utf8')).toBe(mode === 'valid' ? 'new bundled browser code' : 'old browser code')
+    } finally { rmSync(value.root, { recursive: true, force: true }) }
+  })
   it('automatically applies the locked-down product defaults without opening Setup', () => {
     expect(bundledFutureStaffAutomaticSetup('futurestaff-alpha')).toEqual({
       mode: 'compatibility',

@@ -221,6 +221,7 @@ export function installBundledFutureStaffProfile(
   const source = resolve(options.resourcesPath, PROFILE_RESOURCE_DIRECTORY, 'profiles', PROFILE_NAME)
   if (!existsSync(source)) return 'absent'
   const sourceManifest = verifySource(source)
+  refreshBundledWorkspaceClients(options.homeDir, source, sourceManifest)
 
   const target = resolve(options.homeDir, 'profiles', PROFILE_NAME)
   const repairLegacy = existsSync(target) && isRepairableLegacyProfile(target, sourceManifest)
@@ -256,5 +257,60 @@ export function installBundledFutureStaffProfile(
     rmSync(staging, { recursive: true, force: true })
     if (!existsSync(target) && existsSync(backup)) renameSync(backup, target)
     throw cause
+  }
+}
+
+/** Refresh only product-owned browser code; identity, Host code and user data stay in place. */
+function refreshBundledWorkspaceClients(homeDir: string, source: string, manifest: ReleaseManifest): void {
+  const files = ['node_modules/@futurestaff/fs-platform-access/lib/client.js',
+    'node_modules/@futurestaff/fs-platform-access/lib/client.js.map']
+    .filter(file => Object.hasOwn(manifest.files, file))
+  if (files.length === 0) return
+  const profiles = join(homeDir, 'profiles')
+  if (!existsSync(profiles)) return
+  const realDirectory = (directory: string): boolean => {
+    const info = lstatSync(directory)
+    return info.isDirectory() && !info.isSymbolicLink()
+  }
+  if (!realDirectory(profiles)) return
+  for (const name of readdirSync(profiles)) {
+    if (!/^fs-(dev|production)-[a-f0-9]{64}$/u.test(name)) continue
+    const target = join(profiles, name)
+    try {
+      if (!realDirectory(target)) continue
+      const marker = join(target, 'futurestaff-workspace.json')
+      const info = lstatSync(marker)
+      if (!info.isFile() || info.isSymbolicLink() || info.size > 4096) continue
+      const identity = JSON.parse(readFileSync(marker, 'utf8')) as Record<string, unknown>
+      const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/iu
+      if (Object.keys(identity).sort().join(',') !== 'environment,tenantId,userId'
+        || !['dev', 'production'].includes(String(identity.environment))
+        || typeof identity.tenantId !== 'string' || !uuid.test(identity.tenantId)
+        || typeof identity.userId !== 'string' || !uuid.test(identity.userId)) continue
+      const canonical = { environment: identity.environment, tenantId: identity.tenantId, userId: identity.userId }
+      const expected = `fs-${identity.environment}-${createHash('sha256').update(JSON.stringify(canonical)).digest('hex')}`
+      if (name !== expected) continue
+      const parents = ['node_modules', 'node_modules/@futurestaff',
+        'node_modules/@futurestaff/fs-platform-access', 'node_modules/@futurestaff/fs-platform-access/lib']
+      if (!parents.every(parent => realDirectory(join(target, parent)))) continue
+      for (const file of files) {
+        const destination = join(target, file)
+        const old = lstatSync(destination)
+        if (!old.isFile() || old.isSymbolicLink()) continue
+        if (createHash('sha256').update(readFileSync(destination)).digest('hex') === manifest.files[file]) continue
+        const temporary = `${destination}.updating-${process.pid}-${randomUUID()}`
+        try {
+          copyFileSync(join(source, file), temporary)
+          renameSync(temporary, destination)
+        } finally {
+          rmSync(temporary, { force: true })
+        }
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.warn('futurestaff-profile: workspace client refresh skipped; existing files preserved')
+      }
+      // Older/custom layouts without the owned code slot are preserved.
+    }
   }
 }
