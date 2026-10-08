@@ -70,3 +70,24 @@ Remaining release acceptance: live authenticated catalog with the deployed endpo
 native desktop visual/keyboard smoke, actual session restart in the packaged runtime.
 Platform-dependent templates, official registry adapter, personal editing and separate
 role memory are outside this first slice; see docs/specs/agent-market-v0.1.0.md.
+
+## Recovery-mode fix, 2.0.16
+
+User acceptance exposed a Host startup failure: the market patch replaces the
+whole native agent-presets config, so omitting mandatory `default` discarded
+the upstream `default: standard`. The initial fixture used mocked preset services
+and therefore never exercised the actual Cordis config schema.
+
+Both workspace config generators now explicitly set `default: standard`.
+Market marker v2 upgrades v1 workspaces once through the existing restart boundary.
+The installed local market row was backed up and repaired without changing
+identity, inference registration or user history. Its native plugin bytes match
+the test runtime; real AgentPresets.Config validation passed. User restart remains
+required to verify full interactive startup.
+
+119 access tests, including real installed-schema validation, passed. Focused
+tenant/workspace tests prove v1 upgrade and subsequent idempotency. Desktop stable
+1095 tests passed (13 original skips); build/typechecks and Profile staging passed.
+Bundled upgrades now recognize complete audited 2.0.14 and 2.0.15 libraries,
+preserving custom code. Release 2.0.16 publication is in progress; rollback uses
+the last working 2.0.14 installer rather than the affected 2.0.15 build.

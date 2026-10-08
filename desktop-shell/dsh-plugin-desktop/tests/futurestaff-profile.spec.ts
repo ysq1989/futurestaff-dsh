@@ -44,7 +44,7 @@ function fixture() {
 }
 
 describe('bundled FutureStaff Profile', () => {
-  it.each(['valid', 'custom'] as const)('upgrades audited workspace Host and browser code together: %s', mode => {
+  it.each(['valid', 'custom', 'previous-release'] as const)('upgrades audited workspace Host and browser code together: %s', mode => {
     const value = fixture()
     try {
       const prefix = 'node_modules/@futurestaff/fs-platform-access/lib/'
@@ -58,6 +58,10 @@ describe('bundled FutureStaff Profile', () => {
       }
       writeFileSync(join(value.source, prefix, 'role.js'), 'new role')
       manifest.files[prefix + 'role.js'] = createHash('sha256').update('new role').digest('hex')
+      if (mode === 'previous-release') {
+        manifest.workspacePreviousInventories = [{ ...manifest.workspacePreviousFiles }]
+        manifest.workspacePreviousFiles[prefix + 'index.js'] = 'a'.repeat(64)
+      }
       writeFileSync(join(value.source, 'release-manifest.json'), JSON.stringify(manifest))
       const identity = { environment: 'production', tenantId: '10000000-0000-4000-8000-000000000001', userId: '20000000-0000-4000-8000-000000000001' }
       const name = 'fs-production-' + createHash('sha256').update(JSON.stringify(identity)).digest('hex')
@@ -68,11 +72,11 @@ describe('bundled FutureStaff Profile', () => {
       for (const file of ['index.js', 'client.js']) writeFileSync(join(target, prefix, file), 'old ' + file)
       if (mode === 'custom') writeFileSync(join(target, prefix, 'index.js'), 'custom Host')
       installBundledFutureStaffProfile(value)
-      expect(readFileSync(join(target, prefix, 'index.js'), 'utf8')).toBe(mode === 'valid' ? 'new index.js' : 'custom Host')
-      expect(readFileSync(join(target, prefix, 'client.js'), 'utf8')).toBe(mode === 'valid' ? 'new client.js' : 'old client.js')
+      expect(readFileSync(join(target, prefix, 'index.js'), 'utf8')).toBe(mode === 'custom' ? 'custom Host' : 'new index.js')
+      expect(readFileSync(join(target, prefix, 'client.js'), 'utf8')).toBe(mode === 'custom' ? 'old client.js' : 'new client.js')
       expect(readFileSync(join(target, 'private-history.json'), 'utf8')).toBe('history')
       installBundledFutureStaffProfile(value)
-      expect(readFileSync(join(target, prefix, 'index.js'), 'utf8')).toBe(mode === 'valid' ? 'new index.js' : 'custom Host')
+      expect(readFileSync(join(target, prefix, 'index.js'), 'utf8')).toBe(mode === 'custom' ? 'custom Host' : 'new index.js')
     } finally { rmSync(value.root, { recursive: true, force: true }) }
   })
   it.each(['valid', 'wrong-identity', 'linked-code'] as const)('refreshes only owned workspace client code: %s', mode => {

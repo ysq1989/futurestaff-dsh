@@ -32,6 +32,7 @@ interface ReleaseManifest {
   readonly dshVersion: string
   readonly supersedes?: readonly string[]
   readonly workspacePreviousFiles?: Record<string, string>
+  readonly workspacePreviousInventories?: readonly Record<string, string>[]
   readonly files: Record<string, string>
 }
 
@@ -120,6 +121,15 @@ function readManifest(source: string): ReleaseManifest {
     throw new Error('FutureStaff release Profile supersedence list is invalid')
   }
   const entries = Object.entries(value.files)
+  if (value.workspacePreviousInventories !== undefined && (!Array.isArray(value.workspacePreviousInventories)
+    || value.workspacePreviousInventories.length > 16
+    || value.workspacePreviousInventories.some(files => files === null || typeof files !== 'object'
+      || Array.isArray(files) || Object.keys(files).length > MAX_PROFILE_FILES
+      || Object.entries(files).some(([name, digest]) =>
+        !name.startsWith('node_modules/@futurestaff/fs-platform-access/lib/')
+        || !safeRelativePath(name) || typeof digest !== 'string' || !/^[0-9a-f]{64}$/u.test(digest))))) {
+    throw new Error('FutureStaff workspace upgrade inventories are invalid')
+  }
   if (value.workspacePreviousFiles !== undefined && (value.workspacePreviousFiles === null
     || typeof value.workspacePreviousFiles !== 'object' || Array.isArray(value.workspacePreviousFiles)
     || Object.entries(value.workspacePreviousFiles).some(([name, digest]) =>
@@ -305,13 +315,12 @@ function refreshBundledWorkspaceClients(homeDir: string, source: string, manifes
       if (manifest.workspacePreviousFiles !== undefined) {
         const prefix = 'node_modules/@futurestaff/fs-platform-access/lib/'
         const library = join(target, prefix.slice(0, -1))
-        const prior = manifest.workspacePreviousFiles
+        const inventories = [manifest.workspacePreviousFiles, ...(manifest.workspacePreviousInventories ?? [])]
         const actual = inventory(library).map(file => prefix + file)
-        const expectedFiles = Object.keys(prior)
         // Replace the complete product code only when every installed byte
         // matches the audited previous release. Customized packages are kept.
-        if (actual.length === expectedFiles.length && actual.every(file =>
-          Object.hasOwn(prior, file) && createHash('sha256').update(readFileSync(join(target, file))).digest('hex') === prior[file])) {
+        if (inventories.some(prior => actual.length === Object.keys(prior).length && actual.every(file =>
+          Object.hasOwn(prior, file) && createHash('sha256').update(readFileSync(join(target, file))).digest('hex') === prior[file]))) {
           const temporary = `${library}.updating-${process.pid}-${randomUUID()}`
           const backup = `${temporary}.backup`
           try {

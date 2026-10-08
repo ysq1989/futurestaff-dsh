@@ -163,8 +163,9 @@ export async function stageReleaseProfile(options = {}) {
     profile: profileName,
     productVersion: profileManifest.version,
     dshVersion: '0.1.2-rc.1',
-    supersedes: [...supersededReleaseManifests, workspaceUpgrade.manifestDigest],
+    supersedes: [...supersededReleaseManifests, workspaceUpgrade.manifestDigest, ...(workspaceUpgrade.additionalManifestDigests ?? [])],
     workspacePreviousFiles: workspaceUpgrade.files,
+    workspacePreviousInventories: workspaceUpgrade.inventories ?? [],
     platformContract: foundation.platformContract,
     files: fileHashes,
   }

@@ -38,11 +38,11 @@ export function workspaceStoragePatch(directory: string): string {
 }
 export function workspaceProfilePatch(identity: WorkspaceIdentity, root?: string): string {
   const value = workspaceIdentity(identity.environment, identity.tenantId, identity.userId)
-  return workspaceStoragePatch(workspaceDirectory(value, root)) + `\n- id: agent-presets\n  config:\n    includeUserRoot: false\n    roots:\n      - path: ${JSON.stringify(path.join(workspaceDirectory(value, root), 'agent-presets'))}\n        trust: system\n- id: futurestaff-core\n  config:\n    identityMode: single-subject\n    tenantId: ${JSON.stringify(value.tenantId)}\n    userId: ${JSON.stringify(value.userId)}\n    visaAccessRole: collector\n`
+  return workspaceStoragePatch(workspaceDirectory(value, root)) + `\n- id: agent-presets\n  config:\n    default: standard\n    includeUserRoot: false\n    roots:\n      - path: ${JSON.stringify(path.join(workspaceDirectory(value, root), 'agent-presets'))}\n        trust: system\n- id: futurestaff-core\n  config:\n    identityMode: single-subject\n    tenantId: ${JSON.stringify(value.tenantId)}\n    userId: ${JSON.stringify(value.userId)}\n    visaAccessRole: collector\n`
 }
-const marketPatchMarker = '# FutureStaff role market workspace v1'
+const marketPatchMarker = '# FutureStaff role market workspace v2'
 export function workspaceMarketPatch(identity: WorkspaceIdentity, root?: string): string {
-  return `\n${marketPatchMarker}\n- id: ui-agent-preset\n  disabled: false\n- id: agent-presets\n  config:\n    includeUserRoot: false\n    roots:\n      - path: ${JSON.stringify(path.join(workspaceDirectory(identity, root), 'agent-presets'))}\n        trust: system\n`
+  return `\n${marketPatchMarker}\n- id: ui-agent-preset\n  disabled: false\n- id: agent-presets\n  config:\n    default: standard\n    includeUserRoot: false\n    roots:\n      - path: ${JSON.stringify(path.join(workspaceDirectory(identity, root), 'agent-presets'))}\n        trust: system\n`
 }
 async function realDirectory(directory: string) {
   const info = await lstat(directory)
