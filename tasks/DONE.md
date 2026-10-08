@@ -1,3 +1,7 @@
+## Agent market 2.0.15 — deployed 2026-10-08
+
+Platform builtin templates run through local DSH presets. Platform source baaa9a45; packaged desktop 7b8267faac. DEV/PROD guarded deployment, signed stable feed and complete HTTPS installer verified. Local custom inference preserved through task-only code overlay. No database migration or installer execution; user restart and acceptance pending. Validation and rollback: tasks/agent-market.md.
+
 ## B11 — Website Logo, blue-white access and remembered login released 2.0.14 (2026-10-08)
 
 - User authorized commit, push and publication. Source: 05b35f334e8571694bc2ecac826eebf70e8cc443 (UI source 0ce52bebee and existing workspace fix 05b35f334e).

@@ -1,7 +1,9 @@
 # Agent market — platform recipes, local DSH execution
 
-High Risk; local implementation validated, 2026-10-08. Both repositories on main; existing changes preserved.
-Platform baseline b25c1e8. No deployment, migration, credentials, commit or push.
+High Risk; deployed, 2026-10-08. Both repositories on main; unrelated changes preserved.
+Initial implementation baseline b25c1e8; release aligned to c9101023 before committing.
+Platform source baaa9a450115ae28d57f888c2e74609304c80347;
+desktop packaged source 7b8267faacc51963d7f0a74d4db4c4c417bbcb66.
 
 Scope: desktop-authenticated builtin catalog 0.1.0; tenant module filtering;
 immutable local snapshots; native Preset picker; market and local-role settings UI.
@@ -13,7 +15,7 @@ Validate backend auth/module filtering and recipe versions; local isolation,
 atomic/idempotent installation, restart discovery and tool preservation; package
 typecheck/build/tests and repository diff hygiene. Live deployment is separate.
 
-Evidence:
+Initial implementation evidence:
 - Platform focused/regression pytest: 47 passed, 1 existing opt-in test skipped.
 - New Python files Ruff passed; main.py has the same 68 diagnostics as HEAD, no new diagnostics.
 - fs-platform-access package build/typecheck and 122 tests passed.
@@ -32,7 +34,37 @@ Host/browser lib upgrades only when the complete installed inventory matches
 the audited 2.0.14 public release; custom code and user data remain preserved.
 Initial production-image pytest could not run because pytest is intentionally
 absent; local 47-test evidence and actual-image offline imports/route projection
-are separate checks. Signed installer publication remains pending at this source commit.
+are separate checks. Publication evidence follows.
+
+Deployment evidence (2026-10-08):
+- Platform DEV generation 39 and PROD generation 12; same backend image
+  sha256:fd31267f5c48b73aac8e2cda9f9d447b58624a3acd2e58e3aee155b507db25a3.
+  PROD manifest sha256:c1820c188cae8ca0354a2806e6d2cca9ea825e1740a0c264bc9f759f5d48847c.
+  No migration; schema generations unchanged (DEV 12, PROD 3).
+- Actual dependency image excludes pytest. Container imports, OpenAPI route and
+  tenant projection passed offline. Live health 200, catalog without bearer 401.
+  Unrelated container IDs/start times preserved. Platform deployment audit tags pushed.
+- Final access suite 118 passed; stable 1094 and Beta 1029 passed (13 skips each),
+  root 64 passed. Build/typechecks, native closure and actual ASAR/Profile inspection passed.
+- https://fsstory.net/desktop-updates/stable.json publishes 2.0.15 with rollback 2.0.14.
+  Live client signature parser and complete HTTPS installer download verified:
+  130942890 bytes, cb5565e34f9bf7a92f5212cdec7dd18b86446d300787ded307552c31456ce021.
+  Feed digest 89cb65c4069b8cd895ae7319691c1500528295a6df69f31bee9ad7480a726598.
+  Private trust/READY endpoints return 404; update container not restarted.
+- The active local identity Profile has a pre-existing inference-service extension,
+  so the strict bundled upgrade deliberately preserves it. Applied a reviewed nine-file
+  market-only overlay with backups outside Git: new market/role modules and browser,
+  additive authorization/mount/settings edits, and native Preset root configuration.
+  Existing inference registration, identity and user history remain in place.
+  Syntax and exact code diffs reviewed; current running process awaits the user's
+  confirmed update/restart. Local inventory/backup lives in the ignored external build
+  directory, not in release artifacts. The installer itself was never executed by Codex.
+
+Rollback: restore the previous signed feed using the established operator tooling
+and retain immutable installers. Restore the previous platform backend image
+sha256:515b62a89ea161e7f793f5d4e751dfc3ddd3be655cf521d93b98b839f9ee00e2
+through a new guarded generation; no schema rollback. For local customization,
+restore only backed-up market overlay code/config slots; preserve snapshots/history.
 
 Remaining release acceptance: live authenticated catalog with the deployed endpoint,
 native desktop visual/keyboard smoke, actual session restart in the packaged runtime.
