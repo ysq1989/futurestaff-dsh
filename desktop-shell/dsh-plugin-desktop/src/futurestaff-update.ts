@@ -133,8 +133,8 @@ export async function verifyWindowsUpdate(path: string, thumbprint: string): Pro
   { windowsHide: true, timeout: 30_000, env: { ...process.env, FUTURESTAFF_UPDATE_PATH: path, FUTURESTAFF_UPDATE_SIGNER: thumbprint } })
 }
 
-/** Repeat byte and publisher validation after any interactive confirmation. */
-export async function verifyFutureStaffInstaller(path: string, artifact: FutureStaffArtifact, thumbprint: string): Promise<void> {
+/** Verify exact installer bytes against signed release metadata. */
+export async function verifyFutureStaffInstallerBytes(path: string, artifact: FutureStaffArtifact): Promise<void> {
   const digest = createHash('sha256')
   let size = 0
   for await (const chunk of createReadStream(path)) {
@@ -143,6 +143,11 @@ export async function verifyFutureStaffInstaller(path: string, artifact: FutureS
     digest.update(chunk)
   }
   if (size !== artifact.size || digest.digest('hex') !== artifact.sha256) throw new Error('UPDATE_HASH_REJECTED')
+}
+
+/** Authenticode-required delivery retains its independent publisher boundary. */
+export async function verifyFutureStaffInstaller(path: string, artifact: FutureStaffArtifact, thumbprint: string): Promise<void> {
+  await verifyFutureStaffInstallerBytes(path, artifact)
   await verifyWindowsUpdate(path, thumbprint)
 }
 

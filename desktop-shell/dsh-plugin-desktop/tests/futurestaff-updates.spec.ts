@@ -13,11 +13,13 @@ function signed(version = '2.0.11'): Response {
     version, notes: 'Release notes', installer: artifact, rollback: { ...artifact, version: '2.0.9' } })
   return Response.json({ payload, signature: sign(null, Buffer.from(payload), keys.privateKey).toString('base64') })
 }
-function harness(options: { configured?: boolean; accept?: boolean; version?: string; packaged?: boolean; reject?: boolean; delivery?: Config['delivery']; signer?: string } = {}) {
+function harness(options: { configured?: boolean; accept?: boolean; version?: string; packaged?: boolean; reject?: boolean; delivery?: Config['delivery']; signer?: string; stageFailure?: boolean } = {}) {
   const notice = vi.fn(async () => {})
   const confirm = vi.fn(async () => options.accept ?? false)
   const install = vi.fn(async () => {})
   const download = vi.fn(async () => {})
+  const stage = vi.fn(async () => { if (options.stageFailure) throw Error('verification failed') })
+  const refresh = vi.fn()
   const notify = vi.fn()
   const request = vi.fn(async () => { if (options.reject) throw new Error('offline'); return signed(options.version) })
   const unregister = vi.fn()
@@ -25,18 +27,48 @@ function harness(options: { configured?: boolean; accept?: boolean; version?: st
   let tray: DesktopTrayItem | undefined
   let dispose: (() => void) | undefined
   const ctx = { desktopRuntime: { platform: 'win32', locale: 'zh', updates: { isPackaged: options.packaged ?? true,
-    currentVersion: '2.0.10', request, notify, futureStaff: { notice, confirm, install, download } },
-  registerTrayItem: (item: DesktopTrayItem) => { tray = item; return { refresh() {}, dispose: trayDispose } } },
+    currentVersion: '2.0.10', request, notify, futureStaff: { notice, confirm, install, download, stage } },
+  registerTrayItem: (item: DesktopTrayItem) => { tray = item; return { refresh, dispose: trayDispose } } },
   webServer: { port: 43821, register: vi.fn(() => unregister) },
   effect: (fn: () => (() => void)) => { dispose = fn() },
   } as unknown as Context
   apply(ctx, { ...config, ...(options.delivery === undefined ? {} : { delivery: options.delivery }),
     ...(options.signer === undefined ? {} : { signerThumbprint: options.signer }),
     ...(options.configured === false ? { manifestUrl: '' } : {}) })
-  return { notice, confirm, install, download, notify, request, unregister, trayDispose,
+  return { notice, confirm, install, download, stage, refresh, notify, request, unregister, trayDispose,
+    label: () => tray!.label(),
     check: () => tray!.invoke(), dispose: () => dispose!(), ctx }
 }
 afterEach(() => { vi.useRealTimers() })
+
+it('prepares in background without a download prompt or installation, then exposes the ready action', async () => {
+  vi.useFakeTimers()
+  const h = harness({ delivery: 'confirmed-install', signer: '' })
+  await vi.advanceTimersByTimeAsync(60_000)
+  expect(h.stage).toHaveBeenCalledWith(expect.objectContaining({ version: '2.0.11' }),
+    expect.objectContaining({ delivery: 'confirmed-install' }), expect.any(AbortSignal), false)
+  expect(h.label()).toContain('重启并更新')
+  expect(h.confirm).not.toHaveBeenCalled(); expect(h.install).not.toHaveBeenCalled()
+  await vi.advanceTimersByTimeAsync(6 * 60 * 60_000)
+  expect(h.notify).toHaveBeenCalledOnce()
+  await h.check()
+  expect(h.stage).toHaveBeenLastCalledWith(expect.any(Object), expect.any(Object), expect.any(AbortSignal), true)
+  h.dispose()
+})
+it('coalesces manual in-app checks and skips the old find-an-installer flow', async () => {
+  const h = harness({ delivery: 'confirmed-install', signer: '' })
+  await Promise.all([h.check(), h.check(), h.check()]); h.dispose()
+  expect(h.stage).toHaveBeenCalledOnce(); expect(h.confirm).not.toHaveBeenCalled()
+  expect(h.download).not.toHaveBeenCalled(); expect(h.install).not.toHaveBeenCalled()
+})
+it('does not announce readiness when background preparation fails', async () => {
+  vi.useFakeTimers()
+  const h = harness({ delivery: 'confirmed-install', stageFailure: true })
+  await vi.advanceTimersByTimeAsync(60_000)
+  expect(h.notify).not.toHaveBeenCalled(); expect(h.label()).toBe('检查软件更新')
+  await h.check(); h.dispose()
+  expect(h.notice).toHaveBeenCalledWith(expect.stringContaining('失败'))
+})
 
 it('manual download works without an Authenticode pin and never calls the installer', async () => {
   const h = harness({ accept: true, delivery: 'manual-download', signer: '' })

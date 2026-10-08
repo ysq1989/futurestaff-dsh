@@ -1,8 +1,10 @@
 # Desktop manual updates
 
-The user selected this delivery flow on 2026-10-08. See ADR-016.
+This operator-selectable mode remains available (ADR-016). The user subsequently
+selected confirmed in-app installation as the distribution default (ADR-018);
+see [the current flow](desktop-in-app-updates.md).
 
-The default `futurestaff-updates` distribution row has `delivery: manual-download`.
+An operator can set the `futurestaff-updates` row to `delivery: manual-download`.
 It uses the FutureStaff-controlled HTTPS feed and a pinned Ed25519 public key.
 The installer need not have a paid Windows publisher signature for this mode.
 After validating the feed, exact package size and SHA-256, the desktop reveals

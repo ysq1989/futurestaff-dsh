@@ -106,6 +106,7 @@ export interface DesktopUpdateAdapter {
     notice(message: string): Promise<void>
     confirm(release: FutureStaffRelease): Promise<boolean>
     download?(release: FutureStaffRelease, trust: FutureStaffManifestTrust, signal: AbortSignal): Promise<void>
+    stage?(release: FutureStaffRelease, trust: FutureStaffManifestTrust, signal: AbortSignal, manual: boolean): Promise<void>
     install(release: FutureStaffRelease, trust: FutureStaffUpdateTrust, signal: AbortSignal): Promise<void>
   }
   /** Whether the running executable came from an Electron package. */

@@ -33,7 +33,7 @@ async function inspect(path, version, origin, signerThumbprint, verifySignature)
 export async function prepareDesktopUpdate(config, options = {}) {
   const trust = { manifestUrl: config.manifestUrl, publicKey: config.publicKey, signerThumbprint: config.signerThumbprint }
   const delivery = config.delivery ?? 'signed-install'
-  if (!['manual-download', 'signed-install'].includes(delivery)) throw new Error('Invalid update delivery mode')
+  if (!['manual-download', 'signed-install', 'confirmed-install'].includes(delivery)) throw new Error('Invalid update delivery mode')
   if (delivery === 'signed-install') validateUpdateTrust(trust)
   else validateManifestTrust(trust)
   assertExternalSigningKey(config.privateKeyPath)

@@ -75,11 +75,12 @@ test('invalid signer, rollback, or manifest key prevents bundle output', async (
     await assert.rejects(prepareDesktopUpdate({ ...f.config, publicKey: other }, { verifySignature: verified }), /does not match/)
   } finally { await f.cleanup() }
 })
-test('manual publication supports unsigned EXEs but retains manifest signatures and exact hashes', async () => {
+for (const delivery of ['manual-download', 'confirmed-install']) {
+test(`${delivery} publication supports unsigned EXEs but retains manifest signatures and exact hashes`, async () => {
   const f = await fixture()
   try {
     let certificateChecks = 0
-    const manual = { ...f.config, delivery: 'manual-download', signerThumbprint: '' }
+    const manual = { ...f.config, delivery, signerThumbprint: '' }
     await prepareDesktopUpdate(manual, { verifySignature: async () => { certificateChecks++; throw new Error('No Windows certificate') } })
     assert.equal(certificateChecks, 0)
     const manualTrust = { manifestUrl: trust.manifestUrl, publicKey: trust.publicKey }
@@ -87,6 +88,7 @@ test('manual publication supports unsigned EXEs but retains manifest signatures 
     assert.equal(parseSignedRelease(await readFile(join(f.webroot, 'stable.json'), 'utf8'), manualTrust).version, '2.0.11')
   } finally { await f.cleanup() }
 })
+}
 test('tampered installers and incomplete bundles never change the live feed', async () => {
   const f = await fixture()
   try {

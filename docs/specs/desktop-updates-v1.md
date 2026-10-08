@@ -1,7 +1,8 @@
 # FutureStaff desktop updates V1
 
-The user's selected default is now download-only manual installation (ADR-016).
-See [manual updates](desktop-manual-updates.md). The signed-installation details
+The distribution default is now background preparation and confirmed in-app
+installation (ADR-018). Manual-download remains available as an operator choice.
+See [in-app updates](desktop-in-app-updates.md) and [manual updates](desktop-manual-updates.md). The signed-installation details
 below remain applicable only to optional `delivery: signed-install`.
 
 Owner: the embedded product desktop shell. Windows x64 only; no business data,

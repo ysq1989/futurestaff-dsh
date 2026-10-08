@@ -1,5 +1,24 @@
 # Current Atomic Task
 
+## B09: Confirmed in-app software updates
+
+- Requested 2026-10-08: background download, Restart and Update / Later,
+  automatic installation and relaunch without finding an EXE or setup wizard.
+- Baseline main `45c2cd0498`; preserve all unrelated changes and staging.
+- High Risk: executable handoff/private cache/public release. ADR-018 records
+  explicit authorization for manifest-verified installation without a paid CA;
+  existing Authenticode-required delivery keeps its current safeguards.
+- No business schema, tenant permissions, identity or Harness changes.
+- Acceptance: background/later never execute; cached installer survives restart;
+  signed feed and bytes reverified after confirmation; paths confined; failed
+  download/verification/spawn keeps current app; silent installer relaunches.
+- Validation: clean main full npm run check passed: stable 1,089 and Beta 1,029
+  tests, root 64 tests, builds/typechecks and runtime/loader/operations checks.
+  Background/later/cache/tamper/path/feed-change/spawn-error regressions passed.
+- Status: source verified; preparing unique 2.0.13 installer and live publication.
+  Previous 2.0.12 release preserved for rollback.
+
+
 ## B08: Managed desktop defaults
 
 - Requested 2026-10-08: keep the user's selected enhanced mode/Mica, disabled

@@ -12,12 +12,12 @@ export const name = 'futurestaff-updates'
 export const inject = ['desktopRuntime', 'webServer']
 export interface Config extends FutureStaffUpdateTrust {
   readonly background: boolean
-  readonly delivery?: 'manual-download' | 'signed-install'
+  readonly delivery?: 'manual-download' | 'signed-install' | 'confirmed-install'
 }
 export const Config: z<Config> = z.object({
   manifestUrl: z.string().default(''), publicKey: z.string().default(''),
   signerThumbprint: z.string().default(''), background: z.boolean().default(true),
-  delivery: z.union(['manual-download', 'signed-install'] as const).default('manual-download'),
+  delivery: z.union(['manual-download', 'signed-install', 'confirmed-install'] as const).default('manual-download'),
 })
 
 export function apply(ctx: Context, config: Config): void {
@@ -30,6 +30,7 @@ export function apply(ctx: Context, config: Config): void {
     let timer: ReturnType<typeof setTimeout> | undefined
     let controller: AbortController | undefined
     let announced: string | undefined
+    let readyVersion: string | undefined
     const zh = (): boolean => ctx.desktopRuntime.locale === 'zh'
     const message = (cn: string, en: string): string => zh() ? cn : en
     const run = (manual: boolean): Promise<void> => {
@@ -55,7 +56,22 @@ export function apply(ctx: Context, config: Config): void {
         const comparison = compareSemVerVersions(adapter.currentVersion, release.version)
         if (comparison === null) throw new Error('UPDATE_VERSION_REJECTED')
         if (comparison >= 0) {
+          readyVersion = undefined
+          tray.refresh()
           if (manual) await native.notice(message(`当前已是最新版本（${adapter.currentVersion}）。`, `You are up to date (${adapter.currentVersion}).`))
+          return
+        }
+        if (delivery === 'confirmed-install') {
+          if (!native.stage) throw new Error('UPDATE_STAGE_RUNTIME_REQUIRED')
+          const transferSignal = AbortSignal.any([controller.signal, AbortSignal.timeout(10 * 60_000)])
+          await native.stage(release, config, transferSignal, manual)
+          if (disposed) return
+          readyVersion = release.version
+          tray.refresh()
+          if (!manual && announced !== release.version) adapter.notify({ title: 'FutureStaff Agent',
+            body: message(`版本 ${release.version} 已准备好，请点击托盘“重启并更新”。`,
+              `Version ${release.version} is ready. Choose Restart and Update from the tray.`) })
+          announced = release.version
           return
         }
         if (!manual) {
@@ -80,7 +96,9 @@ export function apply(ctx: Context, config: Config): void {
       return active
     }
     const tray = ctx.desktopRuntime.registerTrayItem({ group: 'status', order: 10,
-      label: () => message('检查软件更新', 'Check for updates'), invoke: () => run(true),
+      label: () => readyVersion
+        ? message(`重启并更新（${readyVersion}）`, `Restart and Update (${readyVersion})`)
+        : message('检查软件更新', 'Check for updates'), invoke: () => run(true),
     })
     const unregister = ctx.webServer.register({ kind: 'exact', path: DESKTOP_UPDATE_CHECK_PATH,
       handler: (req, res) => handleDesktopUpdateCheckRequest(req, res,

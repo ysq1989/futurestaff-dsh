@@ -1,5 +1,9 @@
 # ADR-016: Manual desktop update delivery without paid Windows code signing
 
+The FutureStaff distribution default is superseded by ADR-018's explicitly
+confirmed in-app installation. This record continues to define manual-download
+and the unchanged Authenticode-required signed-install option.
+
 Accepted 2026-10-08 following the user's explicit selection of a simpler update
 flow. Extends ADR-015. The first-party default is now `manual-download`: check a
 pinned Ed25519-signed feed, verify exact SHA-256/size, and reveal the downloaded

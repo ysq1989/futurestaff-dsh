@@ -53,9 +53,11 @@ import {
   resolveDesktopUpdateArtifact,
   type DesktopUpdateArtifact,
 } from './update-download.ts'
-import type { UpdateCheckResult } from './update-checker.ts'
+import { compareSemVerVersions, type UpdateCheckResult } from './update-checker.ts'
 import type { DesktopSetupWizardSelection } from './setup-wizard-contract.ts'
-import { withFutureStaffDownload, withFutureStaffInstaller, verifyFutureStaffInstaller, type FutureStaffRelease, type FutureStaffUpdateTrust, type FutureStaffManifestTrust } from './futurestaff-update.ts'
+import { checkFutureStaffUpdate, withFutureStaffDownload, withFutureStaffInstaller, verifyFutureStaffInstaller,
+  type FutureStaffRelease, type FutureStaffUpdateTrust, type FutureStaffManifestTrust } from './futurestaff-update.ts'
+import { prepareFutureStaffUpdate, cleanupPreparedFutureStaffUpdate, verifyPreparedFutureStaffUpdate } from './futurestaff-update-cache.ts'
 import type { DesktopInstallationId } from './desktop-installation-id.ts'
 import { DESKTOP_RELEASE_CHANNEL } from './product-identity.ts'
 import type { DesktopReleaseChannel } from './update-checker.ts'
@@ -165,6 +167,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
         },
         install: (release, trust, signal) => this.installFutureStaffUpdate(release, trust, signal),
         download: (release, trust, signal) => this.downloadFutureStaffUpdate(release, trust, signal),
+        stage: (release, trust, signal, manual) => this.stageFutureStaffUpdate(release, trust, signal, manual),
       },
       get isPackaged() { return app.isPackaged },
       get canDownload() { return app.isPackaged && platformStrategy.updateDownloadPlatform !== undefined },
@@ -683,6 +686,37 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     })
   }
 
+  private async stageFutureStaffUpdate(release: FutureStaffRelease, trust: FutureStaffManifestTrust,
+    signal: AbortSignal, manual: boolean): Promise<void> {
+    if (!app.isPackaged || this.platform !== 'win32' || process.arch !== 'x64'
+      || (compareSemVerVersions(PRODUCT_VERSION, release.version) ?? 0) >= 0) throw new Error('UPDATE_PLATFORM_REJECTED')
+    const path = await prepareFutureStaffUpdate(release, trust, join(app.getPath('userData'), 'updates'),
+      (url, init) => net.fetch(url, init), signal)
+    if (!manual) return
+    const copy = desktopNativeCopy(this.currentLocale)
+    const answer = await this.showUpdateMessageBox({ type: 'info', title: copy.updateDownloadedTitle,
+      message: copy.updateReady(release.version),
+      detail: release.notes + '\n\n' + (this.currentLocale === 'zh'
+        ? '点击后将关闭软件、安装更新并自动重新打开。请先保存当前工作。'
+        : 'The app will close, install the update and reopen. Save your work first.'),
+      buttons: [this.currentLocale === 'zh' ? '重启并更新' : 'Restart and Update', copy.later],
+      defaultId: 1, cancelId: 1, noLink: true })
+    if (answer.response !== 0) return
+    signal.throwIfAborted()
+    const latest = await checkFutureStaffUpdate(trust, (url, init) => net.fetch(url, init), signal)
+    if (latest.version !== release.version || latest.installer.sha256 !== release.installer.sha256
+      || latest.installer.size !== release.installer.size || latest.installer.url !== release.installer.url) {
+      throw new Error('UPDATE_RELEASE_CHANGED')
+    }
+    await verifyPreparedFutureStaffUpdate(join(app.getPath('userData'), 'updates'), path, latest)
+    signal.throwIfAborted()
+    const spec = this.scheduled
+    if (!spec) throw new Error('UPDATE_SHELL_UNAVAILABLE')
+    await this.launchWindowsUpdateInstaller(path, true)
+    this.prepareToQuit()
+    spec.requestQuit(0)
+  }
+
   private async installFutureStaffUpdate(release: FutureStaffRelease, trust: FutureStaffUpdateTrust, signal: AbortSignal): Promise<void> {
     if (!app.isPackaged || this.platform !== 'win32' || process.arch !== 'x64') throw new Error('UPDATE_PLATFORM_REJECTED')
     const directory = join(app.getPath('userData'), 'updates')
@@ -808,6 +842,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   private async performUpdateArtifactCleanup(): Promise<void> {
     if (this.platform !== 'darwin' && this.platform !== 'win32') return
     const userDataPath = app.getPath('userData')
+    await cleanupPreparedFutureStaffUpdate(join(userDataPath, 'updates'), PRODUCT_VERSION)
     const artifact = await pendingDesktopUpdateArtifact(userDataPath, PRODUCT_VERSION, this.platform)
     if (artifact === undefined) return
     const copy = desktopNativeCopy(this.currentLocale)
@@ -825,11 +860,11 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   }
 
   /** Start the downloaded NSIS installer before releasing the current process. */
-  private async launchWindowsUpdateInstaller(installerPath: string): Promise<void> {
+  private async launchWindowsUpdateInstaller(installerPath: string, silent = false): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       let child: ReturnType<typeof spawn>
       try {
-        child = spawn(installerPath, ['--updated', '--force-run'], {
+        child = spawn(installerPath, [...(silent ? ['/S'] : []), '--updated', '--force-run'], {
           detached: true,
           stdio: 'ignore',
           shell: false,

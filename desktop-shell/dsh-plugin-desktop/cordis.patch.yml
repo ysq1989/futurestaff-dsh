@@ -30,7 +30,7 @@
           MCowBQYDK2VwAyEAv/G9b4BH/h9wmP+Bt2sy2B27AFBqg+KlO0SaM/5oIKU=
           -----END PUBLIC KEY-----
         signerThumbprint: ''
-        delivery: manual-download
+        delivery: confirmed-install
         background: true
 
 # A desktop launch has no terminal operator waiting for the Web readiness line.
