@@ -94,8 +94,10 @@ test('client registers Settings access and a mandatory login gate', () => {
   const OriginalContext = () => null
   const slots = {
     inject: (name, register) => { slotNames.push(name); register() },
+    subscribe: () => () => {},
     entries: () => [{ options: { key: 'context' }, component: OriginalContext }],
     register: (options, candidate) => {
+      if(options.priority === 1) return () => {}
       registrations.push(options)
       components.push(candidate)
       return () => {}
@@ -134,8 +136,9 @@ test('client registers Settings access and a mandatory login gate', () => {
   const second = []
   applyClient({ slots: {
     inject: (_name, register) => register(),
+    subscribe: () => () => {},
     entries: () => [{ options: { key: 'context' }, component: OriginalContext }],
-    register: (_options, component) => { second.push(component); return () => {} },
+    register: (_options, component) => { if (_options.priority === 1) return () => {}; second.push(component); return () => {} },
   } })
   assert.notEqual(settings.props.controller, second[5]().props.controller)
 })

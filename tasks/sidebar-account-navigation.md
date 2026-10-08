@@ -70,3 +70,14 @@ view.js/.map backed up and updated from the verified package; canonical brand.js
 dependency checked and plugin.js/index.js hashes unchanged. No installer execution,
 credential reads, business-data changes, migration or server restart performed.
 Restart/update and real login/UI acceptance remain with the user.
+
+Acceptance incident: 2.0.19 still showed the native sidebar and copy. Declaration
+callbacks ran before native occupants existed, returned a no-op, then never
+reconciled for later registrations. Fixed with public registration subscriptions
+and a losing transient entry to invalidate already-mounted outlets. Preserved
+entry composition and disposal. Real native renderer wrappers also required hiding
+the settings trigger inside the data-slot anchor, not the anchor itself.
+Primary 144 tests and actual native renderer late-registration browser fixture
+passed: subject header, account/version footer, tabs, normal/task copy, FutureStaff
+Agent title and initially hidden settings all verified. Same feature release
+authorization remains in scope; 2.0.20 correction publication in progress.

@@ -14,6 +14,7 @@ import { mountPlatformAccessPanel } from '../view.js'
 import { installAppearance } from './appearance.js'
 import { modePresentation } from './modes.js'
 import { createAccountSidebar } from './sidebar.js'
+import { watchSlotComponents } from './slot-components.js'
 import { LoginPreferences } from '../login-preferences.js'
 import { AgentMarketSection } from './market.js'
 import type { RememberedLoginHint } from '../remembered-login.js'
@@ -465,11 +466,9 @@ export function apply(ctx: ClientContext): void {
   // workspace on logout/tenant changes, including while the gate renders null.
   const controller = new PlatformDevClientController()
   if (typeof ctx.provide === 'function') ctx.provide('platformClientSession', controller)
-  ctx.slots.inject('sidebar', () => {
-    const original = ctx.slots.entries('sidebar').find(entry => entry.locale === 'sidebar' && (entry.options.priority ?? 0) === 0)
-    if (!original) return () => {}
-    return decorateSlotEntry(original, createAccountSidebar(controller))
-  })
+  ctx.slots.inject('sidebar', () => watchSlotComponents(ctx.slots, 'sidebar',
+    entry => entry.locale === 'sidebar' && (entry.options.priority ?? 0) === 0,
+    () => createAccountSidebar(controller)))
   ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({
     name: 'sidebar.brand.mark', priority: -100,
   }, FutureStaffBrandMark))
@@ -479,18 +478,13 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('conversation.hero.brand.mark', () => ctx.slots.register({
     name: 'conversation.hero.brand.mark', priority: -100,
   }, FutureStaffHeroMark))
-  ctx.slots.inject('conversation', () => {
-    const original = ctx.slots.entries('conversation').find(entry => (entry.options.priority ?? 0) === 0)
-    if (!original) return () => {}
-    return decorateSlotEntry(original, brandConversation(original.component as ComponentType<BrandedConversationProps>))
-  })
+  ctx.slots.inject('conversation', () => watchSlotComponents(ctx.slots, 'conversation',
+    entry => (entry.options.priority ?? 0) === 0,
+    component => brandConversation(component as ComponentType<BrandedConversationProps>)))
   for (const name of ['conversation.hero.agentPreset', 'conversation.session.header.actions', 'settings.section'] as const) {
-    ctx.slots.inject(name, () => {
-      const original = ctx.slots.entries(name).find(entry =>
-        entry.locale === 'settings.agentPreset' && (entry.options.priority ?? 0) === 0)
-      if (!original) return () => {}
-      return decorateSlotEntry(original, modePresentation(original.component as ComponentType<Record<string, unknown>>, name === 'conversation.hero.agentPreset'))
-    })
+    ctx.slots.inject(name, () => watchSlotComponents(ctx.slots, name,
+      entry => entry.locale === 'settings.agentPreset' && (entry.options.priority ?? 0) === 0,
+      component => modePresentation(component as ComponentType<Record<string, unknown>>, name === 'conversation.hero.agentPreset')))
   }
   ctx.slots.inject('conversation.chat.node', () => {
     const original = ctx.slots.entries('conversation.chat.node')

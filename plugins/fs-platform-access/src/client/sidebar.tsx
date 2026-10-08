@@ -37,7 +37,7 @@ export const sidebarCss = `
 .fs-sidebar-version{display:block;text-align:center;color:var(--text-tertiary);font-size:11px;padding:5px}
 .fs-sidebar-account{position:absolute;bottom:100%;left:0;right:0;z-index:20}.fs-sidebar-account[data-open=true]{background:var(--bg-elevated);border:1px solid var(--border-default);border-radius:10px;padding:6px;box-shadow:0 8px 24px var(--fs-shadow)}
 /* Keep the native settings modal and onboarding mounted; hide only its trigger row. */
-.fs-sidebar-account[data-open=false]>.fs-sidebar-settings>div:first-child{display:none}.fs-sidebar-exit{width:100%;text-align:left;color:var(--error)!important;padding:8px!important}
+.fs-sidebar-account[data-open=false]>.fs-sidebar-settings>div:not([data-slot]):first-child,.fs-sidebar-account[data-open=false]>.fs-sidebar-settings>[data-slot="sidebar.settings"]>div:first-child{display:none}.fs-sidebar-exit{width:100%;text-align:left;color:var(--error)!important;padding:8px!important}
 .fs-sidebar[data-collapsed=true]{padding:12px 8px}.fs-sidebar[data-collapsed=true] .fs-sidebar-brand{justify-content:center}.fs-sidebar[data-collapsed=true] .fs-sidebar-tabs{flex-direction:column}.fs-sidebar[data-collapsed=true] .fs-sidebar-name,.fs-sidebar[data-collapsed=true] .fs-sidebar-version{display:none}
 `
 

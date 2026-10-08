@@ -50,6 +50,7 @@ test('product sidebar preserves the native child slot declarations and navigatio
   const registered = []
   apply({ slots: {
     inject: (_name, register) => register(),
+    subscribe: () => () => {},
     entries: name => name === 'sidebar' ? [original] : [],
     register: (options, component) => { registered.push({ options, component }); return () => {} },
   } })

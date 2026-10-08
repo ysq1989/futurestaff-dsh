@@ -29,6 +29,7 @@ test('product UI decorates real native registry entries without redeclaring chil
   const disposers = []
   apply({ slots: {
     entries: name => core.entries(name),
+    subscribe: (name, listener) => core.subscribe(name, listener),
     register: (options, component) => core.register(options, component),
     inject: (_name, callback) => { const dispose = callback(); disposers.push(dispose); return dispose },
   } })

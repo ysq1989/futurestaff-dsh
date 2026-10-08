@@ -13,6 +13,7 @@ test('all mode surfaces retain their original store injection, identity and loca
   const registered = []
   apply({ slots: {
     inject: (_name, register) => register(),
+    subscribe: () => () => {},
     entries: name => originals.filter(entry => entry.options.name === name),
     register: (options, component) => { registered.push({ options, component }); return () => {} },
   } })
