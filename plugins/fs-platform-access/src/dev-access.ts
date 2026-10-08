@@ -326,6 +326,15 @@ export class PlatformDevAccessController {
   }
 
   /** Host-only access; intentionally absent from all renderer HTTP routes. */
+  authorizeTemplates(): Promise<{ accessToken: string; tenantId: string; userId: string; signal: AbortSignal }> {
+    return this.#enqueue(async () => {
+      if (!this.#session || !this.#user || !['ready', 'no_apps'].includes(this.#snapshot.phase)
+        || this.#snapshot.activeTenantId !== this.#session.activeTenantId) throw new Error('PLATFORM_LOGIN_REQUIRED')
+      return { accessToken: this.#session.accessToken, tenantId: this.#session.activeTenantId,
+        userId: this.#user.userId, signal: this.#request.signal }
+    })
+  }
+
   authorizeLocal(): Promise<{ tenantId: string; userId: string; signal: AbortSignal }> {
     return this.#enqueue(async () => {
       if (!this.#session || !this.#user || !['ready', 'no_apps'].includes(this.#snapshot.phase)

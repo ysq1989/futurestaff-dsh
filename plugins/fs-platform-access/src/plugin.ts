@@ -1,4 +1,6 @@
 import { platformOrigin, type PlatformEnvironment } from './environment.js'
+import { mountMarket } from './market-host.js'
+import { roleRoot } from './market.js'
 import { DesktopLoginWorkspace, readWorkspaceIdentity, workspaceName } from './workspace.js'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
@@ -118,6 +120,10 @@ function mountDevLogin(ctx: Context, environment: PlatformEnvironment): void {
     pkce: new PlatformPkceTransaction({ environment }), api, vault,
   })
   const initialized = access.restore()
+  if (identity) mountMarket(ctx, origin, identity, roleRoot(identity), async () => {
+    await initialized
+    return access.authorizeTemplates()
+  })
   applyManagedModelDefault(ctx, { snapshot: () => access.getSnapshot(), authorize: async modelId => { await initialized; return access.authorizeChat(modelId) } })
   ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/_futurestaff/platform-dev/environment',
     handler: (request, response) => {

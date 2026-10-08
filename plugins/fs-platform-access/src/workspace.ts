@@ -38,7 +38,11 @@ export function workspaceStoragePatch(directory: string): string {
 }
 export function workspaceProfilePatch(identity: WorkspaceIdentity, root?: string): string {
   const value = workspaceIdentity(identity.environment, identity.tenantId, identity.userId)
-  return workspaceStoragePatch(workspaceDirectory(value, root)) + `\n- id: futurestaff-core\n  config:\n    identityMode: single-subject\n    tenantId: ${JSON.stringify(value.tenantId)}\n    userId: ${JSON.stringify(value.userId)}\n    visaAccessRole: collector\n`
+  return workspaceStoragePatch(workspaceDirectory(value, root)) + `\n- id: agent-presets\n  config:\n    includeUserRoot: false\n    roots:\n      - path: ${JSON.stringify(path.join(workspaceDirectory(value, root), 'agent-presets'))}\n        trust: system\n- id: futurestaff-core\n  config:\n    identityMode: single-subject\n    tenantId: ${JSON.stringify(value.tenantId)}\n    userId: ${JSON.stringify(value.userId)}\n    visaAccessRole: collector\n`
+}
+const marketPatchMarker = '# FutureStaff role market workspace v1'
+export function workspaceMarketPatch(identity: WorkspaceIdentity, root?: string): string {
+  return `\n${marketPatchMarker}\n- id: ui-agent-preset\n  disabled: false\n- id: agent-presets\n  config:\n    includeUserRoot: false\n    roots:\n      - path: ${JSON.stringify(path.join(workspaceDirectory(identity, root), 'agent-presets'))}\n        trust: system\n`
 }
 async function realDirectory(directory: string) {
   const info = await lstat(directory)
@@ -75,7 +79,6 @@ export class DesktopLoginWorkspace implements LoginWorkspace {
   async enter(session: DesktopSession, user: User): Promise<boolean> {
     const identity = workspaceIdentity(this.environment, session.activeTenantId, user.userId)
     const name = workspaceName(identity)
-    if (this.accepts(session, user)) return true
     const profilesRoot = path.dirname(this.profiles.current.dir)
     const target = path.join(profilesRoot, name)
     const source = path.join(profilesRoot, 'futurestaff-alpha')
@@ -91,7 +94,7 @@ export class DesktopLoginWorkspace implements LoginWorkspace {
       manifest.name = `@futurestaff/${name}`
       await writeFile(path.join(staging, 'package.json'), JSON.stringify(manifest, null, 2))
       const patch = await readFile(path.join(source, 'cordis.patch.yml'), 'utf8')
-      await writeFile(path.join(staging, 'cordis.patch.yml'), patch + workspaceProfilePatch(identity, this.dataRoot))
+      await writeFile(path.join(staging, 'cordis.patch.yml'), patch + workspaceProfilePatch(identity, this.dataRoot) + workspaceMarketPatch(identity, this.dataRoot))
       for (const module of ['fs-core', 'fs-platform-access', 'fs-product-hub-ui']) {
         const from = path.join(source, 'node_modules', '@futurestaff', module)
         await realDirectory(from)
@@ -120,6 +123,15 @@ export class DesktopLoginWorkspace implements LoginWorkspace {
     }
     const storedIdentity = await loadWorkspaceIdentity(target, this.environment)
     if (JSON.stringify(storedIdentity) !== JSON.stringify(identity)) throw new Error('WORKSPACE_IDENTITY_MISMATCH')
+    const patchPath = path.join(target, 'cordis.patch.yml')
+    const existingPatch = await readFile(patchPath, 'utf8')
+    const needsMarket = !existingPatch.includes(marketPatchMarker)
+    if (needsMarket) {
+      const temporary = `${patchPath}.${randomUUID()}.tmp`
+      await writeFile(temporary, existingPatch + workspaceMarketPatch(identity, this.dataRoot))
+      await rename(temporary, patchPath)
+    }
+    if (this.accepts(session, user) && !needsMarket) return true
     if (!this.profiles.list().some(item => item.name === name && item.webCapable && !item.problem)) throw new Error('WORKSPACE_PROFILE_UNAVAILABLE')
     await new PlatformSessionVault(this.secrets, this.environment, name).save({ session, user })
     await this.profiles.select(name)

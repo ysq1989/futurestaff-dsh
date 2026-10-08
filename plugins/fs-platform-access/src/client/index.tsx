@@ -13,6 +13,7 @@ import { decodePlatformDevAccessSnapshot } from '../dev-access.js'
 import { mountPlatformAccessPanel } from '../view.js'
 import { installAppearance } from './appearance.js'
 import { LoginPreferences } from '../login-preferences.js'
+import { AgentMarketSection } from './market.js'
 
 const DEV_ROUTE_PREFIX = '/_futurestaff/platform-dev'
 const DEV_LOGIN_ROUTE = `${DEV_ROUTE_PREFIX}/login`
@@ -370,6 +371,9 @@ export function apply(ctx: ClientContext): void {
     return ctx.slots.register({ name: 'conversation.chat.node', key: 'context', priority: -100 },
       contextRenderer(original as ComponentType<ChatNodeViewProps<'context'>>))
   })
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section', id: 'futurestaff-agent-market', order: -9, label: 'Agent 市场',
+  }, AgentMarketSection))
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section', id: 'futurestaff-access', order: -10, label: 'FutureStaff',
   }, () => createElement(FutureStaffPlatformAccessSection, { controller })))

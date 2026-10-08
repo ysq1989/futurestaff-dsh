@@ -1,7 +1,7 @@
 import { FileSettingsProvider } from '@deepseek-ai/dsh-settings-file'
 
 // Product policy, not a Renderer-editable setting. New namespaces require review.
-const personalNamespaces = new Set(['ui-theme', 'locale', 'ui-chat', 'ui-conversation', 'ui-onboarding'])
+const personalNamespaces = new Set(['ui-theme', 'locale', 'ui-chat', 'ui-conversation', 'ui-onboarding', 'agent-presets'])
 export const managedSettingsMessage = '此配置由 FutureStaff 统一管理，不能在 DSH 中修改。'
 
 /** Keep the upstream file/locking lifecycle while making composition authoritative. */

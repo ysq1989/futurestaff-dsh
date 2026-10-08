@@ -157,12 +157,14 @@ export async function stageReleaseProfile(options = {}) {
   const fileHashes = {}
   for (const relative of files) fileHashes[relative] = await sha256(path.join(target, relative))
   const foundation = JSON.parse(await readFile(path.join(sourceRoot, 'desktop', 'foundation.json'), 'utf8'))
+  const workspaceUpgrade = JSON.parse(await readFile(path.join(sourceRoot, 'profile', 'workspace-upgrade-2.0.14.json'), 'utf8'))
   const releaseManifest = {
     schemaVersion: 1,
     profile: profileName,
     productVersion: profileManifest.version,
     dshVersion: '0.1.2-rc.1',
-    supersedes: supersededReleaseManifests,
+    supersedes: [...supersededReleaseManifests, workspaceUpgrade.manifestDigest],
+    workspacePreviousFiles: workspaceUpgrade.files,
     platformContract: foundation.platformContract,
     files: fileHashes,
   }
