@@ -98,3 +98,14 @@ ASAR-aware reads, preserves file bytes/modes, rejects symlinks and honors aborts
 The installed Electron executable successfully imported the actual shipped standard
 preset into an isolated temporary role store. Nested binary assets and the existing
 market path regression passed. Local market.js was backed up and repaired as well.
+
+2.0.16 publication completed 2026-10-08, source
+`19a7e074f2c90173ce9d2c155b73493522b99dc0`. The actual final bundled workspace
+config generators passed the actual packaged Host schema under installed Electron;
+the actual bundled role store copied ASAR standard resources into an isolated
+fixture and retained tools and snapshot. Signed live feed and complete public
+HTTPS download verified: 130945380 bytes,
+`9d81714e3965551cbef700bd17e2a40d7029db0ebe63d0d4520eba04fb1bb262`.
+Feed digest `2caf05659cdc8f4c7b7720cd2f403a1ea959c932628075cf71d3192b31df6c03`;
+rollback 2.0.14; trust/READY remain private. No server service restart or database
+change. Full interactive recovery and authenticated market use remain user acceptance.

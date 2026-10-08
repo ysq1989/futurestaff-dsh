@@ -1,3 +1,7 @@
+## Agent market recovery fix 2.0.16 — published 2026-10-08
+
+Fixed required native preset default and one-time v1 workspace migration, plus ASAR preset asset copying. Repaired and backed up local market-owned files. 119 access tests, 1095 desktop tests (13 skips), real installed-schema and final bundled ASAR fixture passed. Signed live feed and complete installer bytes verified; rollback 2.0.14. Packaged source 19a7e074f2; user restart/acceptance pending. Evidence: tasks/agent-market.md.
+
 ## Agent market 2.0.15 — deployed 2026-10-08
 
 Platform builtin templates run through local DSH presets. Platform source baaa9a45; packaged desktop 7b8267faac. DEV/PROD guarded deployment, signed stable feed and complete HTTPS installer verified. Local custom inference preserved through task-only code overlay. No database migration or installer execution; user restart and acceptance pending. Validation and rollback: tasks/agent-market.md.
