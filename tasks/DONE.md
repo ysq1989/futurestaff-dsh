@@ -1,5 +1,26 @@
 # Completed Atomic Tasks
 
+## B09: Confirmed in-app software updates
+
+- Completed 2026-10-08; source main `b8679b4377`, live version 2.0.13; ADR-018.
+- Background download and verified private cache; ready notification/tray action;
+  Restart and Update / Later. Later reuses cached bytes across process restarts.
+  Confirmation rechecks signed current feed, confined cache path and exact bytes;
+  NSIS receives /S --updated --force-run, then the app shuts down after spawn.
+  Existing Authenticode-required delivery and all managed defaults remain intact.
+- Verification: clean main full npm run check; stable 1,089, Beta 1,029, root 64
+  tests; builds/typechecks/runtime/loader/operations gates and diff checks passed.
+  Cache, junction/path, tamper, cancellation, background/later, changed-feed and
+  failed-spawn regressions passed. Windows preflight 190 tests, installer check
+  and actual ASAR source/trust/handoff inspection passed.
+- Installer: `outputs/FutureStaff-Agent-2.0.13-x64-Setup.exe`, 132734849 bytes,
+  SHA-256 `d61bfa114cb1d5e841025d833c30ea257cf2ff7016cc0f216e7753f2e6c77ba1`.
+- Existing HTTPS update feed now advertises 2.0.13 and rollback 2.0.12. Actual
+  client signature parser and external full download verified size/hash. Feed
+  switched atomically; update container and business services were not restarted.
+- Old 2.0.11/2.0.12 clients require one bridge install. No installer executed by
+  agent; installed end-to-end upgrade/relaunch remains manual acceptance.
+
 ## B08: Managed FutureStaff desktop defaults
 
 - Completed 2026-10-08; source main `f7d22242a1`, live version 2.0.12.

@@ -15,8 +15,11 @@
 - Validation: clean main full npm run check passed: stable 1,089 and Beta 1,029
   tests, root 64 tests, builds/typechecks and runtime/loader/operations checks.
   Background/later/cache/tamper/path/feed-change/spawn-error regressions passed.
-- Status: source verified; preparing unique 2.0.13 installer and live publication.
-  Previous 2.0.12 release preserved for rollback.
+- Status: completed; source main `b8679b4377`, live 2.0.13 with rollback 2.0.12.
+  Windows preflight 190 tests and installer verification passed; actual ASAR
+  contained background preparation, confirmation, cache revalidation and silent
+  relaunch. External HTTPS client signature/full download/size/hash passed.
+  Installer not executed by agent; installed end-to-end acceptance remains manual.
 
 
 ## B08: Managed desktop defaults
