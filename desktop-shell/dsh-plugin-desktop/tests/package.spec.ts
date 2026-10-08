@@ -691,7 +691,7 @@ describe('published package surface', () => {
 
   it('fixes the installed application identity', () => {
     expect(workspaceManifest.version).toBeUndefined()
-    expect(manifest.version).toBe('2.0.13')
+    expect(manifest.version).toBe('2.0.14')
     expect(manifest.build?.productName).toBe('FutureStaff Agent')
     expect(manifest.description).toBe('FutureStaff Agent: a secure desktop client for tenant-aware AI workflows')
     expect(manifest.build?.appId).toBe('net.fsstory.agent.desktop')
@@ -878,7 +878,7 @@ describe('published package surface', () => {
       .update(readFileSync(new URL('build/app-icon.png', packageRoot)))
       .digest('hex')
 
-    expect(digest).toBe('e04f8e8f8d57069b427242a10fd162009fe4116cded7e644f1b041723d647f0e')
+    expect(digest).toBe('3fcb62e3ab02738fb9337aa73406006c5621de77fed9d5de8fb34cd8527ac85f')
   })
 
   it('ships a square transparent FutureStaff desktop icon', async () => {

@@ -1,3 +1,4 @@
+import { futureStaffLogoUrl } from '../brand.js'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
@@ -10,6 +11,8 @@ import type { PasswordLoginInput } from '../contracts.js'
 import type { PlatformAccessSnapshot } from '../controller.js'
 import { decodePlatformDevAccessSnapshot } from '../dev-access.js'
 import { mountPlatformAccessPanel } from '../view.js'
+import { installAppearance } from './appearance.js'
+import { LoginPreferences } from '../login-preferences.js'
 
 const DEV_ROUTE_PREFIX = '/_futurestaff/platform-dev'
 const DEV_LOGIN_ROUTE = `${DEV_ROUTE_PREFIX}/login`
@@ -51,7 +54,7 @@ export async function beginPlatformDevLogin(
   let url: URL
   try { url = new URL(value) } catch { throw new Error('FutureStaff login is unavailable.') }
   const keys = [...url.searchParams.keys()].sort().join(',')
-  if (url.origin + url.pathname !== 'https://dev.fsstory.net/login'
+  if (!['https://dev.fsstory.net/login', 'https://platform.fsstory.net/login'].includes(url.origin + url.pathname)
     || url.username !== '' || url.password !== '' || url.hash !== ''
     || keys !== 'client_id,code_challenge,code_challenge_method,redirect_uri,state'
     || url.searchParams.get('client_id') !== 'futurestaff-agent-pc-dev'
@@ -85,7 +88,7 @@ export async function getProductHubApplicationToken(
   if (Object.keys(token).sort().join(',') !== 'accessToken,audience,expiresIn,permissions,tenantId,tokenType'
     || typeof token.accessToken !== 'string' || !/^[\x21-\x7e]{20,8192}$/u.test(token.accessToken)
     || token.tokenType !== 'Bearer' || token.expiresIn !== 60
-    || token.audience !== 'futurestaff-product-hub-dev' || token.tenantId !== activeTenantId
+    || !['futurestaff-product-hub-dev','futurestaff-product-hub'].includes(String(token.audience)) || token.tenantId !== activeTenantId
     || !Array.isArray(permissions) || permissions.length === 0
     || permissions.some(permission => typeof permission !== 'string'
       || !/^product_hub\.[a-z][a-z0-9_]*$/u.test(permission))
@@ -135,7 +138,10 @@ export class PlatformDevClientController {
     // Native browser fetch is receiver-sensitive; do not invoke it as this.fetcher.
     private readonly fetcher: typeof fetch = (input, init) => globalThis.fetch(input, init),
     private readonly opener: Opener = (url, target, features) => window.open(url, target, features),
+    private readonly preferences = new LoginPreferences(),
   ) {}
+
+  getLoginHints = () => this.preferences.hints(this.#snapshot.user?.userId)
 
   getSnapshot = (): PlatformAccessSnapshot => this.#snapshot
 
@@ -191,7 +197,12 @@ export class PlatformDevClientController {
         body: JSON.stringify(input),
         headers: { 'x-futurestaff-login': '1' },
       })
-      if (generation === this.#generation) this.#publish(snapshot)
+      if (generation === this.#generation) {
+        if (snapshot.user && ['ready', 'no_apps', 'selecting_tenant'].includes(snapshot.phase)) {
+          this.preferences.rememberIdentifier(input.loginIdentifier)
+        }
+        this.#publish(snapshot)
+      }
     } catch {
       // Authentication rejections arrive as validated Host snapshots. Transport,
       // missing-route and malformed-response failures must never blame a password.
@@ -200,6 +211,13 @@ export class PlatformDevClientController {
   }
 
   async refresh(): Promise<void> { await this.#action('/session/refresh') }
+  async selectLoginTenant(tenantId: string): Promise<void> {
+    if (this.#snapshot.phase !== 'selecting_tenant' || !this.#snapshot.tenants.some(tenant => tenant.tenantId === tenantId)) return this.#publishFailure()
+    // Keep the offered choice before the Host restarts into its fixed workspace.
+    // This is only a form preference; the Host must still authenticate membership.
+    if (this.#snapshot.user) this.preferences.rememberTenant(this.#snapshot.user.userId, tenantId)
+    await this.#action('/auth/tenant', { tenantId })
+  }
   async logout(): Promise<void> { await this.#action('/session/logout') }
 
   async switchTenant(tenantId: string): Promise<void> {
@@ -252,6 +270,13 @@ export class PlatformDevClientController {
   }
 
   #publish(snapshot: PlatformAccessSnapshot): void {
+    if (snapshot.user && snapshot.activeTenantId && ['ready', 'no_apps'].includes(snapshot.phase)
+      && snapshot.tenants.some(tenant => tenant.tenantId === snapshot.activeTenantId)) {
+      if (!this.preferences.hints().loginIdentifier && snapshot.user.email) {
+        this.preferences.rememberIdentifier(snapshot.user.email)
+      }
+      this.preferences.rememberTenant(snapshot.user.userId, snapshot.activeTenantId)
+    }
     this.#snapshot = Object.freeze(snapshot)
     for (const listener of this.#listeners) listener()
   }
@@ -304,11 +329,8 @@ function FutureStaffPlatformLoginGate({ controller }: PlatformAccessViewProps) {
 export const inject = ['slots']
 
 function FutureStaffBrandMark({ size }: { readonly size: number }) {
-  return createElement('span', {
-    style: { display: 'grid', placeItems: 'center', width: size, height: size,
-      borderRadius: 6, border: '1px solid currentColor', color: 'var(--dsw-alias-brand-primary)',
-      fontSize: Math.round(size * 0.65), fontWeight: 700, lineHeight: 1 },
-  }, 'F')
+  return createElement('img', { src: futureStaffLogoUrl, alt: 'FutureStaff',
+    style: { width: size, height: size, objectFit: 'contain', flexShrink: 0 } })
 }
 
 function FutureStaffBrandName() {
@@ -330,9 +352,11 @@ function contextRenderer(original: ComponentType<ChatNodeViewProps<'context'>>) 
 
 /** Mount account access in Settings and require it before the desktop workspace is usable. */
 export function apply(ctx: ClientContext): void {
+  installAppearance(ctx)
   // One store per plugin instance: settings actions must immediately relock the
   // workspace on logout/tenant changes, including while the gate renders null.
   const controller = new PlatformDevClientController()
+  if (typeof ctx.provide === 'function') ctx.provide('platformClientSession', controller)
   ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({
     name: 'sidebar.brand.mark', priority: -100,
   }, FutureStaffBrandMark))
@@ -353,3 +377,5 @@ export function apply(ctx: ClientContext): void {
     name: 'shell.overlay', id: 'futurestaff-login-gate', order: -100,
   }, () => createElement(FutureStaffPlatformLoginGate, { controller })))
 }
+
+declare module '@deepseek-ai/cordis' { interface Context { platformClientSession: PlatformDevClientController } }

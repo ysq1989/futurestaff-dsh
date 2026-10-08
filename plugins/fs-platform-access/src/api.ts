@@ -1,3 +1,4 @@
+import { assertPlatformOrigin } from './environment.js'
 import {
   assertMeta,
   assertSession,
@@ -61,23 +62,22 @@ function assertLoopbackMockBaseUrl(raw: string): string {
   return url.origin
 }
 
-function assertPlatformDevBaseUrl(raw: string): string {
-  const url = new URL(raw)
-  if (url.origin !== PLATFORM_DEV_BASE_URL || url.href !== `${PLATFORM_DEV_BASE_URL}/`) {
-    throw new Error('B02a accepts only the exact Platform DEV origin')
-  }
-  return url.origin
-}
 
-function tenant(value: unknown): Tenant {
+function tenant(value: unknown, origin: string): Tenant {
   if (!isRecord(value)) throw new Error('invalid tenant')
   assertKeys(value, ['tenantId', 'displayName', 'slug', 'role'], ['logoUrl'])
   const role = requireString(value, 'role') as TenantRole
   if (!roles.includes(role)) throw new Error('invalid tenant role')
   const slug = requireBoundedString(value, 'slug', 2, 63)
   if (!slugPattern.test(slug)) throw new Error('invalid tenant slug')
-  const logoUrl = value.logoUrl
-  if (logoUrl !== undefined && logoUrl !== null) requireHttpUrl(value, 'logoUrl')
+  let logoUrl = value.logoUrl
+  if (typeof logoUrl === 'string' && logoUrl.startsWith('/')) {
+    if (logoUrl.startsWith('//') || logoUrl.includes('\\') || logoUrl.length > 2048) throw new Error('invalid tenant logo')
+    const image = new URL(logoUrl, origin)
+    if (image.origin !== origin || image.username || image.password) throw new Error('invalid tenant logo')
+    logoUrl = image.href
+  }
+  if (logoUrl !== undefined && logoUrl !== null) requireHttpUrl({ logoUrl }, 'logoUrl')
   return Object.freeze({
     tenantId: requireUuid(value, 'tenantId'),
     displayName: requireBoundedString(value, 'displayName', 1, 120),
@@ -207,7 +207,7 @@ abstract class PlatformApiClient {
       if (!isRecord(body) || !Array.isArray(body.items)) throw new Error('invalid tenant list')
       assertKeys(body, ['activeTenantId', 'items', 'meta'])
       return Object.freeze({
-        activeTenantId: requireUuid(body, 'activeTenantId'), items: Object.freeze(body.items.map(tenant)), meta: this.meta(body.meta),
+        activeTenantId: requireUuid(body, 'activeTenantId'), items: Object.freeze(body.items.map(item => tenant(item, this.baseUrl))), meta: this.meta(body.meta),
       })
     })
   }
@@ -220,7 +220,7 @@ abstract class PlatformApiClient {
       if (!isRecord(body)) throw new Error('invalid tenant switch response')
       assertKeys(body, ['tenant', 'session', 'meta'])
       const session = assertSession(body.session)
-      const selectedTenant = tenant(body.tenant)
+      const selectedTenant = tenant(body.tenant, this.baseUrl)
       if (session.activeTenantId !== selectedTenant.tenantId) throw new Error('tenant switch identity mismatch')
       return Object.freeze({ tenant: selectedTenant, session, meta: this.meta(body.meta) })
     })
@@ -273,7 +273,7 @@ abstract class PlatformApiClient {
     let response: Response
     try {
       response = await this.fetcher(`${this.baseUrl}${path}`, {
-        ...init,
+        ...init, redirect: 'error',
         headers: { 'Content-Type': 'application/json', ...init.headers },
       })
     } catch (error) {
@@ -353,13 +353,13 @@ export class PlatformMockApi extends PlatformApiClient {
 }
 
 export class PlatformDevApi extends PlatformApiClient {
-  constructor(fetcher: Fetch = globalThis.fetch, baseUrl = PLATFORM_DEV_BASE_URL) {
-    super(fetcher, assertPlatformDevBaseUrl(baseUrl), {
+  constructor(fetcher: Fetch = globalThis.fetch, baseUrl: string = PLATFORM_DEV_BASE_URL) {
+    super(fetcher, assertPlatformOrigin(baseUrl), {
       version: PLATFORM_DEV_CONTRACT_VERSION,
       simulated: false,
       requireMockProof: false,
       unavailableCode: 'PLATFORM_UNAVAILABLE',
-      unavailableMessage: 'FutureStaff Platform DEV 暂时不可用。',
+      unavailableMessage: 'FutureStaff 平台暂时不可用。',
     })
   }
 

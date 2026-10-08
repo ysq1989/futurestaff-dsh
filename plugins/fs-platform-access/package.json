@@ -14,7 +14,11 @@
       "types": "./lib/client/index.d.ts",
       "default": "./lib/client.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./managed-settings": {
+      "types": "./lib/managed-settings.d.ts",
+      "default": "./lib/managed-settings.js"
+    }
   },
   "dsh": {
     "client": {
@@ -22,6 +26,7 @@
         "@deepseek-ai/dsh-client-ui-layout",
         "@deepseek-ai/dsh-client-ui-chat",
         "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-theme",
         "@deepseek-ai/dsh-client-ui-settings"
       ],
       "platform": "web"
@@ -29,7 +34,7 @@
   },
   "files": ["lib"],
   "scripts": {
-    "build": "tsc -p tsconfig.json && node ../../scripts/build-dsh-client.mjs . @futurestaff/fs-platform-access",
+    "build": "tsc -p tsconfig.json && node ../../scripts/build-managed-settings.mjs && node ../../scripts/build-dsh-client.mjs . @futurestaff/fs-platform-access",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test"
   },
@@ -39,6 +44,7 @@
     "@deepseek-ai/dsh-client-ui-layout": "0.1.2-rc.1",
     "@deepseek-ai/dsh-client-ui-chat": "0.1.2-rc.1",
     "@deepseek-ai/dsh-client-ui-renderer": "0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-theme": "0.1.2-rc.1",
     "@deepseek-ai/dsh-client-ui-settings": "0.1.2-rc.1",
     "@deepseek-ai/dsh-host-webserver": "0.1.2-rc.1",
     "react": "^18.3.1"
@@ -49,10 +55,12 @@
     "@deepseek-ai/dsh-client-ui-layout": "0.1.2-rc.1",
     "@deepseek-ai/dsh-client-ui-chat": "0.1.2-rc.1",
     "@deepseek-ai/dsh-client-ui-renderer": "0.1.2-rc.1",
+    "@deepseek-ai/dsh-client-ui-theme": "0.1.2-rc.1",
     "@deepseek-ai/dsh-client-ui-settings": "0.1.2-rc.1",
     "@deepseek-ai/dsh-host-webserver": "0.1.2-rc.1",
     "@types/node": "^24.3.0",
     "@types/react": "~18.3.1",
-    "react": "^18.3.1"
+    "react": "^18.3.1",
+    "@deepseek-ai/dsh-settings-file": "0.1.2-rc.1"
   }
 }

@@ -1,10 +1,10 @@
+import { platformOrigin, type PlatformEnvironment } from './environment.js'
 import { createHash, randomBytes as nodeRandomBytes, timingSafeEqual } from 'node:crypto'
 import {
   PLATFORM_CLIENT_ID,
   type AuthCallbackInput,
 } from './contracts.js'
 
-const AUTHORIZATION_URL = 'https://dev.fsstory.net/login'
 const CALLBACK_URL = 'http://127.0.0.1:43821/callback'
 const TRANSACTION_TTL_MS = 5 * 60_000
 const RANDOM_BYTES = 32
@@ -27,6 +27,7 @@ export class PlatformPkceError extends Error {
 export interface PlatformPkceDependencies {
   readonly randomBytes?: (size: number) => Uint8Array
   readonly now?: () => number
+  readonly environment?: PlatformEnvironment
 }
 
 interface PendingTransaction {
@@ -57,11 +58,13 @@ function equal(left: string, right: string): boolean {
 export class PlatformPkceTransaction {
   readonly #randomBytes: (size: number) => Uint8Array
   readonly #now: () => number
+  readonly #authorizationUrl: string
   #pending: PendingTransaction | undefined
 
   constructor(dependencies: PlatformPkceDependencies = {}) {
     this.#randomBytes = dependencies.randomBytes ?? nodeRandomBytes
     this.#now = dependencies.now ?? Date.now
+    this.#authorizationUrl = `${platformOrigin(dependencies.environment)}/login`
   }
 
   begin(): { readonly authorizationUrl: string } {
@@ -88,7 +91,7 @@ export class PlatformPkceTransaction {
       }
       const challenge = createHash('sha256').update(verifier, 'ascii').digest('base64url')
       this.#pending = Object.freeze({ verifier, state, expiresAt: this.#now() + TRANSACTION_TTL_MS })
-      const url = new URL(AUTHORIZATION_URL)
+      const url = new URL(this.#authorizationUrl)
       url.searchParams.set('client_id', PLATFORM_CLIENT_ID)
       url.searchParams.set('redirect_uri', CALLBACK_URL)
       url.searchParams.set('state', state)
@@ -139,7 +142,7 @@ export class PlatformPkceTransaction {
 }
 
 export const platformPkceConstants = Object.freeze({
-  authorizationUrl: AUTHORIZATION_URL,
+  authorizationUrl: `${platformOrigin()}/login`,
   callbackUrl: CALLBACK_URL,
   transactionTtlMs: TRANSACTION_TTL_MS,
 })

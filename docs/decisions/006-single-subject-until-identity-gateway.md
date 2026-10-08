@@ -41,3 +41,17 @@ Rejected because FutureStaff must remain upgradeable against upstream DSH.
 - Alpha is safe for one explicitly controlled subject per deployment.
 - Misconfigured pseudo-multi-tenant startup fails closed.
 - Real multi-tenancy requires a separate gateway milestone rather than an environment-variable rename.
+
+## Desktop application clarification (2026-10-08)
+
+The 2.0.14 desktop release retains one fixed security subject per running Host.
+Platform password authentication obtains an offered tenant list; confirmation is
+authenticated again for that tenant and yields its server-derived member UUID.
+The launcher then restarts into a fixed environment/tenant/member Profile, with
+separate persistence and OS-protected session keys. The previous generation never
+becomes ready during this transition. Changing subjects requires logout and login.
+
+Remembered account/subject values are local form hints, never authorization.
+Legacy shared history remains in place and is not copied or assigned to a guessed
+tenant. This is process composition with the existing single-subject core; it does
+not introduce request-scoped multi-tenancy or a new business identity provider.

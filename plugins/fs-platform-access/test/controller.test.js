@@ -141,7 +141,7 @@ test('access views expose accessible structure and safe responsive content hooks
   assert.match(ready, /data-capability="true"/)
   assert.match(ready, /type="button"/)
   assert.match(ready, /当前租户没有可用模型/)
-  assert.match(ready, /切换至已配置模型的租户/)
+  assert.match(ready, /退出后重新选择有权限的租户登录/)
 
   const noApps = renderPlatformAccessView({
     phase: 'no_apps', user, tenants: [tenantA], activeTenantId: 'tenant-a', applications: [],

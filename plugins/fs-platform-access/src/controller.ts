@@ -12,7 +12,7 @@ import {
 } from './contracts.js'
 import { clearTenantBoundary, type TenantIsolationBoundary } from './isolation.js'
 
-export type AccessPhase = 'signed_out' | 'loading' | 'ready' | 'no_apps' | 'expired' | 'error'
+export type AccessPhase = 'signed_out' | 'loading' | 'selecting_tenant' | 'ready' | 'no_apps' | 'expired' | 'error'
 
 export interface PlatformAccessSnapshot {
   readonly phase: AccessPhase

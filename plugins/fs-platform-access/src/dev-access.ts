@@ -23,8 +23,9 @@ import {
 } from './contracts.js'
 import { clearTenantBoundary, type TenantIsolationBoundary } from './isolation.js'
 import type { StoredPlatformSession } from './session-vault.js'
+import type { LoginWorkspace } from './workspace.js'
 
-export type PlatformDevAccessPhase = 'signed_out' | 'loading' | 'ready' | 'no_apps' | 'expired' | 'error'
+export type PlatformDevAccessPhase = 'signed_out' | 'loading' | 'selecting_tenant' | 'ready' | 'no_apps' | 'expired' | 'error'
 
 export interface PlatformDevAccessSnapshot {
   readonly phase: PlatformDevAccessPhase
@@ -72,7 +73,7 @@ const initialSnapshot: PlatformDevAccessSnapshot = Object.freeze({
   tenants: Object.freeze([]), applications: Object.freeze([]), models: Object.freeze([]),
 })
 
-const phases: readonly PlatformDevAccessPhase[] = ['signed_out', 'loading', 'ready', 'no_apps', 'expired', 'error']
+const phases: readonly PlatformDevAccessPhase[] = ['signed_out', 'loading', 'selecting_tenant', 'ready', 'no_apps', 'expired', 'error']
 const roles = ['member', 'agent_admin', 'org_admin', 'platform_admin'] as const
 const failureCodes: readonly PlatformFailure['code'][] = [
   'INVALID_REQUEST', 'AUTHENTICATION_REQUIRED', 'TENANT_MEMBERSHIP_REQUIRED', 'TENANT_ACCESS_DENIED',
@@ -217,6 +218,11 @@ export function decodePlatformDevAccessSnapshot(value: unknown): PlatformDevAcce
       || (phase === 'no_apps' && applications.length !== 0))) {
     throw new Error('invalid DEV session snapshot')
   }
+  if (phase === 'selecting_tenant' && (!parsed.user || parsed.activeTenantId !== undefined || tenants.length === 0
+    || new Set(tenants.map(item => item.tenantId)).size !== tenants.length
+    || applications.length !== 0 || models.length !== 0 || parsed.activeModelId !== null || parsed.error)) {
+    throw new Error('invalid tenant login snapshot')
+  }
   if ((phase === 'expired' || phase === 'error') !== (parsed.error !== undefined)) {
     throw new Error('invalid DEV session snapshot')
   }
@@ -282,14 +288,25 @@ export class PlatformDevAccessController {
   #generation = 0
   #request = new AbortController()
   #queue: Promise<void> = Promise.resolve()
+  #pendingLogin: { session: DesktopSession; user: User; loginIdentifier: string; password: string; expiresAt: number } | undefined
+  #pendingExpiry: NodeJS.Timeout | undefined
+  #disposed = false
 
   constructor(
     private readonly api: PlatformDevAccessApi,
     private readonly vault: PlatformDevAccessVault,
     private readonly boundary: TenantIsolationBoundary,
+    private readonly workspace?: LoginWorkspace,
+    private readonly productHubAudience = 'futurestaff-product-hub-dev',
   ) {}
 
   getSnapshot(): PlatformDevAccessSnapshot { return this.#snapshot }
+  dispose(): void {
+    this.#disposed = true
+    this.#request.abort(); this.#generation++
+    this.#clearPendingLogin(); this.#session = undefined; this.#user = undefined
+    this.#publish(initialSnapshot)
+  }
 
   login(input: PasswordLoginInput): Promise<PlatformDevAccessSnapshot> {
     return this.#enqueue(() => this.#login(input))
@@ -297,7 +314,11 @@ export class PlatformDevAccessController {
   restore(): Promise<PlatformDevAccessSnapshot> { return this.#enqueue(() => this.#restore()) }
   refresh(): Promise<PlatformDevAccessSnapshot> { return this.#enqueue(() => this.#refresh()) }
   switchTenant(tenantId: string): Promise<PlatformDevAccessSnapshot> {
+    if (this.workspace) return Promise.reject(new Error('TENANT_RELOGIN_REQUIRED'))
     return this.#enqueue(() => this.#switchTenant(tenantId))
+  }
+  selectLoginTenant(tenantId: string): Promise<PlatformDevAccessSnapshot> {
+    return this.#enqueue(() => this.#selectLoginTenant(tenantId))
   }
   logout(): Promise<PlatformDevAccessSnapshot> { return this.#enqueue(() => this.#logout()) }
   issueApplicationToken(appId: string): Promise<ApplicationTokenResult> {
@@ -305,9 +326,17 @@ export class PlatformDevAccessController {
   }
 
   /** Host-only access; intentionally absent from all renderer HTTP routes. */
-  authorizeChat(): Promise<ChatCredentials> {
+  authorizeLocal(): Promise<{ tenantId: string; userId: string; signal: AbortSignal }> {
     return this.#enqueue(async () => {
-      const modelId = this.#snapshot.activeModelId
+      if (!this.#session || !this.#user || !['ready', 'no_apps'].includes(this.#snapshot.phase)
+        || this.#snapshot.activeTenantId !== this.#session.activeTenantId) throw new Error('PLATFORM_LOGIN_REQUIRED')
+      return { tenantId: this.#session.activeTenantId, userId: this.#user.userId, signal: this.#request.signal }
+    })
+  }
+
+  authorizeChat(selectedModelId?: string): Promise<ChatCredentials> {
+    return this.#enqueue(async () => {
+      const modelId = selectedModelId ?? this.#snapshot.activeModelId
       if (this.#session === undefined || this.#user === undefined
         || !['ready', 'no_apps'].includes(this.#snapshot.phase) || !modelId
         || this.#snapshot.activeTenantId !== this.#session.activeTenantId
@@ -323,10 +352,25 @@ export class PlatformDevAccessController {
     const operation = await this.#beginIsolatedOperation()
     this.#session = undefined
     this.#user = undefined
+    this.#clearPendingLogin()
     this.#publish({ ...initialSnapshot, phase: 'loading' })
     try {
       const result = await this.api.loginWithPassword(input, operation.signal)
       if (!this.#isCurrent(operation.generation)) return this.#snapshot
+      if (input.tenantId && result.session.activeTenantId !== input.tenantId) throw new Error('LOGIN_TENANT_MISMATCH')
+      if (this.workspace) {
+        const tenants = await this.api.listTenants(result.session.accessToken, operation.signal)
+        if (tenants.activeTenantId !== result.session.activeTenantId || tenants.items.length === 0
+          || !tenants.items.some(item => item.tenantId === result.session.activeTenantId)) throw new Error('LOGIN_TENANT_MISMATCH')
+        const pending = { session: result.session, user: result.user, loginIdentifier: input.loginIdentifier.trim(), password: input.password, expiresAt: Date.now() + 300_000 }
+        this.#pendingLogin = pending
+        this.#pendingExpiry = setTimeout(() => {
+          if (this.#pendingLogin === pending) void this.logout().catch(() => { this.#clearPendingLogin() })
+        }, 300_000)
+        this.#pendingExpiry.unref()
+        this.#publish({ ...initialSnapshot, phase: 'selecting_tenant', user: result.user, tenants: tenants.items })
+        return this.#snapshot
+      }
       await this.vault.save({ session: result.session, user: result.user })
       if (!this.#isCurrent(operation.generation)) return this.#snapshot
       this.#session = result.session
@@ -353,6 +397,11 @@ export class PlatformDevAccessController {
         this.#publish(initialSnapshot)
         return this.#snapshot
       }
+      if (this.workspace && !this.workspace.accepts(stored.session, stored.user)) {
+        this.#session = undefined; this.#user = undefined
+        this.#publish(initialSnapshot)
+        return this.#snapshot
+      }
       this.#session = stored.session
       this.#user = stored.user
       this.#publish({
@@ -367,12 +416,14 @@ export class PlatformDevAccessController {
   }
 
   async #refresh(): Promise<PlatformDevAccessSnapshot> {
+    if (this.#snapshot.phase === 'selecting_tenant') return this.#snapshot
     if (this.#session === undefined || this.#user === undefined) return this.#restore()
     const previous = this.#session
     const operation = this.#beginOperation()
     this.#publish({ ...this.#snapshot, phase: 'loading', applications: Object.freeze([]) })
     try {
       const result = await this.api.refresh(previous.refreshToken, operation.signal)
+      if (result.session.activeTenantId !== previous.activeTenantId) throw new Error('REFRESH_TENANT_MISMATCH')
       if (!this.#isCurrent(operation.generation)) return this.#snapshot
       await this.vault.save({ session: result.session, user: this.#user })
       if (!this.#isCurrent(operation.generation)) return this.#snapshot
@@ -410,10 +461,11 @@ export class PlatformDevAccessController {
   }
 
   async #logout(): Promise<PlatformDevAccessSnapshot> {
-    const refreshToken = this.#session?.refreshToken
+    const refreshToken = this.#session?.refreshToken ?? this.#pendingLogin?.session.refreshToken
     const operation = await this.#beginIsolatedOperation()
     this.#session = undefined
     this.#user = undefined
+    this.#clearPendingLogin()
     try {
       await this.vault.clear()
       if (this.#isCurrent(operation.generation)) this.#publish(initialSnapshot)
@@ -426,6 +478,47 @@ export class PlatformDevAccessController {
     return this.#snapshot
   }
 
+  async #selectLoginTenant(tenantId: string): Promise<PlatformDevAccessSnapshot> {
+    const pending = this.#pendingLogin
+    if (!this.workspace || !pending || this.#snapshot.phase !== 'selecting_tenant'
+      || !this.#snapshot.tenants.some(item => item.tenantId === tenantId)) throw new Error('LOGIN_TENANT_NOT_OFFERED')
+    if (Date.now() >= pending.expiresAt) {
+      await this.#logout()
+      return this.#snapshot
+    }
+    const operation = await this.#beginIsolatedOperation()
+    if (this.#pendingExpiry) clearTimeout(this.#pendingExpiry)
+    this.#pendingExpiry = undefined
+    this.#pendingLogin = undefined
+    this.#publish({ ...initialSnapshot, phase: 'loading' })
+    try {
+      // Password login with an explicit tenant returns that membership's real user ID.
+      // The legacy switch response has no user payload and cannot establish this boundary.
+      const result = await this.api.loginWithPassword({ loginIdentifier: pending.loginIdentifier, password: pending.password, tenantId }, operation.signal)
+      pending.password = ''
+      const { session, user } = result
+      if (session.activeTenantId !== tenantId) throw new Error('LOGIN_TENANT_MISMATCH')
+      try { await this.api.logout(pending.session.refreshToken, operation.signal) } catch { /* provisional login is never usable locally */ }
+      if (!await this.workspace.enter(session, user)) return this.#snapshot
+      await this.vault.save({ session, user })
+      this.#session = session; this.#user = user
+      await this.#loadContext(operation.generation)
+    } catch (error) {
+      this.#session = undefined; this.#user = undefined
+      this.#publish({ ...initialSnapshot, phase: 'error', error: failure(error, 'login') })
+    } finally {
+      pending.password = ''
+    }
+    return this.#snapshot
+  }
+
+  #clearPendingLogin(): void {
+    if (this.#pendingExpiry) clearTimeout(this.#pendingExpiry)
+    this.#pendingExpiry = undefined
+    if (this.#pendingLogin) this.#pendingLogin.password = ''
+    this.#pendingLogin = undefined
+  }
+
   async #issueApplicationToken(appId: string): Promise<ApplicationTokenResult> {
     const session = this.#session
     if (session === undefined || this.#snapshot.activeTenantId !== session.activeTenantId
@@ -435,7 +528,7 @@ export class PlatformDevAccessController {
     const result = await this.api.issueApplicationToken(
       session.accessToken, appId, session.activeTenantId, this.#request.signal,
     )
-    if (appId === 'product_hub' && (result.audience !== 'futurestaff-product-hub-dev'
+    if (appId === 'product_hub' && (result.audience !== this.productHubAudience
       || result.permissions.length === 0
       || result.permissions.some(permission => !permission.startsWith('product_hub.')))) {
       throw new Error('fs-platform-access: application token contract mismatch.')
@@ -499,7 +592,11 @@ export class PlatformDevAccessController {
   #isCurrent(generation: number): boolean { return generation === this.#generation }
 
   #enqueue<T>(operation: () => Promise<T>): Promise<T> {
-    const result = this.#queue.then(operation, operation)
+    const run = () => {
+      if (this.#disposed) throw new Error('PLATFORM_ACCESS_DISPOSED')
+      return operation()
+    }
+    const result = this.#queue.then(run, run)
     this.#queue = result.then(() => undefined, () => undefined)
     return result
   }

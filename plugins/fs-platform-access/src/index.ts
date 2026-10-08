@@ -9,3 +9,6 @@ export * from './session-vault.js'
 export * from './embedded-mock.js'
 export * from './view.js'
 export { apply, inject } from './plugin.js'
+
+export * from './environment.js'
+export * from './workspace.js'

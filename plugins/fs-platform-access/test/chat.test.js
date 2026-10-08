@@ -73,7 +73,7 @@ test('truncated, wrong-version and unsafe response data fail closed without refl
 
 test('managed chat distinguishes tenant model access and provider failures without reflecting server details', async () => {
   for (const [status, code, message] of [
-    [403, 'FUTURESTAFF_MODEL_ACCESS', /切换租户/],
+    [403, 'FUTURESTAFF_MODEL_ACCESS', /退出后重新选择租户登录/],
     [429, 'FUTURESTAFF_CHAT_LIMIT', /额度/],
   ]) {
     const bench = setup(async () => new Response('private provider detail', { status }))
@@ -92,13 +92,14 @@ test('managed chat distinguishes tenant model access and provider failures witho
   })
 })
 
-test('missing current-tenant model gives a tenant-switch instruction before any HTTP call', async () => {
+test('missing current-tenant model requires tenant relogin before any HTTP call', async () => {
   let requests = 0
   const adapter = new FutureStaffChatAdapter(async () => { throw new Error('private model inventory') },
     { read: async () => undefined, write: async () => {} }, async () => { requests++; throw new Error('unexpected') })
   await assert.rejects(() => collect(adapter.stream(options())), error => {
     assert.equal(error.code, 'FUTURESTAFF_AUTH')
     assert.match(error.message, /当前租户的可用模型/)
+    assert.match(error.message, /退出并重新选择租户登录/)
     assert.doesNotMatch(error.message, /private model inventory/)
     return true
   })

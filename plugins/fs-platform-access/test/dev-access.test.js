@@ -66,6 +66,33 @@ class FakeDevApi {
   }
 }
 
+test('Host local workspace authorization needs a current session but no model and carries no token', async () => {
+  const api = new FakeDevApi(), vault = new FakeVault()
+  api.listModels = async (_token, activeTenantId) => ({ activeTenantId, activeModelId: null, items: [], meta: { contractVersion: '0.1.1', simulated: false } })
+  const access = new PlatformDevAccessController(api, vault, new InMemoryTenantResources())
+  await assert.rejects(access.authorizeLocal())
+  await access.restore(); const principal = await access.authorizeLocal()
+  assert.deepEqual(Object.keys(principal).sort(), ['signal','tenantId','userId'])
+  assert.equal(principal.tenantId, tenantId); assert.equal(principal.userId, user.userId)
+  await access.switchTenant(otherTenantId); assert.equal(principal.signal.aborted, true)
+  assert.equal((await access.authorizeLocal()).tenantId, otherTenantId)
+  await access.logout(); await assert.rejects(access.authorizeLocal())
+})
+
+test('module inference can select an offered model and rejects an unoffered model', async () => {
+  const api = new FakeDevApi(), vault = new FakeVault()
+  const selected = { ...model, modelId: '30000000-0000-4000-8000-000000000002', displayName: '用户选择模型', isDefault: false }
+  api.listModels = async (_token, activeTenantId) => ({ activeTenantId, activeModelId: model.modelId, items: [model, selected], meta: { contractVersion: '0.1.1', simulated: false } })
+  const access = new PlatformDevAccessController(api, vault, new InMemoryTenantResources())
+  await access.restore()
+  assert.equal((await access.authorizeChat(selected.modelId)).modelId, selected.modelId)
+  assert.equal((await access.authorizeChat()).modelId, model.modelId)
+  await assert.rejects(access.authorizeChat('30000000-0000-4000-8000-000000000099'))
+  const credentials = await access.authorizeChat(selected.modelId)
+  await access.logout(); assert.equal(credentials.signal.aborted, true)
+  await assert.rejects(access.authorizeChat(selected.modelId))
+})
+
 test('DEV password login reports invalid credentials without reflecting platform details', async () => {
   const api = new FakeDevApi()
   api.loginWithPassword = async () => {
@@ -262,4 +289,22 @@ test('Host chat authorization uses the discovered default and invalidates its si
   await controller.logout()
   assert.equal(switched.signal.aborted, true)
   await assert.rejects(() => controller.authorizeChat(), /登录/)
+})
+
+
+test('production application tokens keep their environment audience boundary', async () => {
+  const api = new FakeDevApi()
+  api.listApplications = async (_token, activeTenantId) => ({ activeTenantId,
+    items: [{ ...application(activeTenantId), appId: 'product_hub', capabilities: ['product_hub.read'] }],
+    meta: { contractVersion: '0.1.1', simulated: false } })
+  let audience = 'futurestaff-product-hub'
+  api.issueApplicationToken = async (_token, _app, activeTenantId) => ({ accessToken: 'offline-fixture-token-with-entropy',
+    tokenType: 'Bearer', expiresIn: 60, audience, tenantId: activeTenantId, permissions: ['product_hub.read'],
+    meta: { contractVersion: '0.1.1', simulated: false } })
+  const controller = new PlatformDevAccessController(api, new FakeVault(), new InMemoryTenantResources(), undefined, 'futurestaff-product-hub')
+  await controller.restore()
+  assert.equal((await controller.issueApplicationToken('product_hub')).audience, audience)
+  audience = 'futurestaff-product-hub-dev'
+  await assert.rejects(() => controller.issueApplicationToken('product_hub'), /contract mismatch/)
+  await controller.logout()
 })

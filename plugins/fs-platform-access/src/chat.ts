@@ -1,3 +1,5 @@
+import type { PlatformModel } from './contracts.js'
+import { assertPlatformOrigin } from './environment.js'
 import { createHash, randomUUID } from 'node:crypto'
 import { LlmAdapter, LlmError, ToolCallId } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock, GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
@@ -11,13 +13,18 @@ export interface ChatCredentials {
   readonly signal: AbortSignal
 }
 
-const ENDPOINT = 'https://dev.fsstory.net/desktop/v1/chat'
 const unavailable = () => new LlmError('平台聊天服务暂时不可用，请检查登录状态或联系管理员。', 'FUTURESTAFF_CHAT')
 const invalid = () => new LlmError('平台聊天响应不完整或版本不兼容。', 'FUTURESTAFF_CONTRACT')
 const textOnly = (blocks: readonly ContentBlock[]): string => blocks.map(block => {
   if (block.type !== 'text') throw new LlmError('当前平台聊天仅支持文字，请移除图片或其他附件。', 'FUTURESTAFF_TEXT_ONLY')
   return block.text
 }).join('\n')
+
+export function chatOwnerKey(origin: string, sessionId: string): string {
+  assertPlatformOrigin(origin)
+  const environment = origin === 'https://dev.fsstory.net' ? '' : `${createHash('sha256').update(origin).digest('hex')}.`
+  return `futurestaff.chat.owner.${environment}${createHash('sha256').update(sessionId).digest('hex')}`
+}
 
 function messages(options: GenerateOptions): unknown[] {
   const result: unknown[] = options.system ? [{ role: 'system', content: options.system }] : []
@@ -47,10 +54,12 @@ export class FutureStaffChatAdapter extends LlmAdapter {
   readonly #lifetime = new AbortController()
 
   constructor(
-    private readonly authorize: () => Promise<ChatCredentials>,
+    private readonly authorize: (modelId?: string) => Promise<ChatCredentials>,
     private readonly secrets: Pick<PlatformProtectedSecrets, 'read' | 'write'>,
     private readonly fetcher: typeof fetch = fetch,
-  ) { super() }
+    private readonly origin: string = 'https://dev.fsstory.net',
+    private readonly catalog: () => Promise<readonly PlatformModel[]> = async () => [],
+  ) { super(); assertPlatformOrigin(origin) }
 
   dispose(): void { this.#lifetime.abort() }
   override providerInfo() { return { id: 'futurestaff', name: 'FutureStaff 平台' } }
@@ -58,26 +67,33 @@ export class FutureStaffChatAdapter extends LlmAdapter {
     return { mode: 'normal' as const, maxRetries: 0, retryableCodes: [], initialDelayMs: 0, maxDelayMs: 0, jitterRatio: 0 }
   }
   override async listModels() {
-    return [{ provider: 'futurestaff', id: 'default', name: '平台默认模型', inputModalities: ['text'] as const }]
+    return [{ provider: 'futurestaff', id: 'default', name: '平台默认模型', inputModalities: ['text'] as const },
+      ...(await this.catalog()).map(model => ({ provider: 'futurestaff', id: model.modelId, name: model.displayName, inputModalities: ['text'] as const }))]
   }
   override async resolveModel(provider: string, model: string) {
-    if (provider !== 'futurestaff' || model !== 'default') throw unavailable()
-    return { provider, id: model, name: '平台默认模型', inputModalities: ['text'] as const, defaultMaxTokens: 4096 }
+    if (provider !== 'futurestaff') throw unavailable()
+    const selected = (await this.listModels()).find(item => item.id === model)
+    if (!selected) throw unavailable()
+    return { ...selected, defaultMaxTokens: 4096 }
   }
   override async prepareCall(provider: string, model: string, signal?: AbortSignal) {
     const metadata = await this.resolveModel(provider, model)
     signal?.throwIfAborted()
-    const credentials = await this.#credentials()
+    const credentials = await this.#credentials(model)
     return { model: metadata, stream: (options: GenerateOptions) => this.#stream(options, credentials) }
   }
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     await this.resolveModel(options.provider, options.model)
-    yield* this.#stream(options, await this.#credentials())
+    yield* this.#stream(options, await this.#credentials(options.model))
   }
 
-  async #credentials(): Promise<ChatCredentials> {
-    try { return await this.authorize() } catch {
-      throw new LlmError('请在设置 → FutureStaff 检查登录与当前租户的可用模型；如有其他租户，可切换后重试。', 'FUTURESTAFF_AUTH')
+  async #credentials(model: string): Promise<ChatCredentials> {
+    try {
+      const credentials = await this.authorize(model === 'default' ? undefined : model)
+      if (model !== 'default' && credentials.modelId !== model) throw unavailable()
+      return credentials
+    } catch {
+      throw new LlmError('请在设置 → FutureStaff 检查登录与当前租户的可用模型；需要更换租户时，请退出并重新选择租户登录。', 'FUTURESTAFF_AUTH')
     }
   }
 
@@ -86,7 +102,7 @@ export class FutureStaffChatAdapter extends LlmAdapter {
     if (typeof sessionId !== 'string' || sessionId.length < 1 || sessionId.length > 256) {
       throw new LlmError('请在新建会话中使用平台聊天。', 'FUTURESTAFF_SESSION')
     }
-    const key = `futurestaff.chat.owner.${createHash('sha256').update(sessionId).digest('hex')}`
+    const key = chatOwnerKey(this.origin, sessionId)
     const owner = JSON.stringify({ userId: credentials.userId, tenantId: credentials.tenantId })
     const bind = async () => {
       credentials.signal.throwIfAborted()
@@ -127,13 +143,13 @@ export class FutureStaffChatAdapter extends LlmAdapter {
       signal.throwIfAborted()
       let response: Response
       try {
-        response = await this.fetcher(ENDPOINT, { method: 'POST', redirect: 'error', cache: 'no-store', signal,
+        response = await this.fetcher(`${this.origin}/desktop/v1/chat`, { method: 'POST', redirect: 'error', cache: 'no-store', signal,
           headers: { authorization: `Bearer ${credentials.accessToken}`, 'content-type': 'application/json', accept: 'application/x-ndjson' }, body })
       } catch { signal.throwIfAborted(); throw unavailable() }
       if (!response.ok) {
         await response.body?.cancel()
         if (response.status === 401) throw new LlmError('平台登录已失效，请在设置 → FutureStaff 重新登录。', 'FUTURESTAFF_AUTH')
-        if (response.status === 403) throw new LlmError('当前租户无权使用所选模型，请切换租户或联系管理员。', 'FUTURESTAFF_MODEL_ACCESS')
+        if (response.status === 403) throw new LlmError('当前租户无权使用所选模型，请联系管理员，或退出后重新选择租户登录。', 'FUTURESTAFF_MODEL_ACCESS')
         if (response.status === 429) throw new LlmError('平台聊天请求过于频繁或额度已用尽，请稍后重试。', 'FUTURESTAFF_CHAT_LIMIT')
         throw unavailable()
       }

@@ -10,6 +10,20 @@ import {
 
 const tenantId = '10000000-0000-4000-8000-000000000001'
 
+test('tenant confirmation sends only the offered tenant ID and does not ask the renderer for another password', async () => {
+  const calls=[]
+  const controller=new PlatformDevClientController(async (input,init) => {
+    calls.push({input,body:init.body})
+    return Response.json(calls.length===1 ? {...snapshot,phase:'selecting_tenant',activeTenantId:undefined,activeModelId:null,models:[],applications:[]} : snapshot)
+  },()=>{})
+  await controller.loginWithPassword({loginIdentifier:'fixture',password:'offline-password'})
+  assert.equal(controller.getSnapshot().phase,'selecting_tenant')
+  await controller.selectLoginTenant(tenantId)
+  assert.equal(calls[1].input,'/_futurestaff/platform-dev/auth/tenant')
+  assert.deepEqual(JSON.parse(calls[1].body),{tenantId})
+  assert.equal(controller.getSnapshot().phase,'ready')
+})
+
 test('default browser fetch retains its Window receiver for password login', async () => {
   const originalFetch = globalThis.fetch
   let requests = 0

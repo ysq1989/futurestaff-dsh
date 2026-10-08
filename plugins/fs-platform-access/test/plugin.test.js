@@ -113,7 +113,11 @@ test('client registers Settings access and a mandatory login gate', () => {
     { name: 'shell.overlay', id: 'futurestaff-login-gate', order: -100 },
   ])
   assert.ok(components.every(component => typeof component === 'function'))
-  assert.equal(components[0]({ size: 24 }).props.children, 'F')
+  const mark = components[0]({ size: 24 })
+  assert.equal(mark.type, 'img')
+  assert.equal(mark.props.alt, 'FutureStaff')
+  assert.match(mark.props.src, /^data:image\/svg\+xml,/)
+  assert.match(decodeURIComponent(mark.props.src), /viewBox="0 0 34 36"/)
   assert.equal(components[1]().props.children, 'FutureStaff Agent')
   const context = components[2]({ node: { data: {
     source: { kind: 'plugin', plugin: '@deepseek-ai/dsh-system-prompt' },
@@ -220,7 +224,8 @@ test('desktop Host mounts one exact loopback callback and persists a fake DEV ex
     provide: (name, value) => { if (name === 'platformDevLogin') loginService = value; return () => {} },
     webServer: { host: '127.0.0.1', port: 43821, register: route => { registrations.push(route); return () => {} } },
   })
-  assert.equal(registrations.length, 13)
+  assert.equal(registrations.length, 15)
+  assert.ok(registrations.some(route => route.path === '/_futurestaff/platform-dev/auth/tenant'))
   const startRoute = registrations.find(item => item.path === '/_futurestaff/platform-dev/login')
   const startServer = createServer((request, response) => {
     const path = new URL(request.url, 'http://127.0.0.1').pathname

@@ -1,3 +1,4 @@
+import { platformOrigin, type PlatformEnvironment } from './environment.js'
 import {
   assertKeys,
   assertSession,
@@ -70,12 +71,20 @@ function decode(value: unknown): StoredPlatformSession {
 }
 
 export class PlatformSessionVault {
-  constructor(private readonly secrets: PlatformProtectedSecrets) {}
+  private readonly sessionKey: string
+  constructor(private readonly secrets: PlatformProtectedSecrets, environment: PlatformEnvironment = 'dev', scope?: string) {
+    platformOrigin(environment)
+    this.sessionKey = environment === 'dev' ? SESSION_KEY : `${SESSION_KEY}.production`
+    if (scope !== undefined) {
+      if (!/^(?:login|fs-(?:dev|production)-[a-f0-9]{64})$/.test(scope)) throw new Error('SESSION_SCOPE_INVALID')
+      this.sessionKey += `.${scope}`
+    }
+  }
 
   async load(): Promise<StoredPlatformSession | undefined> {
     await this.requireProtection()
     let serialized: string | undefined
-    try { serialized = await this.secrets.read(SESSION_KEY) } catch {
+    try { serialized = await this.secrets.read(this.sessionKey) } catch {
       throw vaultError('storage-failure', '无法读取受保护的平台会话。')
     }
     if (serialized === undefined) return undefined
@@ -101,13 +110,13 @@ export class PlatformSessionVault {
       session: validated.session,
       user: validated.user,
     })
-    try { await this.secrets.write(SESSION_KEY, serialized) } catch {
+    try { await this.secrets.write(this.sessionKey, serialized) } catch {
       throw vaultError('storage-failure', '无法保存受保护的平台会话。')
     }
   }
 
   async clear(): Promise<void> {
-    try { await this.secrets.delete(SESSION_KEY) } catch {
+    try { await this.secrets.delete(this.sessionKey) } catch {
       throw vaultError('storage-failure', '无法清除受保护的平台会话。')
     }
   }
@@ -117,7 +126,7 @@ export class PlatformSessionVault {
     try { available = await this.secrets.available() } catch { /* normalized as unavailable */ }
     if (!available) return Object.freeze({ available: false, state: 'unavailable' })
     try {
-      return Object.freeze({ available: true, state: await this.secrets.has(SESSION_KEY) ? 'stored' : 'empty' })
+      return Object.freeze({ available: true, state: await this.secrets.has(this.sessionKey) ? 'stored' : 'empty' })
     } catch {
       throw vaultError('storage-failure', '无法检查受保护的平台会话。')
     }

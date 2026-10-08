@@ -8,9 +8,9 @@ const meta = { contractVersion: '0.1.1', simulated: false }
 
 test('DEV adapter accepts only the pinned A02 origin without an api prefix', () => {
   assert.doesNotThrow(() => new PlatformDevApi(fetch))
-  assert.throws(() => new PlatformDevApi(fetch, 'https://dev.fsstory.net/api'), /exact Platform DEV origin/)
-  assert.throws(() => new PlatformDevApi(fetch, 'https://platform-dev.fsstory.net'), /exact Platform DEV origin/)
-  assert.throws(() => new PlatformDevApi(fetch, 'http://dev.fsstory.net'), /exact Platform DEV origin/)
+  assert.throws(() => new PlatformDevApi(fetch, 'https://dev.fsstory.net/api'), /PLATFORM_ORIGIN_INVALID/)
+  assert.throws(() => new PlatformDevApi(fetch, 'https://platform-dev.fsstory.net'), /PLATFORM_ORIGIN_INVALID/)
+  assert.throws(() => new PlatformDevApi(fetch, 'http://dev.fsstory.net'), /PLATFORM_ORIGIN_INVALID/)
 })
 
 test('DEV adapter accepts a strict non-simulated v0.1.1 response without Mock proof headers', async () => {

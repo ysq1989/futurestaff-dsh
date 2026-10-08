@@ -1,4 +1,7 @@
-# FutureStaff platform access
+# FutureStaff Platform access
+
+Desktop 2.0.14 uses the public website mark and blue-white skin, remembers successful account identifiers and currently offered subject choices, and uses validated tenant/member workspaces in the production profile. See docs/specs/desktop-brand-release-2.0.14.md for release, isolation and rollback scope.
+
 
 This product-layer workspace preserves the pinned Agent PC contract `0.1.0` and
 its loopback Mock while integrating the separate A02 `0.1.1` Platform DEV

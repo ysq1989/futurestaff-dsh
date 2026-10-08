@@ -1,4 +1,33 @@
 # Applied after the official dsh-base and dsh-web-app bundles.
+# The login Profile never mounts legacy shared history. Authenticated workspaces
+# override these rows with their fixed environment/tenant/user directories.
+- id: session-persistence-jsonl
+  config:
+    root: !!js dshHomePath('futurestaff/login/sessions')
+
+- id: storage-json
+  config:
+    root: !!js dshHomePath('futurestaff/login/storages')
+
+- id: attachment-local
+  config:
+    dshHome: !!js dshHomePath('futurestaff/login')
+
+- id: settings
+  name: '@futurestaff/fs-platform-access/managed-settings'
+  config:
+    dshHome: !!js dshHomePath('futurestaff/login')
+
+# Keep appearance and personal interaction settings, remove upstream composition editors.
+- id: ui-settings-plugins
+  disabled: true
+
+- id: ui-cordis
+  disabled: true
+
+- id: ui-agent-preset
+  disabled: true
+
 - id: ui-settings-models
   disabled: true
 
@@ -23,6 +52,8 @@
 
     - id: futurestaff-platform-access
       name: '@futurestaff/fs-platform-access'
+      config:
+        environment: production
 
     - id: futurestaff-product-hub-ui
       name: '@futurestaff/fs-product-hub-ui'

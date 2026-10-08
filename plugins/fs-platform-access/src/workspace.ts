@@ -1,0 +1,128 @@
+import { createHash, randomUUID } from 'node:crypto'
+import { cp, lstat, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import path from 'node:path'
+import os from 'node:os'
+import { readFileSync } from 'node:fs'
+import { requireUuid, type DesktopSession, type User } from './contracts.js'
+import { platformOrigin, type PlatformEnvironment } from './environment.js'
+import { PlatformSessionVault, type PlatformProtectedSecrets } from './session-vault.js'
+
+export interface WorkspaceIdentity { environment: PlatformEnvironment; tenantId: string; userId: string }
+export interface LoginWorkspace {
+  accepts(session: DesktopSession, user: User): boolean
+  enter(session: DesktopSession, user: User): Promise<boolean>
+}
+interface Profiles {
+  current: { name: string; dir: string }
+  list(): readonly { name: string; dir: string; webCapable: boolean; problem?: string }[]
+  select(name: string): Promise<void>
+}
+const uuid = (value: string) => requireUuid({ id: value }, 'id')
+export function workspaceIdentity(environment: PlatformEnvironment, tenantId: string, userId: string): WorkspaceIdentity {
+  platformOrigin(environment)
+  return { environment, tenantId: uuid(tenantId), userId: uuid(userId) }
+}
+export function workspaceName(identity: WorkspaceIdentity): string {
+  const value = workspaceIdentity(identity.environment, identity.tenantId, identity.userId)
+  return `fs-${value.environment}-${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
+}
+export function workspaceDirectory(identity: WorkspaceIdentity, root = path.join(os.homedir(), '.futurestaff', 'workspaces')): string {
+  const value = workspaceIdentity(identity.environment, identity.tenantId, identity.userId)
+  if (!path.isAbsolute(root)) throw new Error('WORKSPACE_ROOT_INVALID')
+  return path.join(root, value.environment, value.tenantId, 'users', value.userId)
+}
+export function workspaceStoragePatch(directory: string): string {
+  if (!path.isAbsolute(directory)) throw new Error('WORKSPACE_ROOT_INVALID')
+  const quoted = (suffix: string) => JSON.stringify(path.join(directory, suffix))
+  return `\n- id: session-persistence-jsonl\n  config:\n    root: ${quoted('sessions')}\n- id: storage-json\n  config:\n    root: ${quoted('storages')}\n- id: attachment-local\n  config:\n    dshHome: ${JSON.stringify(directory)}\n- id: settings\n  name: '@futurestaff/fs-platform-access/managed-settings'\n  config:\n    dshHome: ${JSON.stringify(directory)}\n- id: session-query-sqlite\n  config:\n    path: ${quoted('session-search.sqlite')}\n    openAt: never\n`
+}
+export function workspaceProfilePatch(identity: WorkspaceIdentity, root?: string): string {
+  const value = workspaceIdentity(identity.environment, identity.tenantId, identity.userId)
+  return workspaceStoragePatch(workspaceDirectory(value, root)) + `\n- id: futurestaff-core\n  config:\n    identityMode: single-subject\n    tenantId: ${JSON.stringify(value.tenantId)}\n    userId: ${JSON.stringify(value.userId)}\n    visaAccessRole: collector\n`
+}
+async function realDirectory(directory: string) {
+  const info = await lstat(directory)
+  if (!info.isDirectory() || info.isSymbolicLink()) throw new Error('WORKSPACE_DIRECTORY_INVALID')
+}
+const marker = 'futurestaff-workspace.json'
+export function readWorkspaceIdentity(directory: string, environment: PlatformEnvironment): WorkspaceIdentity | undefined {
+  let raw: string
+  try { raw = readFileSync(path.join(directory, marker), 'utf8') }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined; throw error }
+  const value = JSON.parse(raw) as WorkspaceIdentity
+  if (Object.keys(value).sort().join(',') !== 'environment,tenantId,userId' || value.environment !== environment)
+    throw new Error('WORKSPACE_IDENTITY_INVALID')
+  return workspaceIdentity(value.environment, value.tenantId, value.userId)
+}
+export async function loadWorkspaceIdentity(directory: string, environment: PlatformEnvironment): Promise<WorkspaceIdentity | undefined> {
+  let raw: string
+  try { raw = await readFile(path.join(directory, marker), 'utf8') }
+  catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined; throw error }
+  const value = JSON.parse(raw) as WorkspaceIdentity
+  if (Object.keys(value).sort().join(',') !== 'environment,tenantId,userId' || value.environment !== environment)
+    throw new Error('WORKSPACE_IDENTITY_INVALID')
+  return workspaceIdentity(value.environment, value.tenantId, value.userId)
+}
+/** Publishes configuration and immutable plugin code only. Never copies shared history or browser data. */
+export class DesktopLoginWorkspace implements LoginWorkspace {
+  constructor(private readonly profiles: Profiles, private readonly environment: PlatformEnvironment,
+    private readonly secrets: PlatformProtectedSecrets, private readonly identity?: WorkspaceIdentity,
+    private readonly dataRoot?: string) {}
+  accepts(session: DesktopSession, user: User) {
+    return !!this.identity && this.identity.tenantId === session.activeTenantId && this.identity.userId === user.userId
+      && this.identity.environment === this.environment && this.profiles.current.name === workspaceName(this.identity)
+  }
+  async enter(session: DesktopSession, user: User): Promise<boolean> {
+    const identity = workspaceIdentity(this.environment, session.activeTenantId, user.userId)
+    const name = workspaceName(identity)
+    if (this.accepts(session, user)) return true
+    const profilesRoot = path.dirname(this.profiles.current.dir)
+    const target = path.join(profilesRoot, name)
+    const source = path.join(profilesRoot, 'futurestaff-alpha')
+    await realDirectory(source)
+    let exists = false
+    try { await realDirectory(target); exists = true } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    }
+    if (!exists) {
+      const staging = path.join(profilesRoot, `.${name}.creating-${process.pid}-${randomUUID()}`)
+      await mkdir(staging, { mode: 0o700 })
+      const manifest = JSON.parse(await readFile(path.join(source, 'package.json'), 'utf8'))
+      manifest.name = `@futurestaff/${name}`
+      await writeFile(path.join(staging, 'package.json'), JSON.stringify(manifest, null, 2))
+      const patch = await readFile(path.join(source, 'cordis.patch.yml'), 'utf8')
+      await writeFile(path.join(staging, 'cordis.patch.yml'), patch + workspaceProfilePatch(identity, this.dataRoot))
+      for (const module of ['fs-core', 'fs-platform-access', 'fs-product-hub-ui']) {
+        const from = path.join(source, 'node_modules', '@futurestaff', module)
+        await realDirectory(from)
+        const to = path.join(staging, 'node_modules', '@futurestaff', module)
+        await mkdir(to, { recursive: true })
+        await cp(path.join(from, 'lib'), path.join(to, 'lib'), { recursive: true, dereference: false })
+        await cp(path.join(from, 'package.json'), path.join(to, 'package.json'))
+        // Older Product Hub packages serve their built local UI beside lib.
+        // Copy this code asset when present, never workspace data.
+        try {
+          await realDirectory(path.join(from, 'ui'))
+          await cp(path.join(from, 'ui'), path.join(to, 'ui'), { recursive: true })
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+        }
+      }
+      // Preserve the release's hoisted linker metadata; a new profile must not
+      // try to download private FutureStaff packages from a public registry.
+      for (const file of ['pnpm-workspace.yaml', 'pnpm-lock.yaml', 'node_modules/.modules.yaml']) {
+        const info = await lstat(path.join(source, file))
+        if (!info.isFile() || info.isSymbolicLink()) throw new Error('WORKSPACE_RELEASE_METADATA_INVALID')
+        await cp(path.join(source, file), path.join(staging, file))
+      }
+      await writeFile(path.join(staging, marker), JSON.stringify(identity))
+      await rename(staging, target)
+    }
+    const storedIdentity = await loadWorkspaceIdentity(target, this.environment)
+    if (JSON.stringify(storedIdentity) !== JSON.stringify(identity)) throw new Error('WORKSPACE_IDENTITY_MISMATCH')
+    if (!this.profiles.list().some(item => item.name === name && item.webCapable && !item.problem)) throw new Error('WORKSPACE_PROFILE_UNAVAILABLE')
+    await new PlatformSessionVault(this.secrets, this.environment, name).save({ session, user })
+    await this.profiles.select(name)
+    return false // This generation must remain locked until the launcher boots the selected Profile.
+  }
+}

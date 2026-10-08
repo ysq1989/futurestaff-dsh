@@ -1,3 +1,5 @@
+import { platformOrigin, type PlatformEnvironment } from './environment.js'
+import { DesktopLoginWorkspace, readWorkspaceIdentity, workspaceName } from './workspace.js'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-host-webserver'
@@ -54,12 +56,14 @@ async function readBody(request: IncomingMessage): Promise<Buffer> {
   return Buffer.concat(chunks)
 }
 
-export interface PlatformAccessConfig { readonly embeddedMock?: boolean }
+export interface PlatformAccessConfig { readonly embeddedMock?: boolean; readonly environment?: PlatformEnvironment }
 
 export interface PlatformDevLoginService {
+  authorizeLocal(): Promise<{ tenantId: string; userId: string; signal: AbortSignal; namespace?: string }>
   begin(): Promise<{ readonly authorizationUrl: string }>
   snapshot(): Promise<PlatformDevAccessSnapshot>
   loginWithPassword(loginIdentifier: string, password: string, tenantId?: string): Promise<PlatformDevAccessSnapshot>
+  selectLoginTenant(tenantId: string): Promise<PlatformDevAccessSnapshot>
   refresh(): Promise<PlatformDevAccessSnapshot>
   switchTenant(tenantId: string): Promise<PlatformDevAccessSnapshot>
   logout(): Promise<PlatformDevAccessSnapshot>
@@ -96,19 +100,35 @@ function loginJson(response: ServerResponse, status: number, body: unknown): voi
   response.end(payload)
 }
 
-function mountDevLogin(ctx: Context): void {
+function mountDevLogin(ctx: Context, environment: PlatformEnvironment): void {
   if (typeof (ctx as unknown as { get?: unknown }).get !== 'function') return
   const secrets = ctx.get('desktopProtectedSecrets') as unknown
   if (!protectedSecrets(secrets)) return
-  const api = new PlatformDevApi()
-  const vault = new PlatformSessionVault(secrets)
-  const access = new PlatformDevAccessController(api, vault, new InMemoryTenantResources())
+  const origin = platformOrigin(environment)
+  const api = new PlatformDevApi(globalThis.fetch, origin)
+  const profiles = ctx.get('desktopProfiles') as ConstructorParameters<typeof DesktopLoginWorkspace>[0] | undefined
+  if (environment === 'production' && !profiles) throw new Error('TENANT_WORKSPACE_SERVICE_REQUIRED')
+  const identity = profiles ? readWorkspaceIdentity(profiles.current.dir, environment) : undefined
+  const scope = identity ? workspaceName(identity) : 'login'
+  const vault = new PlatformSessionVault(secrets, environment, profiles ? scope : undefined)
+  const workspace = profiles ? new DesktopLoginWorkspace(profiles, environment, secrets, identity) : undefined
+  const access = new PlatformDevAccessController(api, vault, new InMemoryTenantResources(), workspace,
+    environment === 'production' ? 'futurestaff-product-hub' : 'futurestaff-product-hub-dev')
   const coordinator = new PlatformDevLoginCoordinator({
-    pkce: new PlatformPkceTransaction(), api, vault,
+    pkce: new PlatformPkceTransaction({ environment }), api, vault,
   })
   const initialized = access.restore()
+  applyManagedModelDefault(ctx, { snapshot: () => access.getSnapshot(), authorize: async modelId => { await initialized; return access.authorizeChat(modelId) } })
+  ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: '/_futurestaff/platform-dev/environment',
+    handler: (request, response) => {
+      if (request.method !== 'GET' || !isLoopback(request.socket.remoteAddress) || request.headers['x-futurestaff-login'] !== '1')
+        return loginJson(response, 403, { error: 'LOCAL_REQUEST_REQUIRED' })
+      loginJson(response, 200, { environment, origin })
+    },
+  }), 'futurestaff-platform-access: non-secret environment display')
   if (typeof ctx.inject === 'function') ctx.inject(['llm'], llmCtx => {
-    const adapter = new FutureStaffChatAdapter(async () => { await initialized; return access.authorizeChat() }, secrets)
+    const adapter = new FutureStaffChatAdapter(async modelId => { await initialized; return access.authorizeChat(modelId) }, secrets, globalThis.fetch, origin,
+      async () => { await initialized; return access.getSnapshot().models })
     llmCtx.effect(() => {
       const unregister = llmCtx.llm.registerAdapter(['futurestaff'], adapter)
       return () => { adapter.dispose(); unregister() }
@@ -124,7 +144,9 @@ function mountDevLogin(ctx: Context): void {
     coordinator.cancel()
   }
   const service: PlatformDevLoginService = Object.freeze({
+    authorizeLocal: async () => { await initialized; return { ...await access.authorizeLocal(), namespace: origin } },
     begin: async () => {
+      if (workspace) throw new Error('TENANT_PASSWORD_LOGIN_REQUIRED')
       if (server !== undefined) throw new Error('fs-platform-access: callback listener is already active.')
       const authorization = coordinator.begin()
       const listener = createServer(async (request, response) => {
@@ -162,6 +184,7 @@ function mountDevLogin(ctx: Context): void {
     snapshot: async () => { await initialized; return access.getSnapshot() },
     loginWithPassword: (loginIdentifier: string, password: string, tenantId?: string) =>
       access.login({ loginIdentifier, password, ...(tenantId ? { tenantId } : {}) }),
+    selectLoginTenant: (tenantId: string) => access.selectLoginTenant(tenantId),
     refresh: () => access.refresh(),
     switchTenant: (tenantId: string) => access.switchTenant(tenantId),
     logout: () => access.logout(),
@@ -170,7 +193,7 @@ function mountDevLogin(ctx: Context): void {
     cancel: close,
   })
   ctx.provide('platformDevLogin', service)
-  ctx.effect(() => close, 'futurestaff-platform-access: Platform DEV callback listener lifecycle')
+  ctx.effect(() => () => { access.dispose(); close() }, 'futurestaff-platform-access: login and callback lifecycle')
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact', path: '/_futurestaff/platform-dev/login',
     handler: async (request, response) => {
@@ -212,6 +235,19 @@ function mountDevLogin(ctx: Context): void {
   }), 'futurestaff-platform-access: password login without credential persistence')
   const guarded = (request: IncomingMessage): boolean => request.headers['x-futurestaff-session'] === '1'
     && isLoopback(request.socket.remoteAddress)
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact', path: '/_futurestaff/platform-dev/auth/tenant',
+    handler: async (request, response) => {
+      if (request.method !== 'POST' || !guarded(request)) return loginJson(response, 403, { error: 'LOGIN_UNAVAILABLE' })
+      try {
+        const body = JSON.parse((await readBody(request)).toString('utf8'))
+        if (!body || typeof body !== 'object' || Array.isArray(body)
+          || Object.keys(body).join(',') !== 'tenantId'
+          || typeof body.tenantId !== 'string') throw new Error('invalid tenant login')
+        loginJson(response, 200, await service.selectLoginTenant(body.tenantId))
+      } catch { loginJson(response, 403, { error: 'LOGIN_UNAVAILABLE' }) }
+    },
+  }), 'futurestaff-platform-access: select authorized tenant before opening a workspace')
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact', path: '/_futurestaff/platform-dev/session',
     handler: async (request, response) => {
@@ -338,7 +374,8 @@ async function proxy(request: IncomingMessage, response: ServerResponse, path: s
 
 /** Register six exact, loopback-only bridge routes for the pinned local Mock. */
 export function apply(ctx: Context, config: PlatformAccessConfig = {}): void {
-  if (typeof ctx.provide === 'function') applyManagedModelDefault(ctx)
+  platformOrigin(config.environment ?? 'dev')
+  if (typeof ctx.provide === 'function' && !protectedSecrets(ctx.get('desktopProtectedSecrets'))) applyManagedModelDefault(ctx)
   for (const path of routes.keys()) {
     ctx.effect(() => ctx.webServer.register({
       kind: 'exact',
@@ -346,7 +383,7 @@ export function apply(ctx: Context, config: PlatformAccessConfig = {}): void {
       handler: (request, response) => proxy(request, response, path, config.embeddedMock === true),
     }), `futurestaff-platform-access: local Mock bridge ${path}`)
   }
-  mountDevLogin(ctx)
+  mountDevLogin(ctx, config.environment ?? 'dev')
 }
 
 declare module '@deepseek-ai/cordis' {

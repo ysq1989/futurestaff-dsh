@@ -9,6 +9,8 @@ const defaultOutput = path.join(scriptRoot, 'dist', 'desktop-profile')
 const profileName = 'futurestaff-alpha'
 const packages = ['fs-core', 'fs-platform-access', 'fs-product-hub-ui']
 const supersededReleaseManifests = [
+  // Verified intact 2.0.13 release Profile; upgrades branding, hints and access composition.
+  '836818df6fef5c44ef751ca3bf07885fd253fdac46e9283af5fe32eee34c9680',
   '24c260169b8cbafaec0de5fc209702d8c882243cf32bbcdb37b8e78c6afe11c9',
   // B02n Profile installed by the previous private Windows candidate.
   'f82212e5ba13adc4c4a144792aa9ef67baff3f8f7c7144f4a1f86ec7288059b8',
