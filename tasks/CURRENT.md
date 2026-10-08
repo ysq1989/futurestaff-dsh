@@ -17,8 +17,11 @@
   tests, Beta 1,029 tests, root 63 tests, workspace checks, builds, typechecks,
   runtime/loader/operations gates and git diff --check. Generated-profile policy,
   Host write rejection, notification locking and native/UI entry removal passed.
-- Status: source verified; preparing a distinct 2.0.12 installer and publication.
-  Existing 2.0.11 remains available for rollback.
+- Status: completed and published 2.0.12 from main source `f7d22242a1`.
+  HTTPS client signature and full installer download/size/SHA-256 verification
+  passed. Rollback 2.0.11 remains available; no service restart was required.
+  The installer was not executed by the agent; installed first-run UI acceptance
+  remains a user check.
 
 ## B07: FutureStaff desktop software updates
 

@@ -1,5 +1,25 @@
 # Completed Atomic Tasks
 
+## B08: Managed FutureStaff desktop defaults
+
+- Completed 2026-10-08; source main `f7d22242a1`, live version 2.0.12.
+- Result: all profiles inherit enhanced mode, Mica with existing OS fallback,
+  disabled market/browser access, loopback networking and all notifications.
+  First-run/upgrade Setup is completed automatically. Desktop settings, frame
+  mode picker and tray toggle are removed; Host validators and Market callback
+  reject conflicting writes. Isolated Recovery Safe Mode remains available.
+- Validation: clean main full `npm run check` passed; stable 1,073, Beta 1,029,
+  root 63 tests, workspace/type/build/runtime/loader/operations checks. Windows
+  package preflight passed 190 tests and installer verification. Actual ASAR
+  inspection verified product identity, policy, launcher/UI guards and updater trust.
+- Installer: `outputs/FutureStaff-Agent-2.0.12-x64-Setup.exe`, 132731801 bytes,
+  SHA-256 `7552883adf0ff1dc3577bf0b879b0ee5f9981de7458676aca4dc2a73ac07e140`.
+- Publication: `https://fsstory.net/desktop-updates/stable.json` verified by
+  the actual client parser; external HTTPS full download matched size/hash.
+  Rollback 2.0.11 preserved; existing update container serves the atomic feed/file
+  change without restarts or business configuration changes.
+- Installer not executed by agent; first installed-client UI acceptance remains manual.
+
 ## B05: Restore FutureStaff Agent DEV login on the existing Desktop shell
 
 - Status: Completed locally as source commit `f890bce061` and release record `7042cc118d`; the user screenshot of installed 2.0.9 shows an authenticated chat workspace.
