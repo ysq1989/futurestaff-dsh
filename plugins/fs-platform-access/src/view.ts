@@ -96,6 +96,13 @@ export function mountPlatformAccessPanel(root: HTMLElement, controller: Platform
     if (password && draft?.password !== undefined) password.value = draft.password
     const remember = root.querySelector<HTMLInputElement>('input[name="rememberPassword"]')
     if (remember) { remember.checked = draft?.remember ?? hints.rememberPassword === true; remember.disabled = hints.rememberPasswordAvailable === false }
+    if (remember && hints.rememberPasswordStatus) {
+      const note = document.createElement('p')
+      note.className = 'fs-lead'
+      note.setAttribute('role', 'status')
+      note.textContent = hints.rememberPasswordStatus
+      remember.closest('label')?.after(note)
+    }
     updatePasswordRequirement()
   }
   function updatePasswordRequirement(): void {

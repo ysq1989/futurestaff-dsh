@@ -255,6 +255,7 @@ export class DesktopStartupRecoveryWindow {
     this.refreshProfiles()
     const window = new BrowserWindow({
       title: copy.title,
+      icon: fileURLToPath(new URL('../build/futurestaff-ai-icon.png', import.meta.url)),
       ...auxiliaryWindowChromeOptions(),
       ...desktopStartupRecoveryWindowBounds(),
       show: false,

@@ -147,19 +147,30 @@ export class PlatformDevClientController {
   #remembered: RememberedLoginHint = { available: false, remembered: false }
   #rememberGeneration = 0
   #rememberSupported = false
+  #rememberChecked = false
+  #rememberError: string | undefined
   getLoginHints = () => ({ ...this.preferences.hints(this.#snapshot.user?.userId),
     ...(this.#remembered.remembered ? { loginIdentifier: this.#remembered.loginIdentifier } : {}),
-    rememberPassword: this.#remembered.remembered, rememberPasswordAvailable: this.#remembered.available })
+    rememberPassword: this.#remembered.remembered,
+    ...(this.#rememberChecked ? { rememberPasswordAvailable: this.#remembered.available } : {}),
+    ...(this.#rememberError ? { rememberPasswordStatus: this.#rememberError } : {}) })
 
   async restoreRememberedLogin(): Promise<void> {
     const generation = ++this.#rememberGeneration
     try {
       const hint = await this.#rememberedRequest('GET')
-      if (generation === this.#rememberGeneration && JSON.stringify(hint) !== JSON.stringify(this.#remembered)) {
+      if (generation === this.#rememberGeneration) {
+        this.#rememberChecked = true
+        this.#rememberError = hint.available ? undefined : '系统加密服务暂不可用，无法保存密码。'
         this.#remembered = hint
         for (const listener of this.#listeners) listener()
       }
-    } catch { /* Older Hosts and unavailable OS protection leave the option disabled. */ }
+    } catch {
+      if (generation === this.#rememberGeneration) {
+        this.#rememberError = '密码保存服务未就绪，请重试或重新启动客户端。'
+        for (const listener of this.#listeners) listener()
+      }
+    }
   }
   async forgetRememberedPassword(): Promise<void> {
     const generation = ++this.#rememberGeneration
@@ -173,7 +184,7 @@ export class PlatformDevClientController {
   }
   async #rememberedRequest(method: 'GET' | 'DELETE'): Promise<RememberedLoginHint> {
     const response = await this.fetcher(`${DEV_ROUTE_PREFIX}/auth/remembered`, {
-      method, cache: 'no-store', headers: { 'x-futurestaff-login': '1' },
+      method, cache: 'no-store', headers: { accept: 'application/json', 'x-futurestaff-login': '1', 'x-futurestaff-session': '1' },
     })
     if (!response.ok) throw new Error('REMEMBERED_LOGIN_UNAVAILABLE')
     const value = await response.json() as RememberedLoginHint
@@ -231,6 +242,15 @@ export class PlatformDevClientController {
   }
 
   async loginWithPassword(input: PasswordLoginInput & { rememberPassword?: boolean }): Promise<void> {
+    if (input.rememberPassword === true) {
+      await this.restoreRememberedLogin()
+      if (!this.#rememberSupported || !this.#remembered.available) {
+        this.#publish({ ...initialDevSnapshot, phase: 'error', error: {
+          code: 'PLATFORM_UNAVAILABLE', message: '记住密码服务暂不可用，请重试或取消勾选。', retryable: true,
+        } })
+        return
+      }
+    }
     this.#pendingActions += 1
     const generation = ++this.#generation
     this.#publish({ ...initialDevSnapshot, phase: 'loading' })
@@ -351,7 +371,10 @@ function FutureStaffPlatformLoginGate({ controller }: PlatformAccessViewProps) {
 
   useEffect(() => {
     void controller.restore().catch(() => {})
-    const synchronize = (): void => { void controller.synchronize().catch(() => {}) }
+    const synchronize = (): void => {
+      void controller.synchronize().catch(() => {})
+      void controller.restoreRememberedLogin()
+    }
     window.addEventListener('focus', synchronize)
     return () => window.removeEventListener('focus', synchronize)
   }, [controller])
@@ -373,9 +396,23 @@ function FutureStaffPlatformLoginGate({ controller }: PlatformAccessViewProps) {
 
 export const inject = ['slots']
 
-function FutureStaffBrandMark({ size }: { readonly size: number }) {
+function FutureStaffBrandMark({ size, className }: { readonly size: number; readonly className?: string }) {
   return createElement('img', { src: futureStaffLogoUrl, alt: 'FutureStaff',
+    className,
     style: { width: size, height: size, objectFit: 'contain', flexShrink: 0 } })
+}
+
+function FutureStaffHeroMark(props: { size: number; className?: string }) {
+  return createElement('img', { src: futureStaffLogoUrl, alt: 'FutureStaff Agent',
+    className: props.className, 'data-futurestaff-hero': 'true', style: { width: props.size, height: props.size, objectFit: 'contain' } })
+}
+
+type BrandedConversationProps = Record<string, unknown> & { t: (key: string, ...args: unknown[]) => unknown }
+export function brandConversation(original: ComponentType<BrandedConversationProps>) {
+  return function FutureStaffConversation(props: BrandedConversationProps) {
+    return createElement(original, { ...props, t: (key: string, ...args: unknown[]) =>
+      key === 'hero.headline' ? 'FutureStaff Agent' : key === 'hero.preview' ? '' : props.t(key, ...args) })
+  }
 }
 
 function FutureStaffBrandName() {
@@ -397,6 +434,20 @@ function contextRenderer(original: ComponentType<ChatNodeViewProps<'context'>>) 
 
 /** Mount account access in Settings and require it before the desktop workspace is usable. */
 export function apply(ctx: ClientContext): void {
+  if (typeof document !== 'undefined') ctx.effect(() => {
+    const title = document.title
+    document.title = 'FutureStaff Agent'
+    const existing = [...document.querySelectorAll<HTMLLinkElement>('link[rel~="icon"]')]
+    const saved = existing.map(link => ({ link, href: link.getAttribute('href'), type: link.getAttribute('type') }))
+    const icon = document.createElement('link')
+    icon.rel = 'icon'; icon.type = 'image/svg+xml'; icon.href = futureStaffLogoUrl
+    for (const link of existing) link.remove()
+    document.head.append(icon)
+    const style = document.createElement('style')
+    style.textContent = 'div:has(>span>[data-futurestaff-hero]){grid-template-columns:34px auto}div:has(>span>[data-futurestaff-hero])>span:last-child{display:none}'
+    document.head.append(style)
+    return () => { icon.remove(); style.remove(); for (const { link } of saved) document.head.append(link); if (document.title === 'FutureStaff Agent') document.title = title }
+  }, 'futurestaff: product browser identity')
   installAppearance(ctx)
   // One store per plugin instance: settings actions must immediately relock the
   // workspace on logout/tenant changes, including while the gate renders null.
@@ -408,6 +459,15 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('sidebar.brand.name', () => ctx.slots.register({
     name: 'sidebar.brand.name', priority: -100,
   }, FutureStaffBrandName))
+  ctx.slots.inject('conversation.hero.brand.mark', () => ctx.slots.register({
+    name: 'conversation.hero.brand.mark', priority: -100,
+  }, FutureStaffHeroMark))
+  ctx.slots.inject('conversation', () => {
+    const original = ctx.slots.entries('conversation').find(entry => (entry.options.priority ?? 0) === 0)
+    if (!original) return () => {}
+    return ctx.slots.register({ ...original.options, name: 'conversation', priority: -100 },
+      brandConversation(original.component as ComponentType<BrandedConversationProps>))
+  })
   ctx.slots.inject('conversation.chat.node', () => {
     const original = ctx.slots.entries('conversation.chat.node')
       .find(entry => entry.options.key === 'context' && (entry.options.priority ?? 0) === 0)?.component

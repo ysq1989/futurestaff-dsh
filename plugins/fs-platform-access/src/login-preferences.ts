@@ -1,5 +1,5 @@
 /** Local form hints never supply authorization, passwords or session credentials. */
-export interface LoginHints { readonly loginIdentifier?: string; readonly tenantId?: string; readonly rememberPassword?: boolean; readonly rememberPasswordAvailable?: boolean }
+export interface LoginHints { readonly loginIdentifier?: string; readonly tenantId?: string; readonly rememberPassword?: boolean; readonly rememberPasswordAvailable?: boolean; readonly rememberPasswordStatus?: string }
 type PreferenceStore = Pick<Storage, 'getItem' | 'setItem'>
 const key = 'futurestaff.login-hints.v1'
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
