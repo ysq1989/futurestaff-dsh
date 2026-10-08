@@ -47,6 +47,9 @@ test('atomic immutable installation preserves trusted tools/assets and survives 
     const composition = '- id: tool-fs\n  name: trusted-file-tool\n- id: tool-shell\n  name: trusted-shell\n'
     await writeFile(path.join(baseline, 'agent.cordis.yml'), composition)
     await writeFile(path.join(baseline, 'skill.md'), 'Trusted asset')
+    await mkdir(path.join(baseline, 'assets'))
+    const binary = Buffer.from([0, 255, 1, 128])
+    await writeFile(path.join(baseline, 'assets', 'fixture.bin'), binary)
     const root = path.join(temp, 'roles'); const store = new LocalRoleStore(root)
     const signal = new AbortController().signal
     const id = await store.install(recipe(), baseline, '/fixed/role.js', signal)
@@ -54,6 +57,7 @@ test('atomic immutable installation preserves trusted tools/assets and survives 
     assert.equal((await new LocalRoleStore(root).list()).length, 1)
     assert.ok((await readFile(path.join(root, id, 'agent.cordis.yml'), 'utf8')).startsWith(composition))
     assert.equal(await readFile(path.join(root, id, 'skill.md'), 'utf8'), 'Trusted asset')
+    assert.deepEqual(await readFile(path.join(root, id, 'assets', 'fixture.bin')), binary)
     const v2 = await store.install(recipe({ instructions: 'New role version' }), baseline, '/fixed/role.js', signal)
     assert.notEqual(v2, id)
     assert.equal(JSON.parse(await readFile(path.join(root, id, 'recipe.json'), 'utf8')).instructions, 'Use the project rules.')

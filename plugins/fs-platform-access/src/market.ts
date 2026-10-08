@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { cp, lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { platformOrigin, type PlatformEnvironment } from './environment.js'
 import { workspaceDirectory, type WorkspaceIdentity } from './workspace.js'
@@ -61,6 +61,19 @@ export async function fetchRecipes(origin: string, credentials: { accessToken: s
 }
 export function roleRoot(identity: WorkspaceIdentity): string { return path.join(workspaceDirectory(identity), 'agent-presets') }
 export function roleId(recipe: RoleRecipe): string { return `fs-${recipe.templateId}-${recipe.version}` }
+/** Electron exposes ASAR reads, but its native recursive cp cannot copy archive directories. */
+async function copyTrustedPreset(source: string, target: string, signal: AbortSignal): Promise<void> {
+  signal.throwIfAborted()
+  const info = await lstat(source)
+  if (info.isSymbolicLink()) throw new Error('MARKET_BASELINE_LINK')
+  if (info.isDirectory()) {
+    await mkdir(target)
+    for (const name of await readdir(source)) await copyTrustedPreset(path.join(source, name), path.join(target, name), signal)
+  } else if (info.isFile()) {
+    await writeFile(target, await readFile(source), { mode: info.mode & 0o777 })
+  } else throw new Error('MARKET_BASELINE_FILE')
+}
+
 export class LocalRoleStore {
   constructor(readonly root: string) { if (!path.isAbsolute(root)) throw new Error('MARKET_ROOT') }
   async list(): Promise<LocalRole[]> {
@@ -88,7 +101,7 @@ export class LocalRoleStore {
     if (path.dirname(staging) !== path.resolve(this.root)) throw new Error('MARKET_ROOT')
     try {
       // Preserve all trusted standard composition, skills and assets; only add a data-only role.
-      await cp(baselineDirectory, staging, { recursive: true, dereference: false })
+      await copyTrustedPreset(baselineDirectory, staging, signal)
       const composition = await readFile(path.join(staging, 'agent.cordis.yml'), 'utf8')
       const row = { id: 'futurestaff-role', name: rolePlugin, config: { instructions: recipe.instructions } }
       await writeFile(path.join(staging, 'agent.cordis.yml'), `${composition}\n- ${JSON.stringify(row)}\n`)

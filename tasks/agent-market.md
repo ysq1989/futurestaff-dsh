@@ -91,3 +91,10 @@ tenant/workspace tests prove v1 upgrade and subsequent idempotency. Desktop stab
 Bundled upgrades now recognize complete audited 2.0.14 and 2.0.15 libraries,
 preserving custom code. Release 2.0.16 publication is in progress; rollback uses
 the last working 2.0.14 installer rather than the affected 2.0.15 build.
+
+An additional actual Electron/ASAR fixture exposed native recursive cp refusing
+the archive's preset directory. Copying now traverses the trusted tree using
+ASAR-aware reads, preserves file bytes/modes, rejects symlinks and honors aborts.
+The installed Electron executable successfully imported the actual shipped standard
+preset into an isolated temporary role store. Nested binary assets and the existing
+market path regression passed. Local market.js was backed up and repaired as well.
