@@ -490,7 +490,7 @@ describe('published package surface', () => {
     const create = main.indexOf('create: name => createFreshDesktopProfile(name),', profileService)
     const list = main.indexOf('list: () => listDesktopProfiles(homeDir),', profileService)
     const persist = main.indexOf('persistSelection: name => { selectDesktopProfile(selectionStatePath, homeDir, name) },', profileService)
-    const restart = main.indexOf('requestRestart: () => runtime.requestRestart(),', profileService)
+    const restart = main.indexOf("requestRestart: () => runtime.requestRestart('workspace'),", profileService)
 
     expect(profileImport).toBeGreaterThanOrEqual(0)
     expect(profileService).toBeGreaterThan(profileImport)

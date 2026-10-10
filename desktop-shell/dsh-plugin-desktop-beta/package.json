@@ -321,8 +321,7 @@
       "cordis.patch.yml",
       "build/**",
       "lib/**",
-      "node_modules/**",
-      "node_modules/@electric-sql/pglite/**"
+      "node_modules/**"
     ],
     "afterPack": "./scripts/verify-packaged-runtime.ts",
     "electronFuses": {
