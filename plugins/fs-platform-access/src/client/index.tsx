@@ -1,4 +1,4 @@
-import { futureStaffLogoUrl } from '../brand.js'
+import { futureStaffLogoUrl, futureStaffAgentWordmarkPaths } from '../brand.js'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
@@ -421,7 +421,7 @@ export function brandConversation(original: ComponentType<BrandedConversationPro
 }
 
 function FutureStaffBrandName() {
-  return createElement('span', { style: { fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap' } }, 'FutureStaff Agent')
+  return createElement('svg', { viewBox: '65 0 292 68', role: 'img', 'aria-label': 'FutureStaff.Agent', style: { width: 168, height: 32, color: 'inherit' }, dangerouslySetInnerHTML: { __html: futureStaffAgentWordmarkPaths } })
 }
 
 function contextRenderer(original: ComponentType<ChatNodeViewProps<'context'>>) {

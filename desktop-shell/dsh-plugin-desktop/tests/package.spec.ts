@@ -878,7 +878,7 @@ describe('published package surface', () => {
       .update(readFileSync(new URL('build/app-icon.png', packageRoot)))
       .digest('hex')
 
-    expect(digest).toBe('3fcb62e3ab02738fb9337aa73406006c5621de77fed9d5de8fb34cd8527ac85f')
+    expect(digest).toBe('05c0b06c083f582b9a4f33314b032f9495c9aacb7be56a88d10c97311b3290be')
   })
 
   it('ships a square transparent FutureStaff desktop icon', async () => {
@@ -905,9 +905,9 @@ describe('published package surface', () => {
       format: 'png',
       width: 1024,
       height: 1024,
-      space: 'rgb16',
-      depth: 'ushort',
-      bitsPerSample: 16,
+      space: 'srgb',
+      depth: 'uchar',
+      bitsPerSample: 8,
       channels: 4,
       hasAlpha: true,
     }))

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import sharp from 'sharp'
 const build = fileURLToPath(new URL('../build/', import.meta.url))
-const logo = await readFile(path.join(build, 'brand/website-logo.svg'), 'utf8')
+const logo = await readFile(path.join(build, 'brand/futurestaff-agent-app.svg'), 'utf8')
 async function bitmap(file, width, height, size) {
   const mark = logo.replace('<svg ', `<svg x="${(width-size)/2}" y="${height > 100 ? 36 : (height-size)/2}" width="${size}" height="${size}" `)
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="#eff6ff"/>${mark}</svg>`

@@ -30,17 +30,15 @@ export async function generateMacAppIcon(source = sourcePath, output = outputPat
   const metadata = await sharp(source).metadata()
   if (
     metadata.format !== 'png'
-    || metadata.width !== MAC_APP_ICON_CANVAS_SIZE
-    || metadata.height !== MAC_APP_ICON_CANVAS_SIZE
-    || metadata.space !== 'rgb16'
-    || metadata.depth !== 'ushort'
-    || metadata.bitsPerSample !== 16
+    || ![512, MAC_APP_ICON_CANVAS_SIZE].includes(metadata.width)
+    || metadata.height !== metadata.width
+    || !((metadata.space === 'srgb' && metadata.depth === 'uchar' && metadata.bitsPerSample === 8)
+      || (metadata.space === 'rgb16' && metadata.depth === 'ushort' && metadata.bitsPerSample === 16))
     || metadata.channels !== 4
     || metadata.hasAlpha !== true
-    || metadata.icc === undefined
   ) {
     throw new Error(
-      `generate-mac-app-icon: source must be a ${MAC_APP_ICON_CANVAS_SIZE}x${MAC_APP_ICON_CANVAS_SIZE} RGBA16 PNG with an ICC profile`,
+      'generate-mac-app-icon: source must be a square 512px or 1024px RGBA8 or RGBA16 PNG',
     )
   }
 
@@ -58,7 +56,7 @@ export async function generateMacAppIcon(source = sourcePath, output = outputPat
       right: MAC_APP_ICON_INSET,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     })
-    .toColourspace('rgb16')
+    .toColourspace(metadata.space)
     .keepIccProfile()
     .png({
       compressionLevel: 9,
@@ -73,12 +71,12 @@ export async function generateMacAppIcon(source = sourcePath, output = outputPat
     generated.format !== 'png'
     || generated.width !== MAC_APP_ICON_CANVAS_SIZE
     || generated.height !== MAC_APP_ICON_CANVAS_SIZE
-    || generated.space !== 'rgb16'
-    || generated.depth !== 'ushort'
-    || generated.bitsPerSample !== 16
+    || generated.space !== metadata.space
+    || generated.depth !== metadata.depth
+    || generated.bitsPerSample !== metadata.bitsPerSample
     || generated.channels !== 4
     || generated.hasAlpha !== true
-    || generated.icc?.equals(metadata.icc) !== true
+    || (metadata.icc !== undefined && generated.icc?.equals(metadata.icc) !== true)
   ) {
     throw new Error('generate-mac-app-icon: generated icon did not preserve the source color data')
   }

@@ -37,3 +37,10 @@ the check was stopped. The separate stable/Beta drift check retains exactly the
 same nine failures. These gates were not disabled or widened.
 Windows installer checks and artifact verification run separately during packaging.
 Installed-software changes, push and publication remain unauthorized.
+
+User additionally authorized including concurrent Agent branding in the local
+test installer. Stable/Beta packaging contracts were aligned with the approved
+Agent app artwork; the macOS generator retains the 1024px canvas and safe inset
+and preserves source color depth for the new RGBA8 artwork and legacy RGBA16.
+Stable packaging contracts: 38 passed; Beta: 41 passed using the existing exact
+Electron version after an initial download failure. No brand redesign was made.
