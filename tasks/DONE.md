@@ -330,4 +330,3 @@ restart completed with temporary CDP removed. Login confirmation required;
 authenticated runtime business operations remain unperformed. Backup/hash receipt:
 D:/项目/.codex-build/blue-system-directory-20261010/receipt.json.
 Details: tasks/blue-system-directory.md. No public installer/feed update.
-
