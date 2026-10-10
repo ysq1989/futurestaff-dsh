@@ -15,9 +15,10 @@ product_hub launcher absent; unavailable entries carry a clear status; safe clou
 entry pages open as tabs and recheck current authorization before navigation;
 conversation persists; identity changes clear pages; keyboard tab navigation.
 
-Status: source complete. On 2026-10-10 the user explicitly authorized commit,
-push and deployment of this UI task. Release is scoped to the local desktop
-platform Client bundle/map; no unrelated GEO Host/API changes or public release.
+Status: committed, pushed and deployed locally on 2026-10-10 after explicit user
+authorization. Source commit 7be3d57acf99378f5fb84d67efbf7e8a907a9963 on origin/main.
+Release is scoped to the local desktop platform Client bundle/map; no unrelated
+GEO Host/API changes or public release.
 
 Validation 2026-10-10:
 - Platform plugin typecheck, client build and all 150 tests passed (zero skips).
@@ -43,8 +44,16 @@ Release candidate: D:/项目/.codex-build/blue-system-directory-20261010/source,
 exported main plus only task files. Candidate build/typecheck and 150 tests pass.
 Dependencies reuse installed pinned package directories via junctions; the
 export's unrelated Windows-unsupported desktop-shell/CLAUDE.md symlink is unused.
-Local deployment will replace only active profile fs-platform-access Client JS
-and map, with backup/hash receipt under the same build evidence directory.
+Local deployment replaced only active profile fs-platform-access Client JS and
+map; both match the committed-source build hashes. Verified all 93 other plugin
+files unchanged. Backup and receipt: same evidence directory, backup/ and
+receipt.json. Actual renderer verified the blue sidebar, eight System entries,
+no legacy selection-center launcher. Login confirmation gate is active after
+restart, so authenticated business operations were not run. The isolated browser
+fixture covered tab navigation and conversation preservation without real I/O.
+Client exited through its orderly shutdown flag and restarted from its install
+directory. Temporary loopback CDP validation was removed by a final normal
+restart. Installer version, public installer/feed, Host and user data unchanged.
 
 Rollback: revert only this task's sidebar/appearance/registry/directory source
 and tests plus design decision/tracker paragraphs, then rebuild the plugin.

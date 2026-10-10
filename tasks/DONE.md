@@ -318,3 +318,16 @@ Platform builtin templates run through local DSH presets. Platform source baaa9a
 - 工作区类型检查、测试和产品构建通过；稳定桌面构建与类型检查通过，114 个测试文件、1101 项测试通过（13 项跳过）；根目录64项测试通过，官方候选引用检查通过。
 - 完整 `npm run check` 在稳定/Beta 未声明源码差异处失败，9 个路径及影响已记录于交接说明；未修改门禁以掩盖失败。
 - 仅提交与推送开发源码；没有发布安装包、更新运行中的软件、修改用户数据或执行真实外部消息。
+## Blue sidebar and unified System directory — locally deployed 2026-10-10
+
+User authorized commit/push/deploy. Source 7be3d57acf99378f5fb84d67efbf7e8a907a9963
+pushed to main; only active desktop profile fs-platform-access Client JS/map
+replaced with clean committed-source build. 150 tests, typecheck/build, actual
+desktop/narrow browser fixture and diff checks passed. Installed renderer verified
+brand-blue sidebar, eight system entries and absent legacy selection center.
+All 93 other platform plugin files unchanged; GEO/Host/API work excluded. Normal
+restart completed with temporary CDP removed. Login confirmation required;
+authenticated runtime business operations remain unperformed. Backup/hash receipt:
+D:/项目/.codex-build/blue-system-directory-20261010/receipt.json.
+Details: tasks/blue-system-directory.md. No public installer/feed update.
+
