@@ -98,7 +98,7 @@ test('environment, tenant and member have different folders and OS-protected vau
   assert.equal(await new PlatformSessionVault(secrets,'production',workspaceName(identities[1])).load(),undefined)
   assert.throws(()=>workspaceIdentity('production','../escape',u))
   const patch=workspaceStoragePatch(workspaceDirectory(identities[0],root))
-  for(const key of ['sessions','storages','attachment-local','settings','session-search.sqlite']) assert.ok(patch.includes(key))
+  for(const key of ['sessions','storages','attachment-local','settings','session-search.sqlite','douyin']) assert.ok(patch.includes(key))
 })
 test('desktop publication copies only code/config and preserves the original workspace data', async t => {
   const root=await mkdtemp(path.join(os.tmpdir(),'fs-tenant-profiles-')); t.after(()=>rm(root,{recursive:true,force:true}))
@@ -106,7 +106,7 @@ test('desktop publication copies only code/config and preserves the original wor
   await writeFile(path.join(source,'package.json'),JSON.stringify({name:'fixture',dsh:{profile:{bundles:['@deepseek-ai/dsh-base','@deepseek-ai/dsh-web-app']}}}))
   await writeFile(path.join(source,'cordis.patch.yml'),'[]\n')
   await writeFile(path.join(source,'private-history.json'),'must stay in original')
-  for(const module of ['fs-core','fs-platform-access','fs-product-hub-ui']) {
+  for(const module of ['fs-core','fs-platform-access','fs-product-hub-ui','fs-douyin-ui']) {
     const dir=path.join(source,'node_modules','@futurestaff',module); await mkdir(path.join(dir,'lib'),{recursive:true})
     await writeFile(path.join(dir,'package.json'),'{}'); await writeFile(path.join(dir,'lib','index.js'),'export {}')
   }
@@ -126,7 +126,7 @@ test('desktop publication copies only code/config and preserves the original wor
   assert.equal(await readFile(path.join(source,'private-history.json'),'utf8'),'must stay in original')
   assert.equal(await readFile(path.join(target, 'node_modules', '@futurestaff', 'fs-product-hub-ui', 'ui', 'index.html'), 'utf8'), '<main>built code fixture</main>')
   assert.equal((await new PlatformSessionVault(secrets,'production',name).load()).user.userId,v)
-  assert.ok((await readFile(path.join(target,'cordis.patch.yml'),'utf8')).includes('session-search.sqlite'))
+  assert.ok((await readFile(path.join(target,'cordis.patch.yml'),'utf8')).includes('douyin'))
   const config=await readFile(path.join(target,'cordis.patch.yml'),'utf8')
   assert.match(config,/identityMode: single-subject/)
   assert.ok(config.includes(JSON.stringify(v))); assert.ok(config.includes(JSON.stringify(b)))

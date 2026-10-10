@@ -58,6 +58,11 @@
     - id: futurestaff-product-hub-ui
       name: '@futurestaff/fs-product-hub-ui'
 
+    - id: futurestaff-douyin-ui
+      name: '@futurestaff/fs-douyin-ui'
+      config:
+        database: !!js dshHomePath('futurestaff/login/douyin/leads.sqlite')
+
     - id: mcp-selection-center
       name: '@deepseek-ai/dsh-mcp-client'
       disabled: !!js >-

@@ -1,0 +1,18 @@
+{
+  "name": "@futurestaff/fs-douyin-ui", "version": "0.1.0", "private": true, "type": "module",
+  "main": "lib/index.js", "types": "lib/index.d.ts",
+  "exports": { ".": { "types": "./lib/index.d.ts", "default": "./lib/index.js" }, "./client": { "types": "./lib/client/index.d.ts", "default": "./lib/client.js" }, "./package.json": "./package.json" },
+  "dsh": { "client": { "inject": ["@deepseek-ai/dsh-client-ui-layout", "@deepseek-ai/dsh-client-ui-renderer", "@deepseek-ai/dsh-client-ui-sidebar", "@futurestaff/fs-platform-access"], "platform": "web" } },
+  "engines": { "node": ">=22.16" },
+  "files": ["lib"],
+  "scripts": {
+    "prebuild": "npm run build -w @futurestaff/douyin-dm-mcp && npm run build -w @futurestaff/fs-platform-access",
+    "pretypecheck": "npm run build -w @futurestaff/douyin-dm-mcp && npm run build -w @futurestaff/fs-platform-access",
+    "build": "tsc -p tsconfig.plugin.json && node ../../scripts/build-douyin-host.mjs && node ../../scripts/build-dsh-client.mjs . @futurestaff/fs-douyin-ui",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test test/*.test.js && vitest run"
+  },
+  "dependencies": { "@futurestaff/douyin-dm-mcp": "0.1.0", "@futurestaff/fs-platform-access": "0.1.0", "react": "18.3.1", "zod": "4.4.3" },
+  "peerDependencies": { "@deepseek-ai/cordis": "^4.0.1", "@deepseek-ai/dsh-client-ui-layout": "0.1.2-rc.1", "@deepseek-ai/dsh-client-ui-renderer": "0.1.2-rc.1", "@deepseek-ai/dsh-client-ui-sidebar": "0.1.2-rc.1", "@deepseek-ai/dsh-host-webserver": "0.1.2-rc.1" },
+  "devDependencies": { "@types/node": "^24.3.0", "@types/react": "^18.3.24", "typescript": "^5.9.2", "vitest": "^3.2.4", "jsdom": "^26.1.0", "@testing-library/react": "^16.3.0", "@testing-library/jest-dom": "^6.8.0" }
+}

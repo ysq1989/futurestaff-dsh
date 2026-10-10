@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { SidebarRootComponentProps } from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { PlatformAccessSnapshot } from '../controller.js'
+import type { SystemPages } from './system-pages.js'
+const defaultPageState={mode:'sessions' as const}
+const noPageSubscription=()=>()=>{}
+const defaultPageSnapshot=()=>defaultPageState
 
 export interface SidebarAccountController {
   subscribe(listener: () => void): () => void
@@ -49,16 +53,18 @@ function SubjectLogo({ name, url }: { name: string; url: string | undefined }) {
     : <span className="fs-sidebar-avatar" aria-hidden="true">{Array.from(name)[0]}</span>
 }
 
-export function createAccountSidebar(controller: SidebarAccountController) {
+export function createAccountSidebar(controller: SidebarAccountController,pages?:SystemPages) {
   return function FutureStaffAccountSidebar({ collapsed, startSession, toggleSidebar, renderSlot }: SidebarRootComponentProps) {
     const snapshot = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getSnapshot)
     const identity = sidebarIdentity(snapshot)
-    const [tab, setTab] = useState<'sessions' | 'menu'>('sessions')
+    const [localTab, setTab] = useState<'sessions' | 'menu'>('sessions')
+    const navigation=useSyncExternalStore<{mode:'sessions'|'systems'}>(pages?.subscribe??noPageSubscription,pages?.getSnapshot??defaultPageSnapshot,pages?.getSnapshot??defaultPageSnapshot)
+    const tab=pages?(navigation.mode==='systems'?'menu':'sessions'):localTab
     const [accountOpen, setAccountOpen] = useState(false)
     const footer = useRef<HTMLDivElement>(null)
     const userButton = useRef<HTMLButtonElement>(null)
     const version = typeof window === 'undefined' ? undefined : sidebarVersion(window.location.search)
-    useEffect(() => { setAccountOpen(false); setTab('sessions') }, [snapshot.activeTenantId, snapshot.user?.userId])
+    useEffect(() => { setAccountOpen(false); setTab('sessions');pages?.bindOwner(['ready','no_apps'].includes(snapshot.phase)&&snapshot.activeTenantId&&snapshot.user?.userId?`${snapshot.activeTenantId}:${snapshot.user.userId}`:'') }, [snapshot.phase,snapshot.activeTenantId, snapshot.user?.userId])
     useEffect(() => {
       if (!accountOpen) return
       const pointer = (event: PointerEvent) => {
@@ -74,7 +80,7 @@ export function createAccountSidebar(controller: SidebarAccountController) {
       document.addEventListener('pointerdown', pointer); document.addEventListener('keydown', key)
       return () => { document.removeEventListener('pointerdown', pointer); document.removeEventListener('keydown', key) }
     }, [accountOpen])
-    const chooseTab = (next: 'sessions' | 'menu') => { setTab(next); if (collapsed) toggleSidebar() }
+    const chooseTab = (next: 'sessions' | 'menu') => { setTab(next);pages?.select(next==='menu'?'systems':'sessions'); if (collapsed) toggleSidebar() }
     const switchByKey = (event: React.KeyboardEvent) => {
       if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return
       event.preventDefault()
@@ -90,10 +96,10 @@ export function createAccountSidebar(controller: SidebarAccountController) {
       </header>
       <div className="fs-sidebar-tabs" role="tablist" aria-label="侧栏内容" aria-orientation={collapsed ? 'vertical' : 'horizontal'} onKeyDown={switchByKey}>
         <button type="button" role="tab" id="fs-sessions-tab" tabIndex={tab === 'sessions' ? 0 : -1} aria-controls="fs-sessions-panel" aria-selected={tab === 'sessions'} onClick={() => { chooseTab('sessions') }}>会话</button>
-        <button type="button" role="tab" id="fs-menu-tab" tabIndex={tab === 'menu' ? 0 : -1} aria-controls="fs-menu-panel" aria-selected={tab === 'menu'} onClick={() => { chooseTab('menu') }}>菜单</button>
+        <button type="button" role="tab" id="fs-menu-tab" tabIndex={tab === 'menu' ? 0 : -1} aria-controls="fs-menu-panel" aria-selected={tab === 'menu'} onClick={() => { chooseTab('menu') }}>系统</button>
       </div>
       <section key={`sessions:${snapshot.activeTenantId ?? 'signed-out'}`} className="fs-sidebar-region" id="fs-sessions-panel" role="tabpanel" aria-labelledby="fs-sessions-tab" hidden={tab !== 'sessions'}>
-        <button type="button" className="fs-sidebar-new" aria-label="新会话" onClick={() => { startSession() }}>{collapsed ? '+' : '+ 新会话'}</button>
+        <button type="button" className="fs-sidebar-new" aria-label="新会话" onClick={() => { pages?.select('sessions');startSession() }}>{collapsed ? '+' : '+ 新会话'}</button>
         {renderSlot('sidebar.workspaces', { wide: !collapsed, expandSidebar: () => { if (collapsed) toggleSidebar() } })}
       </section>
       <section key={`menu:${snapshot.activeTenantId ?? 'signed-out'}`} className="fs-sidebar-region fs-sidebar-menu" id="fs-menu-panel" role="tabpanel" aria-labelledby="fs-menu-tab" hidden={tab !== 'menu'}>

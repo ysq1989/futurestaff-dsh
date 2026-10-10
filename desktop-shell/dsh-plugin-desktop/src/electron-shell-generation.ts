@@ -1,3 +1,4 @@
+import { DesktopModuleWindow } from './module-window.ts'
 import {
   app,
   BrowserWindow,
@@ -87,11 +88,11 @@ function withoutRendererAccessHeader(
 
 function requestBelongsToRenderer(
   details: Electron.OnBeforeSendHeadersListenerDetails,
-  webContentsId: number,
+  rendererIds: ReadonlySet<number>,
 ): boolean {
   const providedIds = [details.webContentsId, details.webContents?.id]
     .filter((value): value is number => value !== undefined)
-  return providedIds.length > 0 && providedIds.every(value => value === webContentsId)
+  return providedIds.length > 0 && rendererIds.has(providedIds[0]!) && providedIds.every(value => value === providedIds[0])
 }
 
 function requestComesFromRendererOrigin(
@@ -114,10 +115,10 @@ function installRendererAccessHeader(
   window: BrowserWindow,
   origin: string,
   header: DesktopRendererAccessHeader,
+  rendererIds: ReadonlySet<number>,
 ): () => void {
   const webSocketOrigin = pairedWebSocketOrigin(origin)
   const webRequest = window.webContents.session.webRequest
-  const webContentsId = window.webContents.id
   const listener = (
     details: Electron.OnBeforeSendHeadersListenerDetails,
     callback: (response: Electron.BeforeSendResponse) => void,
@@ -125,7 +126,7 @@ function installRendererAccessHeader(
     // This listener owns a dedicated renderer session and sees every target so
     // a redirect can never carry the capability away from the local carrier.
     const requestHeaders = withoutRendererAccessHeader(details.requestHeaders, header.name)
-    if (!requestBelongsToRenderer(details, webContentsId)
+    if (!requestBelongsToRenderer(details, rendererIds)
       || !sameRendererCarrierOrigin(details.url, origin, webSocketOrigin)
       || !requestComesFromRendererOrigin(details, origin)) {
       callback({ requestHeaders })
@@ -391,7 +392,10 @@ export class ElectronShellGeneration {
     window.webContents.on('will-redirect', redirect)
     window.webContents.on('render-process-gone', rendererGone)
     window.webContents.on('did-fail-load', loadFailed)
+    const rendererIds = new Set([window.webContents.id])
+    const moduleWindow = new DesktopModuleWindow(spec.url, window.webContents.session, icon, rendererIds, message => { this.options.logError(message) })
     window.webContents.setWindowOpenHandler(({ url }) => {
+      if (moduleWindow.open(url)) return { action: 'deny' }
       try {
         const target = new URL(url)
         if (target.protocol === 'https:' || target.protocol === 'http:' || target.protocol === 'mailto:') {
@@ -408,6 +412,7 @@ export class ElectronShellGeneration {
     let tray: Tray | undefined
     let removeRendererAccessHeader: (() => void) | undefined
     this.cleanupListeners = () => {
+      moduleWindow.close()
       app.off('activate', activate)
       if (platform.platform === 'darwin') app.off('did-become-active', activate)
       window.off('close', close)
@@ -437,6 +442,7 @@ export class ElectronShellGeneration {
         window,
         origin,
         spec.rendererAccessHeader,
+        rendererIds,
       )
       revealStartupSurface()
       await window.loadURL(spec.url)

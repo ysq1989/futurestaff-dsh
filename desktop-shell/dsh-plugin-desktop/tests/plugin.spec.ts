@@ -297,6 +297,7 @@ describe('desktop Host plugin', () => {
       'dsh-desktop-mode': 'advanced',
       'dsh-desktop-platform': 'darwin',
       'dsh-desktop-version': '2.0.3',
+      'futurestaff-native-modules': 'douyin',
       'dsh-desktop-material': 'off',
     })
     expect(Object.fromEntries(new URL(desktopRendererUrl(
@@ -310,6 +311,7 @@ describe('desktop Host plugin', () => {
       'dsh-desktop-mode': 'extended',
       'dsh-desktop-platform': 'win32',
       'dsh-desktop-version': '2.0.3',
+      'futurestaff-native-modules': 'douyin',
       'dsh-desktop-material': 'mica',
       'dsh-desktop-titlebar-inset': '36',
       'dsh-desktop-mica': '1',
@@ -338,7 +340,7 @@ describe('desktop Host plugin', () => {
     expect(loaderAwait).not.toHaveBeenCalled()
     expect(harness.shell()).toEqual(expect.objectContaining({
       mode: 'compatibility',
-      url: 'http://127.0.0.1:43120/?dsh-desktop-mode=compatibility&dsh-desktop-platform=darwin&dsh-desktop-version=2.0.0&dsh-desktop-material=transparent&dsh-desktop-titlebar-inset=36',
+      url: 'http://127.0.0.1:43120/?dsh-desktop-mode=compatibility&dsh-desktop-platform=darwin&dsh-desktop-version=2.0.0&futurestaff-native-modules=douyin&dsh-desktop-material=transparent&dsh-desktop-titlebar-inset=36',
       authenticationUrl: 'http://127.0.0.1:43120/?token=test-token',
       productName: 'FutureStaff Agent',
       windowTitle: 'FutureStaff Agent',

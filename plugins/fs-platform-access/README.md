@@ -1,7 +1,13 @@
-# FutureStaff Platform access
+# FutureStaff platform access
 
-Desktop 2.0.14 uses the public website mark and blue-white skin, remembers successful account identifiers and currently offered subject choices, and uses validated tenant/member workspaces in the production profile. See docs/specs/desktop-brand-release-2.0.14.md for release, isolation and rollback scope.
+The product Client also owns the shared Midnight appearance through the public
+theme token override seam. Dark is adopted once on first use; subsequent user
+Appearance choices remain effective. Both palette modes cover the access gate,
+desktop shell and local Douyin module; remote business sites keep their own UI.
+The owning plugin lifetime releases its style and token layer. See
+`tasks/desktop-midnight-ui.md` and platform ADR-0043 for local acceptance scope.
 
+The `./managed-settings` Host entry is the FutureStaff configuration policy for the installed 0.1.2-rc.1 DSH settings seam. It bundles the existing file provider, preserves its locking and watcher lifecycle, and permits local user overrides only for theme, locale, chat display, conversation input and onboarding. Other namespaces resolve from composition and reject writes at persistence; their old file sections remain preserved but inactive. Platform model selection continues through the authenticated catalog. See `docs/specs/managed-dsh-settings-v0.1.0.md` and `tasks/managed-dsh-settings.md` for scope and runtime evidence.
 
 This product-layer workspace preserves the pinned Agent PC contract `0.1.0` and
 its loopback Mock while integrating the separate A02 `0.1.1` Platform DEV

@@ -1,3 +1,6 @@
 [submodule "desktop-shell/deepseek-harness"]
 	path = desktop-shell/deepseek-harness
 	url = https://github.com/deepseek-ai/deepseek-harness.git
+[submodule "official-desktop"]
+	path = official-desktop
+	url = https://github.com/deepseek-ai/deepseek-harness.git

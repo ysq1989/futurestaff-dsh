@@ -34,7 +34,7 @@ export function workspaceDirectory(identity: WorkspaceIdentity, root = path.join
 export function workspaceStoragePatch(directory: string): string {
   if (!path.isAbsolute(directory)) throw new Error('WORKSPACE_ROOT_INVALID')
   const quoted = (suffix: string) => JSON.stringify(path.join(directory, suffix))
-  return `\n- id: session-persistence-jsonl\n  config:\n    root: ${quoted('sessions')}\n- id: storage-json\n  config:\n    root: ${quoted('storages')}\n- id: attachment-local\n  config:\n    dshHome: ${JSON.stringify(directory)}\n- id: settings\n  name: '@futurestaff/fs-platform-access/managed-settings'\n  config:\n    dshHome: ${JSON.stringify(directory)}\n- id: session-query-sqlite\n  config:\n    path: ${quoted('session-search.sqlite')}\n    openAt: never\n`
+  return `\n- id: session-persistence-jsonl\n  config:\n    root: ${quoted('sessions')}\n- id: storage-json\n  config:\n    root: ${quoted('storages')}\n- id: attachment-local\n  config:\n    dshHome: ${JSON.stringify(directory)}\n- id: settings\n  name: '@futurestaff/fs-platform-access/managed-settings'\n  config:\n    dshHome: ${JSON.stringify(directory)}\n- id: session-query-sqlite\n  config:\n    path: ${quoted('session-search.sqlite')}\n    openAt: never\n- id: futurestaff-douyin-ui\n  config:\n    database: ${quoted('douyin/leads.sqlite')}\n`
 }
 export function workspaceProfilePatch(identity: WorkspaceIdentity, root?: string): string {
   const value = workspaceIdentity(identity.environment, identity.tenantId, identity.userId)
@@ -95,7 +95,7 @@ export class DesktopLoginWorkspace implements LoginWorkspace {
       await writeFile(path.join(staging, 'package.json'), JSON.stringify(manifest, null, 2))
       const patch = await readFile(path.join(source, 'cordis.patch.yml'), 'utf8')
       await writeFile(path.join(staging, 'cordis.patch.yml'), patch + workspaceProfilePatch(identity, this.dataRoot) + workspaceMarketPatch(identity, this.dataRoot))
-      for (const module of ['fs-core', 'fs-platform-access', 'fs-product-hub-ui']) {
+      for (const module of ['fs-core', 'fs-platform-access', 'fs-product-hub-ui', 'fs-douyin-ui']) {
         const from = path.join(source, 'node_modules', '@futurestaff', module)
         await realDirectory(from)
         const to = path.join(staging, 'node_modules', '@futurestaff', module)

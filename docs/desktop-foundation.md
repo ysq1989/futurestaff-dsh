@@ -75,8 +75,10 @@ dependencies, credentials, sessions, caches, source files, or tests.
 Run `npm run profile:dump:release` before desktop packaging. The repository-pinned
 DSH runtime must compose `futurestaff-core`, `futurestaff-platform-access`, and
 `futurestaff-product-hub-ui`; transient `pnpm dlx` resolution is not a release
-input. Product Hub contributes only additive sidebar/overlay slots and serves
-its built UI from a fixed loopback Host route.
+input. The Product Hub plugin contributes only a sidebar launcher. It checks the
+current tenant's Platform application grant before opening the authoritative
+Product Hub Web system. No Product Hub page assets or local approval endpoint
+are included in the release Profile.
 
 Every packaged Web client has a classic-script DSH factory bundle at
 `lib/client.js`; release staging executes each bundle far enough to verify its

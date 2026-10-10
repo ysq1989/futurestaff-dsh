@@ -26,9 +26,9 @@
       "platform": "web"
     }
   },
-  "files": ["lib", "ui"],
+  "files": ["lib"],
   "scripts": {
-    "build": "tsc -p tsconfig.plugin.json && node ../../scripts/build-dsh-client.mjs . @futurestaff/fs-product-hub-ui && vite build",
+    "build": "tsc -p tsconfig.plugin.json && node ../../scripts/build-dsh-client.mjs . @futurestaff/fs-product-hub-ui",
     "dev": "vite --host 127.0.0.1",
     "test": "npm run build && vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"

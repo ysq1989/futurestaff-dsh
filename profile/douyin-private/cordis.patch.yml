@@ -1,0 +1,27 @@
+# Dedicated local, single-subject instance; never merge into futurestaff-alpha.
+- id: session-telemetry-otel
+  disabled: true
+- id: approval
+  config:
+    policy: ask
+- insert:
+    - id: futurestaff-core
+      name: '@futurestaff/fs-core'
+      config:
+        identityMode: single-subject
+        tenantId: !!js process.env.FUTURESTAFF_TENANT_ID
+        userId: !!js process.env.FUTURESTAFF_USER_ID
+        deviceId: !!js process.env.FUTURESTAFF_DEVICE_ID
+        toolScope: douyin-only
+    - id: mcp-douyin-dm
+      name: '@deepseek-ai/dsh-mcp-client'
+      disabled: !!js '!process.env.DOUYIN_DM_CONFIG || !process.env.DOUYIN_DM_ENTRY'
+      config:
+        serverName: douyin-dm
+        transport: stdio
+        command: !!js process.execPath
+        args: !!js '[process.env.DOUYIN_DM_ENTRY]'
+        env:
+          DOUYIN_DM_CONFIG: !!js process.env.DOUYIN_DM_CONFIG
+        toolCallTimeoutMs: 35000
+        failOnStartupError: true

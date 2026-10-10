@@ -14,6 +14,8 @@ import { mountPlatformAccessPanel } from '../view.js'
 import { installAppearance } from './appearance.js'
 import { modePresentation } from './modes.js'
 import { createAccountSidebar } from './sidebar.js'
+import { SystemPages, SystemMain } from './system-pages.js'
+export { SystemPages, SystemMain } from './system-pages.js'
 import { watchSlotComponents } from './slot-components.js'
 import { LoginPreferences } from '../login-preferences.js'
 import { AgentMarketSection } from './market.js'
@@ -465,10 +467,12 @@ export function apply(ctx: ClientContext): void {
   // One store per plugin instance: settings actions must immediately relock the
   // workspace on logout/tenant changes, including while the gate renders null.
   const controller = new PlatformDevClientController()
+  const pages = new SystemPages()
   if (typeof ctx.provide === 'function') ctx.provide('platformClientSession', controller)
+  if (typeof ctx.provide === 'function') ctx.provide('platformSystemPages', pages)
   ctx.slots.inject('sidebar', () => watchSlotComponents(ctx.slots, 'sidebar',
     entry => entry.locale === 'sidebar' && (entry.options.priority ?? 0) === 0,
-    () => createAccountSidebar(controller)))
+    () => createAccountSidebar(controller,pages)))
   ctx.slots.inject('sidebar.brand.mark', () => ctx.slots.register({
     name: 'sidebar.brand.mark', priority: -100,
   }, FutureStaffBrandMark))
@@ -480,7 +484,10 @@ export function apply(ctx: ClientContext): void {
   }, FutureStaffHeroMark))
   ctx.slots.inject('conversation', () => watchSlotComponents(ctx.slots, 'conversation',
     entry => (entry.options.priority ?? 0) === 0,
-    component => brandConversation(component as ComponentType<BrandedConversationProps>)))
+    component => {
+      const Conversation=brandConversation(component as ComponentType<BrandedConversationProps>)
+      return function FutureStaffMain(props:BrandedConversationProps){return createElement(SystemMain,{pages,chat:createElement(Conversation,props)})}
+    }))
   for (const name of ['conversation.hero.agentPreset', 'conversation.session.header.actions', 'settings.section'] as const) {
     ctx.slots.inject(name, () => watchSlotComponents(ctx.slots, name,
       entry => entry.locale === 'settings.agentPreset' && (entry.options.priority ?? 0) === 0,
@@ -504,4 +511,4 @@ export function apply(ctx: ClientContext): void {
   }, () => createElement(FutureStaffPlatformLoginGate, { controller })))
 }
 
-declare module '@deepseek-ai/cordis' { interface Context { platformClientSession: PlatformDevClientController } }
+declare module '@deepseek-ai/cordis' { interface Context { platformClientSession: PlatformDevClientController;platformSystemPages:SystemPages } }

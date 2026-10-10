@@ -1,0 +1,29 @@
+{
+  "identityMode": "single-subject",
+  "subject": "dedicated-local-operator",
+  "deviceId": "dedicated-local-pc",
+  "live": false,
+  "stateFile": "D:/项目/futurestaff-dsh/work/douyin-dm/state.json",
+  "browser": {
+    "endpoint": "http://127.0.0.1:9222",
+    "accountId": "REPLACE_WITH_ACCOUNT_SECUID",
+    "inboxTargetId": "REPLACE_WITH_INBOX_TAB_ID",
+    "senderTargetId": "REPLACE_WITH_SENDER_TAB_ID",
+    "selectors": {
+      "account": "[data-operator-verified-account]",
+      "accountAttribute": "data-secuid",
+      "recipient": "[data-operator-verified-recipient]",
+      "recipientAttribute": "data-secuid",
+      "editor": "div[data-e2e=\"msg-input\"] [contenteditable=\"true\"]",
+      "sendButton": "div[data-e2e=\"msg-input\"] .e2e-send-msg-btn",
+      "blocked": "[data-operator-verified-login-or-captcha]",
+      "incoming": "[data-operator-verified-incoming]",
+      "incomingIdAttribute": "data-message-id",
+      "incomingRecipientAttribute": "data-secuid",
+      "incomingText": "[data-operator-verified-message-text]",
+      "outgoing": "[data-operator-verified-outgoing]",
+      "outgoingIdAttribute": "data-message-id",
+      "outgoingText": "[data-operator-verified-message-text]"
+    }
+  }
+}

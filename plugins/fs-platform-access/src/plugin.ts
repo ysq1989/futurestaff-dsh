@@ -8,6 +8,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import { PlatformDevApi } from './api.js'
 import { FutureStaffChatAdapter } from './chat.js'
+import { createPlatformInferenceService, type PlatformInferenceService } from './inference.js'
 import { apply as applyManagedModelDefault } from './model-default.js'
 import { PLATFORM_CONTRACT_VERSION, PLATFORM_MOCK_BASE_URL } from './contracts.js'
 import type { ApplicationTokenResult } from './contracts.js'
@@ -134,6 +135,16 @@ function mountDevLogin(ctx: Context, environment: PlatformEnvironment): void {
       loginJson(response, 200, { environment, origin })
     },
   }), 'futurestaff-platform-access: non-secret environment display')
+  ctx.provide('platformInference', createPlatformInferenceService({
+    models: async () => {
+      await initialized
+      const snapshot = access.getSnapshot()
+      if (!['ready', 'no_apps'].includes(snapshot.phase)) throw new Error('PLATFORM_LOGIN_REQUIRED')
+      return snapshot.models
+    },
+    authorize: async modelId => { await initialized; return access.authorizeChat(modelId) },
+    secrets, origin,
+  }))
   if (typeof ctx.inject === 'function') ctx.inject(['llm'], llmCtx => {
     const adapter = new FutureStaffChatAdapter(async modelId => { await initialized; return access.authorizeChat(modelId) }, secrets, globalThis.fetch, origin,
       async () => { await initialized; return access.getSnapshot().models })
@@ -409,6 +420,7 @@ export function apply(ctx: Context, config: PlatformAccessConfig = {}): void {
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
+    platformInference: PlatformInferenceService
     platformDevLogin: PlatformDevLoginService
   }
 }

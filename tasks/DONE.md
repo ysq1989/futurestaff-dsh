@@ -38,6 +38,22 @@ Platform builtin templates run through local DSH presets. Platform source baaa9a
 
 # Completed Atomic Tasks
 
+## B10: Blue-white access UI and login hints (local implementation)
+
+- Removed production endpoint label from login gate and access section.
+- Successful account identifier is prefilled after logout/expiration; authenticated
+  existing sessions seed first-use email hints. Subject defaults are stored by
+  server user UUID and select only currently offered authorized subjects.
+- No password, token, permission or role is cached; normal login and subject
+  confirmation still validate on the server. Storage failure/corruption is optional.
+- Public theme override adopts light once and uses blue/white desktop/access
+  tokens. Subsequent explicit theme choices remain effective; upstream unchanged.
+- Module build/typecheck, 113 module tests and scoped diff check passed. Actual
+  browser screenshots verified login and subject views; AA token checks passed.
+- Changes apply to the current working module, preserving pending production
+  login/workspace implementation. No installer publication or production change.
+
+
 ## B09: Confirmed in-app software updates
 
 - Completed 2026-10-08; source main `b8679b4377`, live version 2.0.13; ADR-018.
@@ -274,3 +290,31 @@ Platform builtin templates run through local DSH presets. Platform source baaa9a
 - Boundary: only the reserved bundled product Profile receives the automatic policy. Generic DSH Profiles retain the complete interactive Wizard, and authentication, tenant authority, platform model ownership, and credentials are unchanged.
 - Verification: focused product Profile/distribution/package tests passed 50/50 with TypeScript typecheck; the complete desktop gate passed with stable 109 files and 1029 tests plus 13 skips, Beta 108 files and 1029 tests plus 13 skips, both 228-node runtime closures, bilingual documents, variants, licenses, and operation reliability.
 - Operations: the source was committed locally; no push, installer rebuild or execution, signing, distribution, deployment, or production mutation was performed.
+
+## 抖音画像与模型分析核心（2026-10-03）
+
+- Atomic Task：`tasks/douyin-lead-analysis.md`，契约：`docs/specs/douyin-lead-workflow-v0.2.0.md`。
+- 复用 FutureStaff 授权模型，新增 Host-only 分析服务；默认越南签证画像、关键词拆解、逐字证据判定、关注与候选工作区及一次性预约核心。
+- 验证：平台模型模块84项、抖音模块38项、根目录55项测试通过；相关类型检查、构建及 diff 检查通过。没有真实推理、外部消息、部署或提交。
+- 完成范围仅为核心；界面、持续采集、Host运行装配、周期发送和资格撤销链待后续 Atomic Task，整体获客软件尚未完成。
+
+## DSH 抖音界面与 SQLite（2026-10-03）
+
+- 用户要求界面直接在DSH开发，数据存本地数据库；交付独立 `fs-douyin-ui` 插件、Alpha来源Profile和发行包装配。
+- 页面覆盖模型/可编辑画像及示例、关注账号/作品、评论原文证据、候选审核/拒绝联系、一次性预约预览/确认/暂停。数据存独立SQLite、按可信主体隔离；退出或切换主体立即卸载旧页面并取消发送资格。
+- 验证：工作区完整类型/测试/构建门通过；最终UI类型/构建及14项Host/数据库/浏览器/Electron、7项React检查通过；平台85项、原抖音核心38项和根目录55项通过。隔离浏览器桌面/移动布局已检查。
+- 边界：持续采集/周期发送和真实DOM校准未完成；无真实推理、外部私信、安装包更新、安装或重启、部署、提交或推送。详情见 `tasks/douyin-desktop-ui.md` 与 `docs/specs/douyin-desktop-v0.3.0.md`。
+
+## 抖音界面本机部署（2026-10-03）
+
+- 用户授权部署后，已备份并更新本机FutureStaff Agent 2.0.10的当前Profile，仅部署平台模型和抖音UI插件；软件有序退出后重启。
+- 真实桌面验收：抖音获客入口、六个标签、默认越南签证画像加载成功，独立SQLite已创建。当前主体无可用授权模型，AI分析禁用且提示明确。
+- 构建产物哈希核对和 `git diff --check` 通过；备份、回滚位置及限制记录于 `tasks/douyin-local-deployment.md`。未运行真实推理/私信、创建安装包、提交或推送；持续采集及真实发送未启用。
+
+## 客户端开发源码换电脑迁移 — 2026-10-10
+
+- `ysq1989/futurestaff-dsh` 已重命名为 `ysq1989/FutureStaff-Agent`，保留客户端 Git 历史；本次保存既有未提交开发源码、测试、规格和任务文件，未把未完成的业务任务标记完成。
+- 新电脑操作见 `docs/development-handoff.md`；须新建检出并拉取两个固定版本子模块，不沿用此前误拉取的平台快照。
+- 工作区类型检查、测试和产品构建通过；稳定桌面构建与类型检查通过，114 个测试文件、1101 项测试通过（13 项跳过）；根目录64项测试通过，官方候选引用检查通过。
+- 完整 `npm run check` 在稳定/Beta 未声明源码差异处失败，9 个路径及影响已记录于交接说明；未修改门禁以掩盖失败。
+- 仅提交与推送开发源码；没有发布安装包、更新运行中的软件、修改用户数据或执行真实外部消息。

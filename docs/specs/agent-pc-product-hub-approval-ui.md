@@ -1,6 +1,8 @@
 # Agent PC Product Hub approval UI
 
-Status: desktop authorization, live draft/approval client, and DSH Profile mounting implemented locally; rebuilt installer smoke pending.
+Status: Superseded for Desktop navigation. The Desktop sidebar now opens the
+existing Product Hub Web system after checking the current tenant's Platform
+application grant. The local approval page described below is not shipped.
 
 ## Goal
 

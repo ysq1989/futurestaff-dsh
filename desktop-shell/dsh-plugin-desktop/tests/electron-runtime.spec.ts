@@ -136,7 +136,7 @@ const electron = vi.hoisted(() => {
   }
 
   class BrowserWindow {
-    readonly webContents = webContents
+    readonly webContents = { ...webContents, id: 73 + browserWindows.length }
     accessibleTitle = ''
 
     constructor(options: unknown) {
@@ -504,6 +504,32 @@ describe('Electron desktop runtime', () => {
     await release()
     expect(electron.browserWindowOff).toHaveBeenCalledWith('page-title-updated', titleListener)
     expect(electron.trays[0]?.off).toHaveBeenCalledWith('click', expect.any(Function))
+  })
+
+  it('authenticates only owned module windows and revokes them on close and generation teardown', async () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('win32')
+    const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
+    const { douyinModuleWindowUrl } = await import('../src/module-window.ts')
+    const runtime = new ElectronDesktopRuntime(async () => {}), release = runtime.schedule(spec)
+    await runtime.mountScheduled()
+    const opener = electron.webContents.setWindowOpenHandler.mock.calls[0]![0]
+    const listener = electron.webRequest.onBeforeSendHeaders.mock.calls.find(call => call.length === 2)![1]
+    function headerFor(id: number, url = spec.url) {
+      const callback = vi.fn()
+      listener({ url, webContentsId: id, resourceType: 'mainFrame', requestHeaders: {} }, callback)
+      return callback.mock.calls[0]![0].requestHeaders[spec.rendererAccessHeader.name]
+    }
+    expect(headerFor(74)).toBeUndefined()
+    expect(opener({ url: douyinModuleWindowUrl(spec.url) })).toEqual({ action: 'deny' })
+    const child = electron.browserWindows[1]!
+    expect(child.webContents.id).toBe(74); expect(headerFor(74)).toBe(spec.rendererAccessHeader.value)
+    expect(headerFor(74, 'https://evil.invalid/')).toBeUndefined()
+    expect(electron.sessionFetch).toHaveBeenCalledOnce()
+    const closed = child.once.mock.calls.find(([name]) => name === 'closed')![1]
+    closed(); expect(headerFor(74)).toBeUndefined()
+    opener({ url: douyinModuleWindowUrl(spec.url) }); const replacement = electron.browserWindows[2]!
+    await release(); expect(replacement.destroy).toHaveBeenCalledOnce()
+    expect(electron.webRequest.onBeforeSendHeaders).toHaveBeenLastCalledWith(null)
   })
 
   it('attaches the renderer capability to same-origin HTTP and WebSocket requests only', async () => {

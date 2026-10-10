@@ -1,4 +1,6 @@
-# futurestaff-dsh
+# FutureStaff Agent
+
+The GitHub repository was renamed from `ysq1989/futurestaff-dsh` to `ysq1989/FutureStaff-Agent` on 2026-10-10. For a new development computer, read [the development handoff](docs/development-handoff.md). Internal package and Profile names retain their existing identifiers.
 
 FutureStaff's upgrade-friendly extension layer for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). This repository does **not** fork or patch DSH Core. It composes the official Web bundles in a custom Profile and mounts out-of-tree plugins beside them.
 
@@ -61,7 +63,7 @@ If Windows Application Control blocks DSH's native `sharp` module, run the Docke
 profile/futurestaff-alpha/  Custom Profile source
 plugins/fs-core/            Identity context and Tool metadata contract
 plugins/fs-platform-access/ B01a Host bridge and Web client for the pinned local platform Mock
-plugins/fs-product-hub-ui/  Product Hub approval UI, desktop authorization adapter, and DSH launcher
+plugins/fs-product-hub-ui/  Authorized launcher for the existing Product Hub Web system
 mcp/selection-center/       M2 MCP server, schemas, and HTTP adapter
 mcp/vietnam-visa/           Future boundary placeholder
 mcp/local-runner/            Fixed read-only DSH-to-Gateway MCP adapter

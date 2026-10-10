@@ -92,7 +92,7 @@ test('platform access preserves the immutable A01 Mock and pins the deployed A02
   })
 })
 
-test('FutureStaff Profile mounts platform access and Product Hub UI plugins', async () => {
+test('FutureStaff Profile mounts platform access and Product Hub launcher plugins', async () => {
   const [profilePackage, profilePatch, installer] = await Promise.all([
     readFile(new URL('../profile/futurestaff-alpha/package.json', import.meta.url), 'utf8'),
     readFile(new URL('../profile/futurestaff-alpha/cordis.patch.yml', import.meta.url), 'utf8'),

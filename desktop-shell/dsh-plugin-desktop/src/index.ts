@@ -196,6 +196,8 @@ export function desktopRendererUrl(
   url.searchParams.set('dsh-desktop-mode', mode)
   url.searchParams.set('dsh-desktop-platform', platform)
   url.searchParams.set('dsh-desktop-version', appVersion)
+  // Presentation capability only; native target and renderer membership enforce access.
+  url.searchParams.set('futurestaff-native-modules', 'douyin')
   url.searchParams.set('dsh-desktop-material', material)
   if (mode === 'extended' || (mode === 'compatibility' && platform !== 'linux')) {
     // Body-level plugin portals do not inherit the framed root's geometry.

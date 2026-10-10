@@ -69,6 +69,15 @@ export function localRunnerApprovalDecision(name: string): PreToolDecision | und
   }
 }
 
+export function douyinDmApprovalDecision(name: string): PreToolDecision | undefined {
+  const prefix = 'mcp__douyin-dm__'
+  if (!name.startsWith(prefix)) return undefined
+  const tool = name.slice(prefix.length)
+  if (['douyin_dm_preview', 'douyin_dm_status', 'douyin_dm_pause'].includes(tool)) return undefined
+  if (tool !== 'douyin_dm_start') return { kind: 'deny', reason: '此抖音工具尚未完成权限分类，已默认拒绝。' }
+  return { kind: 'ask', reason: '将按已预览的抖音账号、名单或回复规则自动发送私信，直到数量或时限到达。请核对预览后确认启动。' }
+}
+
 export function classifyVietnamVisaTool(name: string): VietnamVisaToolClassification {
   if (!name.startsWith(VIETNAM_VISA_TOOL_PREFIX)) return 'not-applicable'
   const tool = name.slice(VIETNAM_VISA_TOOL_PREFIX.length)
