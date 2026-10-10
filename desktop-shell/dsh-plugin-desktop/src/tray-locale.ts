@@ -75,8 +75,15 @@ export interface DesktopRestartConfirmationCopy {
   readonly cancel: string
 }
 
-const restartConfirmationCopy: Record<DesktopLocale, Record<'normal' | 'recovery', DesktopRestartConfirmationCopy>> = {
+const restartConfirmationCopy: Record<DesktopLocale, Record<'normal' | 'recovery' | 'workspace', DesktopRestartConfirmationCopy>> = {
   en: {
+    workspace: {
+      title: 'Enter your workspace',
+      message: 'Open the selected workspace?',
+      detail: 'FutureStaff Agent will restart to open the workspace and keep its local data separate. This restarts the app, not your computer. Saved sign-in information and settings will be kept.',
+      confirm: 'Restart and enter',
+      cancel: 'Enter later',
+    },
     normal: {
       title: 'Restart FutureStaff Agent',
       message: 'Restart FutureStaff Agent now?',
@@ -93,6 +100,13 @@ const restartConfirmationCopy: Record<DesktopLocale, Record<'normal' | 'recovery
     },
   },
   zh: {
+    workspace: {
+      title: '进入独立工作区',
+      message: '准备进入所选工作区',
+      detail: '为保持工作区的本地数据隔离，FutureStaff Agent 将重新启动并打开所选工作区。仅重启应用，不会重启电脑；已保存的登录状态和设置会保留。',
+      confirm: '重启并进入',
+      cancel: '稍后进入',
+    },
     normal: {
       title: '重启 FutureStaff Agent',
       message: '现在重启 FutureStaff Agent？',
@@ -149,7 +163,7 @@ export function desktopDiagnosticsPrivacyCopy(locale: DesktopLocale): DesktopDia
 /** Resolve the native confirmation shown before every ordinary relaunch request. */
 export function desktopRestartConfirmationCopy(
   locale: DesktopLocale,
-  target: 'normal' | 'recovery' = 'normal',
+  target: 'normal' | 'recovery' | 'workspace' = 'normal',
 ): DesktopRestartConfirmationCopy {
   return restartConfirmationCopy[locale][target]
 }

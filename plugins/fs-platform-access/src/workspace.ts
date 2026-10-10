@@ -16,6 +16,7 @@ interface Profiles {
   current: { name: string; dir: string }
   list(): readonly { name: string; dir: string; webCapable: boolean; problem?: string }[]
   select(name: string): Promise<void>
+  restartCurrent?(): Promise<void>
 }
 const uuid = (value: string) => requireUuid({ id: value }, 'id')
 export function workspaceIdentity(environment: PlatformEnvironment, tenantId: string, userId: string): WorkspaceIdentity {
@@ -69,6 +70,7 @@ export async function loadWorkspaceIdentity(directory: string, environment: Plat
 }
 /** Publishes configuration and immutable plugin code only. Never copies shared history or browser data. */
 export class DesktopLoginWorkspace implements LoginWorkspace {
+  private geoRestartPending = false
   constructor(private readonly profiles: Profiles, private readonly environment: PlatformEnvironment,
     private readonly secrets: PlatformProtectedSecrets, private readonly identity?: WorkspaceIdentity,
     private readonly dataRoot?: string) {}
@@ -95,7 +97,9 @@ export class DesktopLoginWorkspace implements LoginWorkspace {
       await writeFile(path.join(staging, 'package.json'), JSON.stringify(manifest, null, 2))
       const patch = await readFile(path.join(source, 'cordis.patch.yml'), 'utf8')
       await writeFile(path.join(staging, 'cordis.patch.yml'), patch + workspaceProfilePatch(identity, this.dataRoot) + workspaceMarketPatch(identity, this.dataRoot))
-      for (const module of ['fs-core', 'fs-platform-access', 'fs-product-hub-ui', 'fs-douyin-ui']) {
+      const modules = ['fs-core', 'fs-platform-access', 'fs-product-hub-ui', 'fs-douyin-ui']
+      if (manifest.dependencies?.['@futurestaff/fs-geo']) modules.push('fs-geo')
+      for (const module of modules) {
         const from = path.join(source, 'node_modules', '@futurestaff', module)
         await realDirectory(from)
         const to = path.join(staging, 'node_modules', '@futurestaff', module)
@@ -131,10 +135,43 @@ export class DesktopLoginWorkspace implements LoginWorkspace {
       await writeFile(temporary, existingPatch + workspaceMarketPatch(identity, this.dataRoot))
       await rename(temporary, patchPath)
     }
-    if (this.accepts(session, user) && !needsMarket) return true
+    // An installed member workspace may predate the local GEO plugin. Copy only
+    // immutable package code; its database lives outside managed Profile files.
+    const sourceManifest = JSON.parse(await readFile(path.join(source, 'package.json'), 'utf8'))
+    const targetManifestPath = path.join(target, 'package.json')
+    const targetManifest = JSON.parse(await readFile(targetManifestPath, 'utf8'))
+    const geoMarker = '# FutureStaff GEO local workspace v1'
+    const needsGeo = !!sourceManifest.dependencies?.['@futurestaff/fs-geo']
+      && (!targetManifest.dependencies?.['@futurestaff/fs-geo'] || !existingPatch.includes(geoMarker))
+    if (needsGeo) {
+      const from = path.join(source, 'node_modules', '@futurestaff', 'fs-geo')
+      await realDirectory(from)
+      const to = path.join(target, 'node_modules', '@futurestaff', 'fs-geo')
+      await mkdir(to, { recursive: true })
+      await realDirectory(to)
+      await cp(path.join(from, 'lib'), path.join(to, 'lib'), { recursive: true, dereference: false })
+      await cp(path.join(from, 'package.json'), path.join(to, 'package.json'))
+      targetManifest.dependencies = { ...targetManifest.dependencies, '@futurestaff/fs-geo': sourceManifest.dependencies['@futurestaff/fs-geo'] }
+      const temporaryManifest = `${targetManifestPath}.${randomUUID()}.tmp`
+      await writeFile(temporaryManifest, JSON.stringify(targetManifest, null, 2))
+      await rename(temporaryManifest, targetManifestPath)
+      const currentPatch = await readFile(patchPath, 'utf8')
+      if (!currentPatch.includes(geoMarker)) {
+        const temporaryPatch = `${patchPath}.${randomUUID()}.tmp`
+        await writeFile(temporaryPatch, currentPatch + `\n${geoMarker}\n- insert:\n    - id: futurestaff-geo\n      name: '@futurestaff/fs-geo'\n`)
+        await rename(temporaryPatch, patchPath)
+      }
+      if (this.accepts(session, user)) this.geoRestartPending = true
+    }
+    if (this.accepts(session, user) && !needsMarket && !needsGeo && !this.geoRestartPending) return true
     if (!this.profiles.list().some(item => item.name === name && item.webCapable && !item.problem)) throw new Error('WORKSPACE_PROFILE_UNAVAILABLE')
     await new PlatformSessionVault(this.secrets, this.environment, name).save({ session, user })
-    await this.profiles.select(name)
+    if (this.geoRestartPending && this.profiles.current.name === name) {
+      if (!this.profiles.restartCurrent) throw new Error('WORKSPACE_RESTART_REQUIRED')
+      await this.profiles.restartCurrent()
+    } else {
+      await this.profiles.select(name)
+    }
     return false // This generation must remain locked until the launcher boots the selected Profile.
   }
 }

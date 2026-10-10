@@ -7,6 +7,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const dshHome = path.resolve(root, process.env.DSH_HOME || '.dsh')
 const source = path.join(root, 'profile', 'futurestaff-alpha')
 const target = path.join(dshHome, 'profiles', 'futurestaff-alpha')
+const geoPlugin = path.join(root, 'plugins', 'fs-geo').replaceAll('\\', '/')
 const corePlugin = path.join(root, 'plugins', 'fs-core').replaceAll('\\', '/')
 const platformAccessPlugin = path.join(root, 'plugins', 'fs-platform-access').replaceAll('\\', '/')
 const productHubUiPlugin = path.join(root, 'plugins', 'fs-product-hub-ui').replaceAll('\\', '/')
@@ -18,6 +19,7 @@ await cp(source, target, { recursive: true })
 
 const manifestPath = path.join(target, 'package.json')
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+manifest.dependencies['@futurestaff/fs-geo'] = `file:${geoPlugin}`
 manifest.dependencies['@futurestaff/fs-core'] = `file:${corePlugin}`
 manifest.dependencies['@futurestaff/fs-platform-access'] = `file:${platformAccessPlugin}`
 manifest.dependencies['@futurestaff/fs-product-hub-ui'] = `file:${productHubUiPlugin}`

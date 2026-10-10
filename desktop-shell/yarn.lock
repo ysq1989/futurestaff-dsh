@@ -4720,6 +4720,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@electric-sql/pglite@npm:0.5.8":
+  version: 0.5.8
+  resolution: "@electric-sql/pglite@npm:0.5.8"
+  checksum: 10c0/02af377bb73428c1fb4559683dac0a4236d62320d5cda62ad4fc45d662a74fb011f767a161cb52b9160df734066376fc80f0d1506c2bbe9506490753fa12b532
+  languageName: node
+  linkType: hard
+
 "@electron-internal/extract-zip@npm:^1.0.1":
   version: 1.0.5
   resolution: "@electron-internal/extract-zip@npm:1.0.5"
@@ -8979,6 +8986,7 @@ __metadata:
     "@deepseek-ai/dsh-workflow": "npm:0.1.2-rc.1"
     "@deepseek-ai/dsh-workspace": "npm:0.1.2-rc.1"
     "@deepseek-ai/schemastery": "npm:^3.18.2"
+    "@electric-sql/pglite": "npm:0.5.8"
     "@electron/asar": "npm:3.4.1"
     "@fontsource-variable/inter": "npm:^5.3.0"
     "@tailwindcss/vite": "npm:^4"
@@ -9164,6 +9172,7 @@ __metadata:
     "@deepseek-ai/dsh-workflow": "npm:0.1.2-rc.1"
     "@deepseek-ai/dsh-workspace": "npm:0.1.2-rc.1"
     "@deepseek-ai/schemastery": "npm:^3.18.2"
+    "@electric-sql/pglite": "npm:0.5.8"
     "@electron/asar": "npm:3.4.1"
     "@fontsource-variable/inter": "npm:^5.3.0"
     "@tailwindcss/vite": "npm:^4"

@@ -1,0 +1,221 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/ysq1989/futurestaff-geo.git",
+  "commit": "aa8f810a80372e9bc14415b584504a5acf68b323",
+  "sourceVersion": "0.2.1",
+  "ownership": "FutureStaff GEO business implementation; DSH desktop adapters are owned by this repository",
+  "excluded": [
+    "Git metadata",
+    "node_modules",
+    "dist",
+    "deployment config",
+    "server main/postgres adapter",
+    "independent login page/module-login",
+    "credentials",
+    "databases",
+    "browser profiles"
+  ],
+  "adaptations": [
+    "DSH Host identity and permission context",
+    "internal API injection instead of an independent HTTP service",
+    "local asset/API prefixes and safe downloads",
+    "DSH model adapter and human model labels",
+    "return-to-DSH action instead of a second login/logout flow",
+    "local data and billing boundary copy",
+    "remove inherited shader trailing whitespace"
+  ],
+  "files": {
+    "apps/api/ai-draft-routes.ts": {
+      "sha256": "8494f7d69c633bcf7b339aa5ba456d0118855d7433b4d7266c6384c6f1f6e687",
+      "adapted": true
+    },
+    "apps/api/app.ts": {
+      "sha256": "3790e21c906209f53309f063e6f82fae4c552ab4aab3f1939bf9bd31bbadef61",
+      "adapted": true
+    },
+    "apps/api/content-routes.ts": {
+      "sha256": "53639c06b4cd12263389dff0c57084392988a71df4a184eb2f56b01c9614a1ea",
+      "adapted": false
+    },
+    "apps/web/AccountControl.tsx": {
+      "sha256": "3033e8a991e69d53236f824735df5b36f2adbf7c6c10727796917765e0e3d757",
+      "adapted": true
+    },
+    "apps/web/App.tsx": {
+      "sha256": "24d12091c6e44ee14b6c15509f43e46da6e3e2130f3e96ff1beb2406207f531a",
+      "adapted": true
+    },
+    "apps/web/BrandPropagation.tsx": {
+      "sha256": "46ed40938cd6e34742bb0408faec16fbc49d1138acf67c6f8ad42dc206ba7013",
+      "adapted": true
+    },
+    "apps/web/BrandSettings.tsx": {
+      "sha256": "78deab05d58f504b22c219c3823d6880f919ba8569dc4871320c40134a7c0794",
+      "adapted": false
+    },
+    "apps/web/client.ts": {
+      "sha256": "6af7048a1becd0726108ea7be06d4d25d714544fd747b536c363f8c3f3d8a400",
+      "adapted": true
+    },
+    "apps/web/Collection.tsx": {
+      "sha256": "187df02d4824663762c3af641ee07d53f824187f576cb78ed1c6fec5a00e47bf",
+      "adapted": true
+    },
+    "apps/web/content/AiDrafting.tsx": {
+      "sha256": "532be7a5011a7ee430dc1ca763d0cb986d5368dead03e29f1eb2a9f45caba787",
+      "adapted": true
+    },
+    "apps/web/content/Articles.tsx": {
+      "sha256": "5b71255ad9261244868bb1db89249767b957da73d117f67fe947b59433805555",
+      "adapted": false
+    },
+    "apps/web/content/ContentOperations.tsx": {
+      "sha256": "f8e11deeb787fd6f1e225f734b845d710dcb89cd311bc7f722ceed295f18739a",
+      "adapted": false
+    },
+    "apps/web/content/ProfileTopics.tsx": {
+      "sha256": "bfa80b660a58c9e78b0c4e711ed96d79b816492c2aac92eaf863142f81d2e5cf",
+      "adapted": false
+    },
+    "apps/web/content/Publications.tsx": {
+      "sha256": "4ed9c4cd638523209cd59867d35e031613601dde98b9d8ea3437e1bea95b291d",
+      "adapted": true
+    },
+    "apps/web/effects/cognitionRenderer.ts": {
+      "sha256": "79feacc280bdbf892004c4c2934a029d38168b29855170df4572a45aeb4fb60b",
+      "adapted": false
+    },
+    "apps/web/effects/orbShader.ts": {
+      "sha256": "0eea9cd01a76c56f30ecd2fb5452eac4879f76fc5dae663c49cb8d6df0c4b3e1",
+      "adapted": true
+    },
+    "apps/web/loginAudio.ts": {
+      "sha256": "602a7bf2ec2e364465239a8c9209c3a4530b71caffb42211529510c2e3b1a0c9",
+      "adapted": false
+    },
+    "apps/web/main.tsx": {
+      "sha256": "c90904c61b20f57571a6acffee5d515c3c5e9a6eb74c65a17dcf60c52aa47fc8",
+      "adapted": true
+    },
+    "apps/web/Overview.tsx": {
+      "sha256": "b94815e898606e4087d97dea15047e71ebef31d0584b3b128a7b5bcd1bc2f746",
+      "adapted": false
+    },
+    "apps/web/Projects.tsx": {
+      "sha256": "c98f47395b549017c853afff3a9392f8953efb2e9b11bf31fbc8a40ade61d4f1",
+      "adapted": false
+    },
+    "apps/web/ProjectWorkspace.tsx": {
+      "sha256": "b55e42c14e3dd579faefdaaf7f751e91e76f04a2b551b9795add979b55289346",
+      "adapted": false
+    },
+    "apps/web/propagationTimeline.ts": {
+      "sha256": "ab4a3f0974b116139e95e2914372682e18369539c642e6cf77d9fd97a6ca00c3",
+      "adapted": false
+    },
+    "apps/web/styles.css": {
+      "sha256": "b17bffe347ce916967d3e88b806014f9c1eebe7ea4f93ec291f8e47156dce4d8",
+      "adapted": false
+    },
+    "apps/web/workspace.css": {
+      "sha256": "cd76d0bd7e77ae41fc4d3c974caaece8158e1cca7b487287d521f6174a1c1219",
+      "adapted": false
+    },
+    "apps/web/Workspace.tsx": {
+      "sha256": "93eddd14c1eb0753e2cb48a494c0016dd54022dc28a0cab7d233ed37008ddc64",
+      "adapted": true
+    },
+    "packages/adapters/ai-gateway.ts": {
+      "sha256": "3b992609b1456fede1396c7f18dc3bad5ed6555cce5785076127b32e1106a087",
+      "adapted": false
+    },
+    "packages/adapters/publication-executor.ts": {
+      "sha256": "50faeefd09ccf9d0d17f98c89cfc084070c901355b3bc97cedb85ec069b930c6",
+      "adapted": false
+    },
+    "packages/core/ai-drafting.ts": {
+      "sha256": "15cb2e85d3b779e499222605883ace37b23f4e8ac4fda4a55015ea6ad707546c",
+      "adapted": false
+    },
+    "packages/core/content-types.ts": {
+      "sha256": "22a55fb0e3a0712e62429bd3284e0845d2946ed7279a45df1c06b8c2552e6b4f",
+      "adapted": false
+    },
+    "packages/core/content.ts": {
+      "sha256": "34aa18b15506d25bcf9b2cd5bdf53da0deeb3eb5d69a164616d11f270dff2631",
+      "adapted": false
+    },
+    "packages/core/errors.ts": {
+      "sha256": "9819a526cb7b31506cb32233a39d1c5b52683761279083494499abe30e24592a",
+      "adapted": false
+    },
+    "packages/core/metrics.ts": {
+      "sha256": "e9d4cce6017fe5f0585d7d93a60991793c678837b7a0f7e3214f3c5ad009ab5a",
+      "adapted": false
+    },
+    "packages/platform/identity.ts": {
+      "sha256": "332e7dbccebbb6a355bc55c1acd4b55273382852dcfa27f13c36293f9be9e44c",
+      "adapted": false
+    },
+    "packages/platform/pkce.ts": {
+      "sha256": "f345b8c0eaa1a6dd1e7c99f3a3246d4db9595447f8d73b7c9f524f10383b32b5",
+      "adapted": false
+    },
+    "packages/storage/001_initial.sql": {
+      "sha256": "918cb0168d223847fa6a2c37377b7c26b23429950cdbb129d08da9e0efaf2be2",
+      "adapted": false
+    },
+    "packages/storage/002_content.sql": {
+      "sha256": "22b4c70165fe572cd2744acbf6fdcb5b9604cc6f4ca7300505e7b00e2973a078",
+      "adapted": false
+    },
+    "packages/storage/003_delivery_ledger.sql": {
+      "sha256": "745fee4bd99143868d7cadd7558977a2308b6c95f6c2715737a6c35f99d596e0",
+      "adapted": false
+    },
+    "packages/storage/004_single_tenant_brand.sql": {
+      "sha256": "c2e4153731c9d79976a80881239ba558e3788f5fe0a16209233ade81bfebfbc6",
+      "adapted": false
+    },
+    "packages/storage/005_ai_drafts.sql": {
+      "sha256": "518048a5d15a391238505a8b5afe90a5ed7b892e17fa7cd2f77c04e342cb08c8",
+      "adapted": false
+    },
+    "packages/storage/ai-drafts.ts": {
+      "sha256": "d56177e202e81bd8af0bea59323e53bc475854ccc0d07b5f1e100657d95c47f8",
+      "adapted": false
+    },
+    "packages/storage/content-repository.ts": {
+      "sha256": "50d45a9f8ba08c4e6f8f9ef53334c77fdcf47339c3ff5b394ac3b113dd590eab",
+      "adapted": false
+    },
+    "packages/storage/delivery-queue.ts": {
+      "sha256": "93177f1561efebdc50de47ef1e9386e92fd8c663a390673201e71a8057a1689e",
+      "adapted": false
+    },
+    "packages/storage/migrations.ts": {
+      "sha256": "fe9415ad7544ceac95942501b9a6baded80c3d001ab0db179049d68dc6a42cb1",
+      "adapted": false
+    },
+    "packages/storage/repository.ts": {
+      "sha256": "295c68d5d28e1b355f30babe6a955a451abb134e43400b68fb34131928db6636",
+      "adapted": false
+    },
+    "packages/storage/tenant-brand.ts": {
+      "sha256": "7a80ed376c2f6980779997059786ecfc32e0b8f29b940334f1d7dcbd7a49e8a8",
+      "adapted": false
+    },
+    "public/audio/futurestaff-signal.wav": {
+      "sha256": "cd483a148257485b58e195beb2755d70620f6ad066b0610e855c632bdf2fe700",
+      "adapted": false
+    },
+    "public/brand/futurestaff-icon.svg": {
+      "sha256": "28512b0e7354a57c067c4674d0a897606fbaa44e8f1bce9c3549e533df6d29a7",
+      "adapted": false
+    },
+    "public/licenses/react-bits.txt": {
+      "sha256": "ce48406452c86d16998612d3d3b6ee54f5d6a6bb0941348785436ee866f625b5",
+      "adapted": false
+    }
+  }
+}

@@ -21,6 +21,8 @@ export interface DesktopProfiles {
   list(): readonly DesktopProfileSummary[]
   /** Persist a compatible profile and request an orderly application restart. */
   select(name: string): Promise<void>
+  /** Relaunch the fixed current Profile after managed plugin code changes. */
+  restartCurrent?(): Promise<void>
   /** Whether one inactive user profile can be safely removed now. */
   canDelete(name: string): boolean
   /** Remove one inactive user profile through the launcher boundary. */
@@ -147,6 +149,22 @@ export class DesktopProfileService extends Service implements DesktopProfiles {
     } catch (cause) {
       return Promise.reject(cause)
     }
+  }
+
+  restartCurrent(): Promise<void> {
+    this.assertActive()
+    const name = this.fixedCurrent.name
+    if (this.committedName !== undefined && this.committedName !== name) {
+      return Promise.reject(this.committedSelectionError(name))
+    }
+    if (this.operation !== undefined) {
+      if (this.operation.name === name) return this.operation.promise
+      return Promise.reject(new Error('dsh-plugin-desktop: another Profile transition is pending'))
+    }
+    return this.runExclusive(name, async () => {
+      this.assertActive()
+      await this.bootstrap.requestRestart()
+    })
   }
 
   canDelete(name: string): boolean {

@@ -1,0 +1,550 @@
+/* GEO workspace: the login's deep-space black, electric blue and violet light. */
+.shell {
+  --bg: #05070f;
+  --surface: #0d111d;
+  --elevated: #151928;
+  --hover: #1c1d32;
+  --border: #2b2d45;
+  --text: #f1f2ff;
+  --muted: #afb3cb;
+  --accent: #2563eb;
+  --accent-hover: #3975f5;
+  --glow: #a78bfa;
+  --active-bg: #251b40;
+  display: block;
+  min-height: 100dvh;
+  color: var(--text);
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse at 85% 0%, #39296926, transparent 45%),
+    radial-gradient(ellipse at 18% 80%, #15357220, transparent 55%);
+}
+:root[data-theme="light"] .shell {
+  --bg: #f6f5fb;
+  --surface: #fff;
+  --elevated: #f0eef8;
+  --hover: #ebe7f6;
+  --border: #dcd8e9;
+  --text: #201d35;
+  --muted: #65617b;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --glow: #7952c7;
+  --active-bg: #eee7fc;
+}
+.shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.2;
+  background-image:
+    radial-gradient(circle at 12% 19%, #c1c8ff 0 1px, transparent 1.6px),
+    radial-gradient(circle at 73% 41%, #91c9ff 0 0.7px, transparent 1.4px),
+    radial-gradient(circle at 39% 87%, #c6adff 0 0.6px, transparent 1.3px);
+  background-size:
+    383px 347px,
+    521px 439px,
+    617px 503px;
+}
+:root[data-theme="light"] .shell::before {
+  opacity: 0.06;
+}
+.shell .workspace-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 228px;
+  height: 100dvh;
+  z-index: 40;
+  padding: 24px 15px 14px;
+  gap: 0;
+  overflow-y: auto;
+  background: var(--bg);
+}
+.shell .brand {
+  font-size: 14px;
+  gap: 9px;
+  margin-bottom: 32px;
+  white-space: nowrap;
+}
+.shell .brand img {
+  width: 28px;
+  height: 28px;
+}
+.shell .tenant-context {
+  padding: 12px 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+.shell .tenant-context strong {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+.shell .tenant-context small {
+  display: block;
+  font-size: 11px;
+  margin-top: 4px;
+}
+.nav-caption {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0 12px 8px;
+}
+.shell .workspace-sidebar nav {
+  flex-direction: column;
+  gap: 4px;
+  overflow: visible;
+}
+.shell .workspace-sidebar nav button {
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 0;
+  border-left: 2px solid transparent;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.shell .workspace-sidebar nav button.active {
+  background: var(--active-bg);
+  border-left-color: var(--glow);
+  color: var(--text);
+}
+.shell .main {
+  position: relative;
+  margin-left: 228px;
+  min-width: 0;
+}
+.shell .topbar {
+  height: 60px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
+  padding: 0 32px;
+}
+.shell .topbar-location {
+  min-width: 0;
+  gap: 12px;
+}
+.shell .breadcrumb {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 12px;
+}
+.shell .breadcrumb button {
+  padding: 0;
+  border: 0;
+  min-height: 28px;
+  color: var(--muted);
+  background: none;
+}
+.shell .breadcrumb strong {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+.shell .topbar-tools {
+  gap: 12px;
+  flex: none;
+}
+.shell .topbar-tools > button {
+  background: none;
+  border: 0;
+  padding: 6px;
+  min-height: 30px;
+}
+.role-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.shell .content {
+  max-width: 1472px;
+  padding: 36px 48px 30px;
+  margin: auto;
+  min-height: calc(100dvh - 60px);
+}
+.workspace-identity {
+  font-size: 12px;
+  margin: 0 0 18px;
+  color: var(--muted);
+}
+.shell .page-heading {
+  margin-bottom: 28px;
+  align-items: center;
+}
+.shell .page-heading h1 {
+  font-size: 26px;
+  letter-spacing: -0.6px;
+  margin-bottom: 8px;
+}
+.shell .page-heading p {
+  margin: 0;
+  font-size: 13px;
+}
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.shell button {
+  font-size: 13px;
+}
+.shell button.primary {
+  color: #fff;
+  font-weight: 500;
+}
+.shell .panel {
+  padding: 24px;
+  border-radius: 6px;
+  margin-bottom: 24px;
+}
+.shell .form-grid label {
+  font-size: 13px;
+}
+.shell input,
+.shell select {
+  min-height: 42px;
+  background: var(--bg);
+}
+.shell h2 {
+  font-size: 15px;
+  font-weight: 600;
+}
+.overview-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 36px;
+}
+.overview-summary > div {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-top: 2px solid var(--accent);
+  border-radius: 9px;
+  background: linear-gradient(145deg, var(--surface), var(--bg));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.overview-summary > div:last-child {
+  border-top-color: #65b8e5;
+}
+.overview-summary > div:nth-child(2) {
+  border-top-color: var(--glow);
+}
+.overview-summary span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.overview-summary strong {
+  font-size: 30px;
+  line-height: 1.1;
+  letter-spacing: -1px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.overview-summary button {
+  justify-content: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  min-height: 20px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.overview-summary small {
+  line-height: 20px;
+  font-size: 12px;
+}
+.project-list-section {
+  margin-bottom: 28px;
+}
+.shell .section-heading {
+  margin-bottom: 16px;
+}
+.shell .section-heading h2 {
+  margin: 0;
+}
+.project-list-section > .table-scroll {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.shell table th {
+  background: var(--elevated);
+  padding: 15px 18px;
+}
+.shell table td {
+  padding: 18px;
+  vertical-align: middle;
+  font-size: 13px;
+}
+.shell table tr:last-child td {
+  border-bottom: 0;
+}
+.project-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.project-identity strong {
+  font-size: 13px;
+  font-weight: 550;
+}
+.project-avatar,
+.account-avatar {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--hover);
+  border: 1px solid var(--border);
+  flex: none;
+}
+.shell .text-action {
+  background: none;
+  border: 0;
+  min-height: 28px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.shell .text-action:hover {
+  color: var(--text);
+}
+.shell .project-empty {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 48px 24px;
+}
+.shell .project-empty::before {
+  content: "";
+  display: block;
+  width: 34px;
+  height: 34px;
+  margin: 0 auto 16px;
+  border: 2px solid var(--glow);
+  border-radius: 50%;
+  box-shadow: 0 0 18px #8b5cf633;
+}
+.workspace-guide {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.workspace-guide > svg {
+  color: var(--muted);
+  flex: none;
+}
+.workspace-guide > div {
+  flex: 1;
+  min-width: 0;
+}
+.workspace-guide strong {
+  font-size: 14px;
+  font-weight: 550;
+}
+.workspace-guide p {
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+.workspace-guide button {
+  flex: none;
+}
+.workspace-footer {
+  margin-top: 48px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.shell .workspace-sections {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.workspace-sections a {
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: none;
+}
+.workspace-sections a:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.shell section[id] {
+  scroll-margin-top: 84px;
+}
+.account-area {
+  position: relative;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.shell .account-trigger {
+  width: 100%;
+  padding: 6px;
+  border: 0;
+  background: none;
+  gap: 10px;
+  text-align: left;
+  justify-content: flex-start;
+}
+.account-copy {
+  min-width: 0;
+  flex: 1;
+}
+.account-copy strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.account-copy small {
+  display: block;
+  font-size: 11px;
+  margin-top: 4px;
+}
+.account-popover {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: 0 12px 40px #02091666;
+  z-index: 41;
+  overflow-wrap: anywhere;
+}
+.account-popover > strong,
+.account-popover > small {
+  display: block;
+}
+.account-popover > strong {
+  font-size: 12px;
+}
+.account-popover > small {
+  font-size: 11px;
+  margin: 5px 0 12px;
+}
+.shell .account-popover button {
+  width: 100%;
+  justify-content: flex-start;
+  color: var(--error);
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+  padding: 12px 0 0;
+}
+.mobile-nav-toggle,
+.sidebar-scrim {
+  display: none;
+}
+@media (max-width: 1100px) {
+  .shell .content {
+    padding: 28px;
+  }
+  .shell .topbar {
+    padding: 0 28px;
+  }
+}
+@media (max-width: 800px) {
+  .shell .main {
+    margin-left: 0;
+  }
+  .shell .workspace-sidebar {
+    display: none;
+  }
+  .shell .workspace-sidebar.is-open {
+    display: flex;
+  }
+  .sidebar-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: #020916b3;
+    z-index: 30;
+  }
+  .shell .mobile-nav-toggle {
+    display: inline-flex;
+    background: none;
+    border: 0;
+    padding: 0;
+  }
+  .shell .content {
+    padding: 24px 18px;
+  }
+  .shell .topbar {
+    padding: 0 18px;
+  }
+  .shell .page-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .overview-summary {
+    grid-template-columns: 1fr;
+    margin-bottom: 28px;
+  }
+  .overview-summary > div {
+    padding: 18px;
+    gap: 12px;
+  }
+  .overview-summary strong {
+    font-size: 26px;
+  }
+  .workspace-guide {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    padding: 18px;
+  }
+  .workspace-guide button {
+    margin-left: 42px;
+  }
+  .workspace-guide > div {
+    flex-basis: calc(100% - 42px);
+  }
+  .shell .panel {
+    padding: 18px;
+  }
+  .shell .breadcrumb strong {
+    max-width: 105px;
+  }
+  .shell .role-label {
+    display: none;
+  }
+}

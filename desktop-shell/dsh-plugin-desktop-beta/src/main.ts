@@ -1360,7 +1360,7 @@ async function start(): Promise<void> {
             }
           },
           persistSelection: name => { selectDesktopProfile(selectionStatePath, homeDir, name) },
-          requestRestart: () => runtime.requestRestart(),
+          requestRestart: () => runtime.requestRestart('workspace'),
         })
         let pendingSettingsRestart: ReturnType<typeof setImmediate> | undefined
         const scheduleSettingsRestart = (): void => {

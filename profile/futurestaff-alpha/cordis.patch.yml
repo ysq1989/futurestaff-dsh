@@ -63,6 +63,10 @@
       config:
         database: !!js dshHomePath('futurestaff/login/douyin/leads.sqlite')
 
+    # FutureStaff GEO local workspace v1
+    - id: futurestaff-geo
+      name: '@futurestaff/fs-geo'
+
     - id: mcp-selection-center
       name: '@deepseek-ai/dsh-mcp-client'
       disabled: !!js >-

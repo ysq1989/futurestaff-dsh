@@ -1850,6 +1850,44 @@ describe('Electron desktop runtime', () => {
     expect(restart).toHaveBeenCalledWith(undefined)
   })
 
+  it('explains workspace entry and preserves explicit restart confirmation', async () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
+    electron.dialog.showMessageBox.mockResolvedValueOnce({ response: 1, checkboxChecked: false })
+    const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
+    const restart = vi.fn(async () => {})
+    const runtime = new ElectronDesktopRuntime(restart)
+
+    await runtime.requestRestart('workspace')
+    expect(restart).not.toHaveBeenCalled()
+    expect(electron.dialog.showMessageBox).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'Open the selected workspace?',
+      detail: expect.stringContaining('not your computer'),
+      buttons: ['Restart and enter', 'Enter later'], defaultId: 1, cancelId: 1,
+    }))
+
+    electron.dialog.showMessageBox.mockResolvedValueOnce({ response: 0, checkboxChecked: false })
+    await runtime.requestRestart('workspace')
+    expect(restart).toHaveBeenCalledOnce()
+    expect(restart).toHaveBeenCalledWith(undefined)
+  })
+
+  it('localizes workspace entry without suggesting a computer restart', async () => {
+    vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
+    electron.dialog.showMessageBox.mockResolvedValueOnce({ response: 1, checkboxChecked: false })
+    const { ElectronDesktopRuntime } = await import('../src/electron-runtime.ts')
+    const restart = vi.fn(async () => {})
+    const runtime = new ElectronDesktopRuntime(restart)
+    runtime.setLocalePreference('zh')
+
+    await runtime.requestRestart('workspace')
+    expect(electron.dialog.showMessageBox).toHaveBeenCalledWith(expect.objectContaining({
+      title: '进入独立工作区', message: '准备进入所选工作区',
+      detail: expect.stringContaining('仅重启应用，不会重启电脑'),
+      buttons: ['重启并进入', '稍后进入'],
+    }))
+    expect(restart).not.toHaveBeenCalled()
+  })
+
   it('requires a distinct confirmation before restarting into recovery mode', async () => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
     electron.dialog.showMessageBox.mockResolvedValueOnce({ response: 0, checkboxChecked: false })

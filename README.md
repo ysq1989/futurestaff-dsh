@@ -57,6 +57,10 @@ If Windows Application Control blocks DSH's native `sharp` module, run the Docke
 | `npm run runner:client` | Start the minimal Local Runner from client environment values |
 | `npm run runner:enroll` | Generate a local device token and server-side digest binding |
 
+## GEO local desktop system
+
+GEO is now an owned local System tab at the same level as Douyin acquisition. It reuses DSH login/application grants and authorized models, with an embedded per-member PGlite database. Users need no database server or Docker. See [the GEO desktop module](plugins/fs-geo/README.md) for local/online boundaries and validation commands.
+
 ## Structure
 
 ```text

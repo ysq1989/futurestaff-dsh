@@ -99,6 +99,15 @@ describe('desktop profile service', () => {
     expect(create).not.toHaveBeenCalled()
   })
 
+  it('restarts managed code in the fixed current Profile without persisting another selection', async () => {
+    const persistSelection = vi.fn()
+    const requestRestart = vi.fn(async () => {})
+    const { service } = await mount(createBootstrap({ persistSelection, requestRestart }))
+    await service.restartCurrent()
+    expect(persistSelection).not.toHaveBeenCalled()
+    expect(requestRestart).toHaveBeenCalledOnce()
+  })
+
   it('does nothing when the current profile is selected', async () => {
     const persistSelection = vi.fn()
     const requestRestart = vi.fn()

@@ -1,0 +1,14 @@
+{
+  "name": "futurestaff-geo-desktop-web",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "@tabler/icons-react": "3.35.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.0",
+    "@types/react-dom": "19.2.0"
+  }
+}

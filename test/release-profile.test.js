@@ -17,6 +17,8 @@ test('stages a relocatable built-only FutureStaff Profile', async () => {
     assert.ok(files.includes('node_modules/@futurestaff/fs-platform-access/lib/client/index.js'))
     assert.ok(files.includes('node_modules/@futurestaff/fs-product-hub-ui/lib/client/index.js'))
     assert.ok(!files.some(file => file.startsWith('node_modules/@futurestaff/fs-product-hub-ui/ui/')))
+    assert.ok(files.includes('node_modules/@futurestaff/fs-geo/lib/ui/index.html'))
+    assert.ok(files.includes('node_modules/@futurestaff/fs-geo/lib/005_ai_drafts.sql'))
     assert.ok(files.includes('node_modules/.modules.yaml'))
     assert.ok(files.includes('pnpm-lock.yaml'))
     assert.ok(files.includes('pnpm-workspace.yaml'))
@@ -41,6 +43,7 @@ test('stages a relocatable built-only FutureStaff Profile', async () => {
       '@futurestaff/fs-platform-access': '0.1.0',
       '@futurestaff/fs-product-hub-ui': '0.1.0',
       '@futurestaff/fs-douyin-ui': '0.1.0',
+      '@futurestaff/fs-geo': '0.1.0',
     })
     assert.ok(Object.values(profile.dependencies).every(value => !value.startsWith('file:')))
   } finally {

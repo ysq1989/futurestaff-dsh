@@ -1,0 +1,18 @@
+import {build} from 'esbuild';
+import {cp,mkdir,writeFile} from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=fileURLToPath(new URL('../',import.meta.url));
+await mkdir(path.join(root,'lib/ui'),{recursive:true});
+const external=['@deepseek-ai/cordis','@electric-sql/pglite'];
+await build({entryPoints:{index:path.join(root,'src/index.ts'),service:path.join(root,'src/service.ts'),authorization:path.join(root,'src/authorization.ts')},outdir:path.join(root,'lib'),bundle:true,platform:'node',format:'esm',target:'node22',external,banner:{js:'import { createRequire as __geoCreateRequire } from "node:module"; const require = __geoCreateRequire(import.meta.url);'}});
+await build({entryPoints:[path.join(root,'source/apps/web/main.tsx')],outfile:path.join(root,'lib/ui/assets/app.js'),bundle:true,platform:'browser',format:'esm',target:'es2022',jsx:'automatic',minify:true});
+await cp(path.join(root,'source/public/audio'),path.join(root,'lib/ui/audio'),{recursive:true});
+await cp(path.join(root,'source/public/brand'),path.join(root,'lib/ui/brand'),{recursive:true});
+for(const file of ['001_initial.sql','002_content.sql','003_delivery_ledger.sql','004_single_tenant_brand.sql','005_ai_drafts.sql'])await cp(path.join(root,'source/packages/storage',file),path.join(root,'lib',file));
+await writeFile(path.join(root,'lib/ui/index.html'),'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FutureStaff GEO · 本地工作区</title><link rel="stylesheet" href="/_futurestaff/geo/assets/app.css"></head><body><div id="root"></div><script type="module" src="/_futurestaff/geo/assets/app.js"></script></body></html>');
+await mkdir(path.join(root,'lib/client'),{recursive:true});
+await writeFile(path.join(root,'lib/client/index.d.ts'),'import type {Context} from "@deepseek-ai/cordis"; export declare const inject: string[]; export declare function apply(ctx:Context): void;\n');
+await writeFile(path.join(root,'lib/index.d.ts'),'import type {Context} from "@deepseek-ai/cordis"; export declare const inject: string[]; export declare function apply(ctx:Context): void;\n');
+const {spawnSync}=await import('node:child_process');
+const result=spawnSync(process.execPath,[path.resolve(root,'../../scripts/build-dsh-client.mjs'),root,'@futurestaff/fs-geo'],{stdio:'inherit'});if(result.status!==0)throw Error('GEO client build failed');

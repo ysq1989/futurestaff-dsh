@@ -7,7 +7,7 @@ import vm from 'node:vm'
 const scriptRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const defaultOutput = path.join(scriptRoot, 'dist', 'desktop-profile')
 const profileName = 'futurestaff-alpha'
-const packages = ['fs-core', 'fs-platform-access', 'fs-product-hub-ui', 'fs-douyin-ui']
+const packages = ['fs-core', 'fs-platform-access', 'fs-product-hub-ui', 'fs-douyin-ui', 'fs-geo']
 const supersededReleaseManifests = [
   // Verified intact 2.0.13 release Profile; upgrades branding, hints and access composition.
   '836818df6fef5c44ef751ca3bf07885fd253fdac46e9283af5fe32eee34c9680',
@@ -88,6 +88,9 @@ export async function verifyReleaseProfile(outputRoot, sourceRoot = scriptRoot) 
     'node_modules/@futurestaff/fs-platform-access/package.json',
     'node_modules/@futurestaff/fs-product-hub-ui/package.json',
     'node_modules/@futurestaff/fs-douyin-ui/package.json',
+    'node_modules/@futurestaff/fs-geo/package.json',
+    'node_modules/@futurestaff/fs-geo/lib/ui/index.html',
+    'node_modules/@futurestaff/fs-geo/lib/005_ai_drafts.sql',
   ]
   for (const relative of required) {
     if (!files.includes(relative)) throw new Error(`release Profile is missing ${relative}`)
@@ -107,6 +110,7 @@ export async function verifyReleaseProfile(outputRoot, sourceRoot = scriptRoot) 
     verifyClientBundle(target, 'fs-platform-access'),
     verifyClientBundle(target, 'fs-product-hub-ui'),
     verifyClientBundle(target, 'fs-douyin-ui'),
+    verifyClientBundle(target, 'fs-geo'),
   ])
   const sourceMarkers = [path.resolve(sourceRoot), path.resolve(sourceRoot).replaceAll('\\', '/')]
   for (const relative of files.filter(file => /\.(?:json|ya?ml|js|d\.ts)$/u.test(file))) {

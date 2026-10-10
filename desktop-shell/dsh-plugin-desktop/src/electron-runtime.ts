@@ -475,10 +475,10 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
   }
 
   /** @inheritdoc */
-  async requestRestart(): Promise<void> {
+  async requestRestart(reason?: 'workspace'): Promise<void> {
     if (this.quitting) return
     if (this.restartRequest !== undefined) return await this.restartRequest
-    const request = this.confirmAndRestart('normal').finally(() => {
+    const request = this.confirmAndRestart(reason ?? 'normal').finally(() => {
       if (this.restartRequest === request) this.restartRequest = undefined
     })
     this.restartRequest = request
@@ -496,7 +496,7 @@ export class ElectronDesktopRuntime implements DesktopRuntime {
     await request
   }
 
-  private async confirmAndRestart(target: 'normal' | 'recovery'): Promise<void> {
+  private async confirmAndRestart(target: 'normal' | 'recovery' | 'workspace'): Promise<void> {
     const copy = desktopRestartConfirmationCopy(this.currentLocale, target)
     const options: Electron.MessageBoxOptions = {
       type: 'question',

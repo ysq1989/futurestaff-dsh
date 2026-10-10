@@ -4,7 +4,11 @@
   "private": true,
   "description": "FutureStaff extensions for DeepSeek Harness",
   "type": "module",
-  "workspaces": ["plugins/*", "mcp/*", "runner/*"],
+  "workspaces": [
+    "plugins/*",
+    "mcp/*",
+    "runner/*"
+  ],
   "scripts": {
     "build": "npm run build:product && npm run build:desktop",
     "build:product": "npm run build --workspaces --if-present",
@@ -15,10 +19,10 @@
     "check:desktop": "corepack yarn@4.18.0 --cwd desktop-shell check",
     "check": "npm run desktop:verify && npm run check:workspaces && npm run check:desktop && node --test test/*.test.js",
     "desktop:verify": "node scripts/desktop-foundation.mjs",
-    "desktop:install": "corepack yarn@4.18.0 --cwd desktop-shell install --immutable",
+    "desktop:install": "npm run install:web -w @futurestaff/fs-geo && corepack yarn@4.18.0 --cwd desktop-shell install --immutable",
     "platform:mock:demo": "npm run build -w @futurestaff/fs-platform-access && node scripts/platform-mock-demo.mjs",
     "platform:mock:smoke": "node scripts/platform-mock-smoke.mjs",
-    "release:profile": "npm run build -w @futurestaff/fs-core && npm run build -w @futurestaff/fs-platform-access && npm run build -w @futurestaff/fs-product-hub-ui && npm run build -w @futurestaff/douyin-dm-mcp && npm run build -w @futurestaff/fs-douyin-ui && node scripts/stage-release-profile.mjs",
+    "release:profile": "npm run build -w @futurestaff/fs-core && npm run build -w @futurestaff/fs-platform-access && npm run build -w @futurestaff/fs-product-hub-ui && npm run build -w @futurestaff/douyin-dm-mcp && npm run build -w @futurestaff/fs-douyin-ui && npm run build -w @futurestaff/fs-geo && node scripts/stage-release-profile.mjs",
     "profile:dump:release": "npm run release:profile && cross-env DSH_HOME=dist/desktop-profile NODE_OPTIONS=--import=./scripts/load-env.mjs dsh --profile futurestaff-alpha --dump-config",
     "desktop:stage": "node scripts/stage-desktop-release.mjs",
     "installer:windows": "node scripts/build-desktop-installer.mjs",
@@ -38,7 +42,9 @@
     "installer:runner:windows": "npm run package:runner:windows && npm run compile -w @futurestaff/local-runner-installer",
     "douyin:profile": "npm run build -w @futurestaff/fs-core && npm run build -w @futurestaff/douyin-dm-mcp && node scripts/install-douyin-profile.mjs"
   },
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "devDependencies": {
     "@deepseek-ai/dsh": "0.1.2-rc.1",
     "cross-env": "^10.0.0",
