@@ -122,7 +122,10 @@ test('client registers Settings access and a mandatory login gate', () => {
   assert.equal(mark.props.alt, 'FutureStaff')
   assert.match(mark.props.src, /^data:image\/svg\+xml,/)
   assert.match(decodeURIComponent(mark.props.src), /viewBox="0 0 34 36"/)
-  assert.equal(components[1]().props.children, 'FutureStaff Agent')
+  const wordmark = components[1]()
+  assert.equal(wordmark.type, 'svg')
+  assert.equal(wordmark.props['aria-label'], 'FutureStaff.Agent')
+  assert.equal(wordmark.props.viewBox, '65 0 292 68') // mark has its own slot
   const context = components[3]({ node: { data: {
     source: { kind: 'plugin', plugin: '@deepseek-ai/dsh-system-prompt' },
     provenance: { role: 'inject', label: '@deepseek-ai/dsh-system-prompt' },

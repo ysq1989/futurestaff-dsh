@@ -3,6 +3,10 @@ import type {} from '@deepseek-ai/dsh-client-ui-theme/client'
 
 // Map the product palette through the public theme seam; do not edit upstream CSS.
 const palette = {
+  '--fs-sidebar-bg': ['#1d4ed8', '#142b58'], '--fs-sidebar-hover': ['#1e40af', '#1e3a6a'],
+  '--fs-sidebar-text': ['#ffffff', '#ffffff'], '--fs-sidebar-muted': ['#dbeafe', '#c7d9f7'],
+  '--fs-popup-muted': ['#475569', '#b1b2bd'], '--fs-popup-hover': ['#dbeafe', '#2b2c32'],
+  '--fs-popup-text': ['#0f172a', '#eeeef2'],
   '--bg-primary': ['#eff6ff', '#17181b'], '--bg-secondary': ['#ffffff', '#111215'],
   '--bg-tertiary': ['#f8fafc', '#222327'], '--bg-elevated': ['#ffffff', '#26272c'],
   '--bg-hover': ['#dbeafe', '#2b2c32'], '--bg-active': ['#dbeafe', '#30313b'],
@@ -35,13 +39,13 @@ export const appearanceTokens = Object.fromEntries([
   ...Object.entries(palette).map(([key, [light, dark]]) => [key, { light, dark }]),
   ...Object.entries(aliases).map(([name, key]) => [`--dsw-alias-${name}`, { light: palette[key][0], dark: palette[key][1] }]),
   ...['sidebar-fill', 'bubble', 'input-major', 'login-input', 'menu', 'selector'].map(name =>
-    [`--dsw-specific-${name}`, { light: palette['--bg-secondary'][0], dark: palette['--bg-secondary'][1] }]),
+    [`--dsw-specific-${name}`, { light: palette[name === 'sidebar-fill' ? '--fs-sidebar-bg' : '--bg-secondary'][0], dark: palette[name === 'sidebar-fill' ? '--fs-sidebar-bg' : '--bg-secondary'][1] }]),
 ])
 
 export const appearanceCss = `
 body[data-futurestaff-skin]{--font-family:'Segoe UI','Microsoft YaHei UI',system-ui,sans-serif;--radius-lg:12px;--radius-md:8px;--shadow-lg:0 16px 48px var(--fs-shadow);--dsh-desktop-frame-fill:var(--bg-secondary)!important;color:var(--text-primary);background:var(--bg-primary)}
 body[data-futurestaff-skin] .dshDesktopConversationSurface{background:var(--bg-primary)}
-body[data-futurestaff-skin] .dshDesktopSidebarSurface{background:var(--bg-secondary)!important}
+body[data-futurestaff-skin] .dshDesktopSidebarSurface{background:var(--fs-sidebar-bg)!important}
 body[data-futurestaff-skin] :is(.dshDesktopWindowsCaptionRow,.dshDesktopMacCaptionRow,.dshDesktopFrameTitlebar){background:var(--bg-secondary);border-bottom:1px solid var(--border-default)}
 body[data-futurestaff-skin] :is([aria-label="打开抖音获客"],[aria-label="打开线上选品中心"]){display:flex;align-items:center;justify-content:flex-start;gap:8px;min-height:36px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--text-secondary);font:inherit;text-align:left;cursor:pointer;transition:background .15s,color .15s}
 body[data-futurestaff-skin] :is([aria-label="打开抖音获客"],[aria-label="打开线上选品中心"]):hover{color:var(--text-primary);background:var(--bg-hover)}

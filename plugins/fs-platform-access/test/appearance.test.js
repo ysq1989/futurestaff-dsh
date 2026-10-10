@@ -55,6 +55,11 @@ test('both palette modes keep body, muted text and primary button labels readabl
   }
   const contrast = (a,b) => { const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05) }
   for (const mode of ['light','dark']) {
+    for (const text of ['--fs-sidebar-text','--fs-sidebar-muted']) {
+      for (const surface of ['--fs-sidebar-bg','--fs-sidebar-hover']) {
+        assert.ok(contrast(appearanceTokens[text][mode],appearanceTokens[surface][mode])>=4.5,`${mode} ${text} on ${surface}`)
+      }
+    }
     for (const text of ['--text-primary','--text-secondary']) {
       for (const surface of ['--bg-primary','--bg-secondary','--bg-tertiary']) {
         assert.ok(contrast(appearanceTokens[text][mode],appearanceTokens[surface][mode])>=4.5,`${mode} ${text} on ${surface}`)

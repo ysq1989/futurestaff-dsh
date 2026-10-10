@@ -25,7 +25,7 @@ test('sidebar reads installed-shell version metadata and rejects arbitrary displ
   assert.equal(sidebarVersion(''), undefined)
 })
 
-test('account sidebar mounts both existing navigation seats and settings while keeping actions initially hidden', () => {
+test('account sidebar preserves sessions and settings but replaces legacy launchers with the system directory', () => {
   const slots = []
   const controller = { subscribe: () => () => {}, getSnapshot: () => snapshot, logout: async () => {} }
   const Sidebar = createAccountSidebar(controller)
@@ -39,8 +39,11 @@ test('account sidebar mounts both existing navigation seats and settings while k
   assert.match(html, /id="fs-menu-panel"[^>]+hidden/)
   assert.match(html, /aria-selected="true"/)
   assert.doesNotMatch(html, />退出登录</)
-  assert.deepEqual(slots.map(slot => slot.name), ['sidebar.workspaces', 'sidebar.footer.action', 'sidebar.settings'])
-  assert.equal(slots[2].props.wide, true)
+  assert.deepEqual(slots.map(slot => slot.name), ['sidebar.workspaces', 'sidebar.settings'])
+  assert.equal(slots[1].props.wide, true)
+  assert.match(html, /FutureStaff ERP/)
+  assert.match(html, /FutureStaff Hub/)
+  assert.doesNotMatch(html, /选品中心/)
 })
 
 test('product sidebar preserves the native child slot declarations and navigation injection', () => {

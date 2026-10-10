@@ -45,6 +45,11 @@
   },
   "decisions": [
     {
+      "id": "blue-system-directory",
+      "decision": "Use a brand-blue sidebar with white selected navigation and a unified System directory for registered pages and server-authorized applications; remove the legacy selection-center launcher. Unavailable systems show explicit status. Preserve neutral main content and user-selected dark mode.",
+      "date": "2026-10-10"
+    },
+    {
       "id": "product-hub-approval-split",
       "decision": "Use a restrained split approval surface with frozen products on the left and the explicit publication action on the right; collapse to one column below 980px.",
       "date": "2026-09-07"
